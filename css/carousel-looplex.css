@@ -73,7 +73,7 @@ body {
   transition: all 0.3s cubic-bezier(.25, .8, .25, 1);
   border: var(--bs-card-border-width) solid rgb(0 0 0 / 0%);
   border-radius: 4px;
-  background: linear-gradient(0deg, #f5f5f5 20%, #fff 0%)
+  background: linear-gradient(0deg, #f5f5f5 20%, #fff 0%);
 }
 
 .d-w-full {
@@ -95,7 +95,6 @@ aside {
   max-height: 100%;
   overflow: hidden;
 }
-
 
 main {
   background-color: #FFF;
@@ -245,4 +244,24 @@ legend#root__title::before{
 
 .btn-summary{
   text-transform: capitalize;
+}
+
+.btn-summary::before{
+  content: ' ';
+  display: inline-block;
+  border-bottom: 2px solid #000;
+  border-right: 2px solid #000;
+  height: 6px;
+  width: 6px;
+  transform: rotate(-45deg);
+  margin-right: 10px;
+  margin-bottom: 2px;
+}
+
+.btn-summary.opened::before{
+  transform: rotate(45deg);
+}
+
+.table-highlight{
+  background-color: #f5f5f5;;
 }

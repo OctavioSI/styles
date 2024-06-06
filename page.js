@@ -11,7 +11,7 @@ function Description(props) {
 
           <tbody>
             <tr>
-              <td>
+              <td className="table-highlight">
                 Número da Alteração
               </td>
               <td>
@@ -19,7 +19,7 @@ function Description(props) {
               </td>
             </tr>
             <tr>
-              <td>
+              <td className="table-highlight">
                 Último Revisor
               </td>
               <td>
@@ -27,7 +27,7 @@ function Description(props) {
               </td>
             </tr>
             <tr>
-              <td>
+              <td className="table-highlight">
                 Data Última Revisão
               </td>
               <td>
@@ -35,7 +35,7 @@ function Description(props) {
               </td>
             </tr>
             <tr>
-              <td>
+              <td className="table-highlight">
                 Comentários última atualização
               </td>
               <td>
@@ -55,7 +55,7 @@ function Row(props) {
 
   let row =
     <tr class={priorValue == currentValue ? "table-default" : "table-primary"}>
-      <td style={{ wordBreak: "break-all", minWidth: "100px" }}>{title}</td>
+      <td style={{ wordBreak: "break-all", minWidth: "100px" }}  className="table-highlight">{title}</td>
       <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{priorValue}</td>
       <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{currentValue}</td>
     </tr>
@@ -70,7 +70,7 @@ function TableRow(props) {
       <td colspan="3">
         <table class="table table-hover table-sm table-bordered">
           <thead class="thead-light">
-            <tr>
+            <tr className="table-highlight">
               <th scope="col">Item</th>
               <th scope="col">Prior</th>
               <th scope="col">Current</th>
@@ -98,7 +98,7 @@ function Section(props) {
     <div class="collapse show" id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
-          <tr>
+          <tr  className="table-highlight">
             <th scope="col">Item</th>
             <th scope="col">Prior</th>
             <th scope="col">Current</th>
