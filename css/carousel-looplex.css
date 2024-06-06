@@ -213,20 +213,21 @@ main {
 legend{
   font-size: 1em;
   background-color: #f4f4f4;
-  padding: 12px;
+  padding: 12px !important;
   border: 0;
 }
 
 legend::before{
-  content: "<";
+  content: ">";
   margin-right: 10px;
 }
 
 legend#root__title{
   font-size: 1.2em;
   background-color: transparent;
-  padding-left: 12px;
-  padding:0;
+  padding-left: 12px !important;
+  padding:0 !important;
+  font-weight:bold;
   border: 0;
 }
 
