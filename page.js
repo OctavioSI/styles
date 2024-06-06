@@ -5,7 +5,7 @@ function Description(props) {
   let description = props.description
   return (
     <div >
-      <a class="btn btn-primary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>INFORMAÇÕES GERAIS</a>
+      <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
       <div class="collapse show" id="overview">
         <table class="table table-hover table-sm table-bordered">
 
@@ -94,7 +94,7 @@ function Section(props) {
   let section = <div style={{
     width: "100%", height: "100%", backgroundColor: "white"
   }} >
-    <a class="btn btn-primary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>{title}</a>
+    <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>{title}</a>
     <div class="collapse show" id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
@@ -442,7 +442,6 @@ function Resumo(props) {
       <div className='container-form'>
         <div className='card'>
             <main>
-            <h1>Formulário Negociação</h1>
             <form method='POST' action='/' onSubmit={handleSubmit}>
               <div ref={myCarouselRef} className='d-carousel d-w-full'>
                 {
@@ -458,16 +457,17 @@ function Resumo(props) {
                         <div className="d-w-full">
                           <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} />
                         </div>
-                        <div className="d-mt-5 d-flex d-w-full d-space-x-4">
+                        <div className="d-mt-5 d-flex d-w-full d-space-x-4 d-text-right">
                           {
                             (index - 1) >= 0 &&
-                            <button className="btn btn-primary d-flex-1" onClick={(e) => { e.preventDefault(); handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveLeft') }}>{(card.formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                            <button className="btn btn-outline-secondary" onClick={(e) => { e.preventDefault(); handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveLeft') }}>{(card.formData?.language === 'en_us') ? '<   Previous' : '<   Anterior'}</button>
                           }
+                          <span>...</span>
                           {
                             (index + 1) < cards.length ? (
-                              <button type="button" className="btn btn-primary d-flex-1" onClick={(e) => { e.preventDefault(); handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveRight') }}>{(card.formData?.language === 'en_us') ? 'Next' : 'Próxima'}</button>
+                              <button type="button" className="btn btn-outline-secondary" onClick={(e) => { e.preventDefault(); handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveRight') }}>{(card.formData?.language === 'en_us') ? 'Next   >' : 'Próxima    >'}</button>
                             ) : (
-                              <button type="button" className={isReady2Submit ? "btn btn-success d-flex-1" : "btn btn-primary d-flex-1"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveRight') }}>{isLoading ? ((card.formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isReady2Submit ? ((card.formData?.language === 'en_us') ? 'Submit' : 'Enviar') : ((card.formData?.language === 'en_us') ? 'Next' : 'Próxima'))}</button>
+                              <button type="button" className={isReady2Submit ? "btn btn-outline-success" : "btn btn-outline-secondary"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveRight') }}>{isLoading ? ((card.formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isReady2Submit ? ((card.formData?.language === 'en_us') ? 'Submit' : 'Enviar') : ((card.formData?.language === 'en_us') ? 'Next   >' : 'Próxima   >'))}</button>
                             )
                           }
                         </div>
@@ -484,7 +484,7 @@ function Resumo(props) {
               </center>
             ) : null}
           </main>
-          <aside style={{ background: "white" }}>
+          <aside>
             <div className="card-navigation">
               <button className={ previewDoc == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPreviewDoc('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
               <button className={ previewDoc == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
