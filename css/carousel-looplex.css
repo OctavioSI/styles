@@ -103,6 +103,7 @@ aside {
 .card-navigation .btn{
   border:2px solid #f4f4f4;
   background-color: #fafafa;
+  text-transform: none;
 }
 
 .card-navigation .active{
@@ -117,7 +118,19 @@ aside {
   border: 2px solid #f4f4f4;
 }
 
+.previewWrapper{
+  height: 100%;
+  position:relative;
+}
 
+.previewWrapper .btn-reload-preview{
+  position: absolute;
+  bottom: 30px;
+  right: 12px;
+  background-color: #fff;
+  border: 2px solid #f4f4f4;
+  text-transform: none;
+}
 
 .left-margin-5px{
   margin-left:5px;    
