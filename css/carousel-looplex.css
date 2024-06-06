@@ -221,3 +221,20 @@ legend::before{
   content: "<";
   margin-right: 10px;
 }
+
+legend#root__title{
+  font-size: 1.2em;
+  background-color: transparent;
+  padding-left: 12px;
+  padding:0;
+  border: 0;
+}
+
+legend#root__title::before{
+  content: ""
+}
+
+.required{
+  color: #CF1322;
+  margin-left: 5px;
+}
