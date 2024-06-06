@@ -6,7 +6,7 @@ function Description(props) {
   return (
     <div >
       <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
-      <div class="collapse show" id="overview">
+      <div class="collapse" id="overview">
         <table class="table table-hover table-sm table-bordered">
 
           <tbody>
@@ -91,11 +91,12 @@ function Section(props) {
   let table = props.table
   let title = props.title
   let id = props.id
+  let isCurrentCard = props.isCurrentCard
   let section = <div style={{
     width: "100%", height: "100%", backgroundColor: "white"
   }} >
     <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>{title}</a>
-    <div class="collapse show" id={id}>
+    <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
           <tr  className="table-highlight">
@@ -136,7 +137,9 @@ function Resumo(props) {
     return items
   }
   let cards = props.cards
+  let activeCard = props.activeCard
   let sections = []
+  let currentCard = cards[activeCard];
   for (let i = 0; i < cards.length; i++) {
     let card = cards[i]
     let title = card.schema?.title ? card.schema?.title : card.cardId
@@ -144,7 +147,7 @@ function Resumo(props) {
     let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
     let cardCurrentFormData = card.formData ? card.formData : {}
     let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
-    sections.push(<Section table={table} title={title} id={card.cardId} />)
+    sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} />)
   }
   return (
     <div>
@@ -502,7 +505,7 @@ function Resumo(props) {
                       "dateReview": "03/05/2024",
                       "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"
                     }} />
-                    <Resumo cards={cards} />
+                    <Resumo cards={cards} activeCard={activeCard} />
                   </>
                 )
               }{
@@ -520,7 +523,7 @@ function Resumo(props) {
                       )}`}
                     ></iframe>
                     <button className="btn btn-reload-preview btn-outline-secondary">
-                      Atualizar preview
+                      Atualizar Prévia
                     </button>
                   </div>
                 )
