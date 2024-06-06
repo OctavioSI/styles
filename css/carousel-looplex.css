@@ -109,6 +109,9 @@ aside {
 .card-navigation .active{
   background-color: #fff;
   color: #1677ff;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  font-weight: bold;
 }
 
 .card-summary {
@@ -205,4 +208,16 @@ main {
 .btn-success {
   background-color: #1677FF !important;
   border-color: #1677FF !important;
+}
+
+legend{
+  font-size: 1em;
+  background-color: #f4f4f4;
+  padding: 12px;
+  border: 0;
+}
+
+legend::before{
+  content: "<";
+  margin-right: 10px;
 }
