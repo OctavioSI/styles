@@ -384,7 +384,6 @@ function Resumo(props) {
   const [cards, setCards] = useState(props.rjsf.cards)
   const [submitted, setSubmitted] = useState('')
 
-
   const [isLoading, setIsLoading] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
@@ -487,10 +486,10 @@ function Resumo(props) {
           </main>
           <aside style={{ background: "white" }}>
             <div className="card-navigation">
-              <button className="btn btn-secondary" onClick={() => { setPreviewDoc('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-              <button className="btn btn-secondary left-margin-5px" onClick={() => { setPreviewDoc('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-              <button className="btn btn-secondary left-margin-5px" onClick={() => { setPreviewDoc('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-              <button className="btn btn-secondary left-margin-5px" onClick={() => { setPreviewDoc('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+              <button className={ previewDoc == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPreviewDoc('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+              <button className={ previewDoc == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+              <button className={ previewDoc == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+              <button className={ previewDoc == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
             </div>
             <div className="card-summary">
               {

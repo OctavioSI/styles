@@ -135,6 +135,11 @@ aside {
 .left-margin-5px{
   margin-left:5px;    
 }
+
+.left-margin-2px{
+  margin-left:2px;    
+}
+
 main {
   background-color: #FFF;
   grid-area: main;
