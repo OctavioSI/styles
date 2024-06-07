@@ -5,7 +5,7 @@ function Description(props) {
   let description = props.description
   return (
     <div >
-      <a className={"btn btn-summary glyphicon glyphicon-expand"} data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
+      <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-expand right-margin-5px"></span>Informações Gerais</a>
       <div class="collapse" id="overview">
         <table class="table table-hover table-sm table-bordered">
 
@@ -88,7 +88,7 @@ function TableRow(props) {
   let table =
     <>
     <tr class="table-subtitle">
-      <td colspan="3">{Array(sublevel).fill(<span class="caret"></span>)}{subtitle}</td>
+      <td colspan="3">{Array(sublevel).fill(<span className="glyphicon glyphicon-expand right-margin-5px"></span>)}{subtitle}</td>
     </tr>
     {rows}
   </>
@@ -104,7 +104,7 @@ function Section(props) {
   let section = <div style={{
     width: "100%", height: "100%", backgroundColor: "white"
   }} >
-    <a class="btn btn-summary caret" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>{title}</a>
+    <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-expand right-margin-5px"></span>{title}</a>
     <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
@@ -533,7 +533,7 @@ function Resumo(props) {
                       )}`}
                     ></iframe>
                     <button className="btn btn-reload-preview btn-outline-secondary">
-                      <span class="glyphicon glyphicon-repeat"></span>Atualizar Prévia
+                      <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
                     </button>
                   </div>
                 )
