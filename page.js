@@ -88,7 +88,7 @@ function TableRow(props) {
   let table =
     <>
     <tr class="table-subtitle">
-      <td colspan="3">{Array(sublevel).fill(<span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>)}{subtitle}</td>
+      <td colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
     </tr>
     {rows}
   </>
@@ -108,10 +108,10 @@ function Section(props) {
     <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
-          <tr  className="table-highlight">
-            <th scope="col">Item</th>
-            <th scope="col">Prior</th>
-            <th scope="col">Current</th>
+          <tr  className="table-title">
+            <th scope="col">Campo</th>
+            <th scope="col">Original</th>
+            <th scope="col">Alterado</th>
           </tr>
         </thead>
         <tbody>

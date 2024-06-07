@@ -258,6 +258,14 @@ legend#root__title::before{
   background-color: #f5f5f5 !important;
 }
 
+.table-title{
+  background-color: #eeeeee !important;
+}
+
+.table-subtitle{
+  background-color: #efefef !important;
+}
+
 .table{
   --bs-table-hover-bg: #FAFAFA;
 }
