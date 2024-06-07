@@ -261,3 +261,9 @@ legend#root__title::before{
 .table{
   --bs-table-hover-bg: #FAFAFA;
 }
+
+.glyphicon-triangle-right::before,
+.glyphicon-triangle-bottom::before{
+  font-size:.7em;
+  margin-right:5px;
+}
