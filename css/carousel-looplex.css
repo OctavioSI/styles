@@ -275,3 +275,7 @@ legend#root__title::before{
   font-size:.7em;
   margin-right:5px;
 }
+
+.array-item-toolbox{
+  margin-top: 24px;
+}

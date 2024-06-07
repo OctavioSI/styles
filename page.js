@@ -88,7 +88,7 @@ function TableRow(props) {
   let table =
     <>
     <tr class="table-subtitle">
-      <td colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
+      <td class="table-subtitle" colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
     </tr>
     {rows}
   </>
@@ -109,9 +109,9 @@ function Section(props) {
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
           <tr  className="table-title">
-            <th scope="col">Campo</th>
-            <th scope="col">Original</th>
-            <th scope="col">Alterado</th>
+            <th className="table-title" scope="col">Campo</th>
+            <th className="table-title" scope="col">Original</th>
+            <th className="table-title" scope="col">Alterado</th>
           </tr>
         </thead>
         <tbody>
