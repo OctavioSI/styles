@@ -5,7 +5,7 @@ function Description(props) {
   let description = props.description
   return (
     <div >
-      <a class="btn btn-summary caret" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
+      <a className={"btn btn-summary glyphicon glyphicon-expand"} data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
       <div class="collapse" id="overview">
         <table class="table table-hover table-sm table-bordered">
 
@@ -533,7 +533,7 @@ function Resumo(props) {
                       )}`}
                     ></iframe>
                     <button className="btn btn-reload-preview btn-outline-secondary">
-                      Atualizar Prévia
+                      <span class="glyphicon glyphicon-repeat"></span>Atualizar Prévia
                     </button>
                   </div>
                 )

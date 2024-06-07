@@ -146,6 +146,10 @@ main {
   text-transform: none;
 }
 
+.previewWrapper .btn-reload-preview>span{
+  margin-right: 5px;
+}
+
 .left-margin-5px{
   margin-left:5px;    
 }
@@ -256,20 +260,4 @@ legend#root__title::before{
 
 .table{
   --bs-table-hover-bg: #FAFAFA;
-}
-
-.caret::before{
-  content: ' ';
-  display: inline-block;
-  border-bottom: 2px solid #000;
-  border-right: 2px solid #000;
-  height: 6px;
-  width: 6px;
-  transform: rotate(-45deg);
-  margin-right: 10px;
-  margin-bottom: 2px;
-}
-
-.caret.opened::before{
-  transform: rotate(45deg);
 }
