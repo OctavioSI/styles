@@ -5,7 +5,7 @@ function Description(props) {
   let description = props.description
   return (
     <div >
-      <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
+      <a class="btn btn-summary caret" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>Informações Gerais</a>
       <div class="collapse" id="overview">
         <table class="table table-hover table-sm table-bordered">
 
@@ -65,7 +65,7 @@ function Row(props) {
 
 function TableRow(props) {
   let rows = props.rows
-  let table =
+/*  let table =
     <tr class="table-default">
       <td colspan="3">
         <table class="table table-hover table-sm table-bordered">
@@ -82,7 +82,16 @@ function TableRow(props) {
         </table>
       </td>
     </tr>
-
+*/
+  let subtitle = props.subtitle
+  let sublevel = props.sublevel
+  let table =
+    <>
+    <tr class="table-subtitle">
+      <td colspan="3">{Array(sublevel).fill(<span class="caret"></span>)}{subtitle}</td>
+    </tr>
+    {rows}
+  </>
   return table
 
 }
@@ -95,7 +104,7 @@ function Section(props) {
   let section = <div style={{
     width: "100%", height: "100%", backgroundColor: "white"
   }} >
-    <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>{title}</a>
+    <a class="btn btn-summary caret" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}>{title}</a>
     <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
@@ -115,7 +124,8 @@ function Section(props) {
   return section
 }
 function Resumo(props) {
-  function tableBuilder(schema, previewFormData = {}, currentFormData = {}) {
+
+  function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel=0) {
     let items = []
     for (let i = 0; i < Object.keys(schema.properties).length; i++) {
       let key = Object.keys(schema.properties)[i]
@@ -126,8 +136,7 @@ function Resumo(props) {
         items.push(row)
       }
       if (type == 'object') {
-        let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {})} />
-
+        let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel+1}/>
         items.push(row)
       }
       if (type == 'array') {
@@ -136,6 +145,7 @@ function Resumo(props) {
     }
     return items
   }
+
   let cards = props.cards
   let activeCard = props.activeCard
   let sections = []

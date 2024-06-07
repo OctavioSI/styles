@@ -246,7 +246,19 @@ legend#root__title::before{
   text-transform: capitalize;
 }
 
-.btn-summary::before{
+.btn-summary.opened::before{
+  transform: rotate(45deg);
+}
+
+.table-highlight{
+  background-color: #f5f5f5 !important;
+}
+
+.table{
+  --bs-table-hover-bg: #FAFAFA;
+}
+
+.caret::before{
   content: ' ';
   display: inline-block;
   border-bottom: 2px solid #000;
@@ -258,14 +270,6 @@ legend#root__title::before{
   margin-bottom: 2px;
 }
 
-.btn-summary.opened::before{
+.caret.opened::before{
   transform: rotate(45deg);
-}
-
-.table-highlight{
-  background-color: #f5f5f5;
-}
-
-.table{
-  --bs-table-hover-bg: #FAFAFA;
 }
