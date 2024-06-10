@@ -86,15 +86,14 @@ main{
 
 section.deckofcards{
   padding: 2rem;
-  height: 100px;
+  height: calc(100% - 130px);
   overflow: hidden;
   overflow-y:auto !important;
 }
 
 section.navigation{
-  height:100px;
-  padding-left: 2rem;
-  padding-right: 2rem;
+  height:130px;
+  padding:24px;
 }
 
 .d-w-full {
@@ -267,16 +266,12 @@ legend#root__title::before{
   transform: rotate(45deg);
 }
 
-.btn-navigation.glyphicon-chevron-right{
+.glyphicon-chevron-right{
   margin-left: 10px;
 }
 
-.btn-navigation.glyphicon-chevron-left{
+.glyphicon-chevron-left{
   margin-right: 10px;
-}
-
-.glyphicon-option-horizontal{
-  margin-top: 10px;
 }
 
 .table-highlight{

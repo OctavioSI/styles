@@ -477,14 +477,15 @@ function Resumo(props) {
                 })}
               </div>
               </section>
-              <section class="navigation" className="d-flex align-items-end flex-column">
-                <div className="d-mt-5 d-flex d-w-full d-space-x-4 d-text-right">
+              <section className="navigation d-flex align-items-end flex-column">
+                <div className="d-flex d-space-x-4 align-items-center">
                     <button className="btn btn-outline-secondary btn-navigation" onClick={(e) => { e.preventDefault(); }}><span class="glyphicon glyphicon-chevron-left"></span>Anterior</button>
                     <span class="glyphicon glyphicon-option-horizontal"></span>
                     <button type="button" className="btn btn-outline-secondary btn-navigation" onClick={(e) => { e.preventDefault(); }}>Próxima<span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
-                <div className="mt-auto">
-                  <button type="button" className={isReady2Submit ? "btn btn-outline-success" : "btn btn-outline-success disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Enviar</button>
+                <div className="mt-auto d-flex align-items-end d-space-x-4">
+                  <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Baixar</button>
+                  <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Salvar</button>
                 </div>
               </section>
             </main>
