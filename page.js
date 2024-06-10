@@ -54,7 +54,7 @@ function Row(props) {
   let currentValue = props.currentValue
 
   let row =
-    <tr class={priorValue == currentValue ? "table-default" : "table-primary"}>
+    <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
       <td style={{ wordBreak: "break-all", minWidth: "100px" }}  className="table-highlight">{title}</td>
       <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{priorValue}</td>
       <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{currentValue}</td>
@@ -479,13 +479,13 @@ function Resumo(props) {
               </section>
               <section className="navigation d-flex align-items-end flex-column">
                 <div className="d-flex d-space-x-4 align-items-center">
-                    <button className="btn btn-outline-secondary btn-navigation" onClick={(e) => { e.preventDefault(); }}><span class="glyphicon glyphicon-chevron-left"></span>Anterior</button>
+                    <button className={ (activeCard - 1) >= 0 ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled" } onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(cards[activeCard].formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
                     <span class="glyphicon glyphicon-option-horizontal"></span>
-                    <button type="button" className="btn btn-outline-secondary btn-navigation" onClick={(e) => { e.preventDefault(); }}>Próxima<span class="glyphicon glyphicon-chevron-right"></span></button>
+                    <button type="button" className={(activeCard + 1) < cards.length ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
                 <div className="mt-auto d-flex align-items-end d-space-x-4">
                   <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Baixar</button>
-                  <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Salvar</button>
+                  <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar')}</button>
                 </div>
               </section>
             </main>

@@ -171,6 +171,7 @@ aside {
 
 .btn-primary {
   width: 100%;
+
 }
 
 @keyframes spinner-border {
@@ -262,6 +263,10 @@ legend#root__title::before{
   text-transform: capitalize;
 }
 
+.btn-navigation.disabled{
+  border: none;
+}
+
 .btn-summary.opened::before{
   transform: rotate(45deg);
 }
@@ -275,6 +280,7 @@ legend#root__title::before{
 }
 
 .table-highlight{
+  color: black;
   background-color: #f5f5f5 !important;
 }
 
@@ -298,4 +304,8 @@ legend#root__title::before{
 
 .array-item-toolbox{
   margin-top: 24px;
+}
+
+:root{
+  --bs-primary: #0077fd;
 }
