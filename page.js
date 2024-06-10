@@ -453,9 +453,10 @@ function Resumo(props) {
         <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
       </div>
       <div className='container-form'>
+        <form method='POST' action='/' onSubmit={handleSubmit}>        
         <div className='card'>
             <main>
-            <form method='POST' action='/' onSubmit={handleSubmit}>
+              <section class="deckofcards">
               <div ref={myCarouselRef} className='d-carousel d-w-full'>
                 {
                   cards.length === 0 ?
@@ -470,33 +471,23 @@ function Resumo(props) {
                         <div className="d-w-full">
                           <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} />
                         </div>
-                        <div className="d-mt-5 d-flex d-w-full d-space-x-4 d-text-right">
-                          {
-                            (index - 1) >= 0 &&
-                            <button className="btn btn-outline-secondary" onClick={(e) => { e.preventDefault(); handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveLeft') }}>{(card.formData?.language === 'en_us') ? '<   Previous' : '<   Anterior'}</button>
-                          }
-                          <span>...</span>
-                          {
-                            (index + 1) < cards.length ? (
-                              <button type="button" className="btn btn-outline-secondary" onClick={(e) => { e.preventDefault(); handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveRight') }}>{(card.formData?.language === 'en_us') ? 'Next   >' : 'Próxima    >'}</button>
-                            ) : (
-                              <button type="button" className={isReady2Submit ? "btn btn-outline-success" : "btn btn-outline-secondary"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(card.cardId, Object.assign({}, payloadFormData, card.formData), 'moveRight') }}>{isLoading ? ((card.formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isReady2Submit ? ((card.formData?.language === 'en_us') ? 'Submit' : 'Enviar') : ((card.formData?.language === 'en_us') ? 'Next   >' : 'Próxima   >'))}</button>
-                            )
-                          }
-                        </div>
-
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </form>
-            {props.embeddedData.cardFooterImage ? (
-              <center>
-                <img {...props.embeddedData.cardFooterImage} />
-              </center>
-            ) : null}
-          </main>
+              </section>
+              <section class="navigation" className="d-flex align-items-end flex-column">
+                <div className="d-mt-5 d-flex d-w-full d-space-x-4 d-text-right">
+                    <button className="btn btn-outline-secondary btn-navigation" onClick={(e) => { e.preventDefault(); }}><span class="glyphicon glyphicon-chevron-left"></span>Anterior</button>
+                    <span class="glyphicon glyphicon-option-horizontal"></span>
+                    <button type="button" className="btn btn-outline-secondary btn-navigation" onClick={(e) => { e.preventDefault(); }}>Próxima<span class="glyphicon glyphicon-chevron-right"></span></button>
+                </div>
+                <div className="mt-auto">
+                  <button type="button" className={isReady2Submit ? "btn btn-outline-success" : "btn btn-outline-success disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Enviar</button>
+                </div>
+              </section>
+            </main>
           <aside>
             <div className="card-navigation">
               <button className={ previewDoc == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPreviewDoc('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
@@ -555,6 +546,7 @@ function Resumo(props) {
             </div>
           </aside>
         </div>
+        </form>
       </div>
     </div>
   )
