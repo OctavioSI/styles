@@ -280,7 +280,7 @@ legend#root__title::before{
 }
 
 .table-highlight{
-  color: black;
+  color: black !important;
   background-color: #f5f5f5 !important;
 }
 
@@ -308,4 +308,10 @@ legend#root__title::before{
 
 :root{
   --bs-primary: #0077fd;
+  --bs-table-bg: #0077fd;
+}
+
+.btn-add::after{
+  content: 'Novo anexo';
+  text-transform: none;
 }

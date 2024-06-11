@@ -1,0 +1,155 @@
+{
+  "cards": [
+    {
+      "cardId": "trademaster-termos",
+      "card_conditions": {},
+      "schema": {
+        "title": "Solicitação",
+        "type": "object",
+        "properties": {
+          "strSolicitante": {
+            "required": [
+              "nome",
+              "cpf",
+              "email",
+              "telefone"
+            ],
+            "title": "Solicitante",
+            "type": "object",
+            "properties": {
+              "nome": {
+                "type": "string",
+                "title": "Nome"
+              },
+              "cpf": {
+                "type": "string",
+                "title": "CPF"
+              },
+              "email": {
+                "type": "string",
+                "title": "E-mail"
+              },
+              "telefone": {
+                "type": "string",
+                "title": "Telefone"
+              }
+            }
+          },
+          "vecInfosContrato": {
+            "title": "Solicitação de Contrato",
+            "type": "object",
+            "required": [
+              "tipoContrato"
+            ],
+            "properties": {
+              "tipoContrato": {
+                "type": "string",
+                "title": "Tipo de Contrato",
+                "enum": [
+                  "",
+                  "Termo de Quitação",
+                  "Termo de Confissão de Dívida",
+                  "Termo de Confidencialidade"
+                ],
+                "default": ""
+              },
+              "anexos": {
+                "type": "array",
+                "title": "Anexos",
+                "items": {
+                  "type": "string",
+                  "title": "Adicione os anexos para sua solicitação"
+                }
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "vecInfosContrato": {
+          "anexos": {
+            "items": {
+              "ui:widget": "filepond"
+            }
+          }
+        },
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "trademaster.com.br",
+      "formData": {
+        "vecInfosContrato": {
+          "tipoContrato": "Termo de Quitação",
+          "anexos": []
+        },
+        "strSolicitante": {
+          "nome": "Erick Takahama Kitada",
+          "email": "kitada.erick@gmail.com",
+          "telefone": "34992380126",
+          "cpf": "40331256800"
+        }
+      },
+      "priorFormData": {
+        "vecInfosContrato": {
+          "tipoContrato": "Termo de Quitação",
+          "anexos": []
+        },
+        "strSolicitante": {
+          "nome": "Erick Takahama Kitada",
+          "email": "kitada.erick@gmail.com",
+          "telefone": "34992380126",
+          "cpf": "40331256800"
+        }
+      },
+      "tagName": "div"
+    },
+    {
+      "cardId": "termo-quitacao",
+      "card_conditions": {},
+      "dmnStructure": {},
+      "schema": {
+        "title": "Termo de Quitação",
+        "type": "object",
+        "properties": {
+          "strDevedora": {
+            "type": "object",
+            "title": "Dados da Devedora",
+            "required": [
+              "cnpj"
+            ],
+            "properties": {
+              "cnpj": {
+                "type": "string",
+                "title": "CNPJ"
+              }
+            }
+          },
+          "strReceptora": {
+            "type": "string",
+            "title": "Dados da Devedora",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "vecInfosContrato": {
+          "anexos": {
+            "items": {
+              "ui:widget": "filepond"
+            }
+          }
+        },
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "trademaster.com.br",
+      "formData": {},
+      "priorFormData": {},
+      "tagName": "div"
+    }
+  ]
+}

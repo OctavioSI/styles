@@ -1,6 +1,13 @@
-/**
- *  Elementos do Sumário
- */
+/*******************************************************************
+ * Elementos do Sumário
+ * 
+ * As funções a seguir definem elementos que são utilizados no painel
+ * de sumário. A ideia é componentizar cada um dos elementos que são 
+ * repetidos durante a implementação
+ *******************************************************************/
+
+// Descrição do documento que está sendo construído. No painel de 
+// sumário ele aparece como "Informações Gerais"
 function Description(props) {
   let description = props.description
   return (
@@ -48,6 +55,10 @@ function Description(props) {
     </div >
   )
 }
+
+// Cada uma das linhas com o conteúdo que estamos populando.
+// Ele indica que há um valor original e o destaca com o valor atual
+// que é trazido no formulario
 function Row(props) {
   let title = props.title
   let priorValue = props.priorValue
@@ -63,26 +74,11 @@ function Row(props) {
   return row
 }
 
+// Quando em nosso RJSF temos uma subseção, colocaremos o elemento 
+// a seguir para indicar que as linhas seguintes dizem respeito 
+// a essa subseção usando um subtítulo
 function TableRow(props) {
   let rows = props.rows
-/*  let table =
-    <tr class="table-default">
-      <td colspan="3">
-        <table class="table table-hover table-sm table-bordered">
-          <thead class="thead-light">
-            <tr className="table-highlight">
-              <th scope="col">Item</th>
-              <th scope="col">Prior</th>
-              <th scope="col">Current</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows}
-          </tbody>
-        </table>
-      </td>
-    </tr>
-*/
   let subtitle = props.subtitle
   let sublevel = props.sublevel
   let table =
@@ -93,10 +89,10 @@ function TableRow(props) {
     {rows}
   </>
   return table
-
 }
-function Section(props) {
 
+// Cada uma das seções do sumário
+function Section(props) {
   let table = props.table
   let title = props.title
   let id = props.id
@@ -120,11 +116,11 @@ function Section(props) {
       </table>
     </div>
   </div >
-
   return section
 }
-function Resumo(props) {
 
+// Montagem do sumário efetiva
+function Resumo(props) {
   function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel=0) {
     let items = []
     for (let i = 0; i < Object.keys(schema.properties).length; i++) {
@@ -139,13 +135,9 @@ function Resumo(props) {
         let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel+1}/>
         items.push(row)
       }
-      if (type == 'array') {
-
-      }
     }
     return items
   }
-
   let cards = props.cards
   let activeCard = props.activeCard
   let sections = []
@@ -166,95 +158,42 @@ function Resumo(props) {
   )
 }
 
-/**
+/*******************************************************************
 * Início do Código Principal
-*/
-
+********************************************************************/
 (function () {
+  const initialform = {
+    id: props.embeddedData.initialformId,
+    tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br'
+  };
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
   const state = props.embeddedData.rjsf?.formData?.state == undefined ? { message: "iniciarFluxo", domain: "looplex.com.br" } : { message: props.embeddedData.rjsf.formData.state.message, domain: props.embeddedData.rjsf.formData.state.domain, executionId: props.embeddedData.rjsf.formData.state.executionId }
   let previewFormData = props.embeddedData?.formData ? props.embeddedData?.formData : {}
   const [formData, setFormData] = useState(previewFormData)
-  const [previewDoc, setPreviewDoc] = useState('summary')
+  const [panelView, setPanelView] = useState('summary')
+  const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
+  const [cards, setCards] = useState(props.rjsf.cards)
+  
+  const [isLoading, setIsLoading] = useState(false)
+  const [isReady2Submit, setIsReady2Submit] = useState(false)
+  const [activeCard, setActiveCard] = useState(0);
+  const myCarouselRef = useRef(null);
+  const activeCardRef = useRef(null);
+  
+  const [tmpVisor, setTmpVisor] = useState('')
+  const [submitted, setSubmitted] = useState('')
 
-  const isObjectEmpty = (objectName) => {
+  /*******************************************
+   * Helper Functions
+   *******************************************/
+  
+  // Funcao que verifica se o objeto é vazio
+  function isObjectEmpty(objectName) {
     return Object.keys(objectName).length === 0
   }
-
-  const setSchema = (initialcards = [], cardId = '', formData = {}) => {
-
-    function defineCards() {
-      let tmpcards = props.rjsf.cards;
-      if (initialcards && initialcards.length > 0) {
-        tmpcards = initialcards;
-      }
-
-      return tmpcards
-    }
-
-    function addFormDataToCard() {
-      tmpcards.forEach(cd => {
-        if (cd.cardId === cardId) {
-          cd.formData = formData
-        }
-      })
-    }
-
-    function mergeFormData() {
-      let mergedFormData = {}
-      for (let i = 0; i < tmpcards.length; i++) {
-        let tcard = tmpcards[i];
-        if (tcard.scope && tcard.scope !== '') {
-          mergedFormData[tcard.scope] = { ...tcard.formData }
-        } else {
-          mergedFormData = { ...mergedFormData, ...tcard.formData }
-        }
-      }
-
-      return mergedFormData
-    }
-
-    function defineCardsToShow() {
-      let cards2Show = [];
-      tmpcards.forEach(cd => {
-
-        if (!cd.hasOwnProperty('card_conditions') || (cd.hasOwnProperty('card_conditions') && isObjectEmpty(cd.card_conditions))) cards2Show.push(cd);
-        if (cd.hasOwnProperty('card_conditions') && !isObjectEmpty(cd.card_conditions)) {
-          let includeInDeck = true;
-          let formatted_card_conditions = assembleJSONObjectStructure(cd.card_conditions)
-          for (const card_condition in formatted_card_conditions) {
-            let searchObj = {};
-            searchObj[card_condition] = formatted_card_conditions[card_condition];
-            let exists = isValueInObject(searchObj, mergedFormData);
-
-            if (!exists) { includeInDeck = false; }
-          }
-          if (includeInDeck) cards2Show.push(cd)
-        }
-      })
-
-      return cards2Show
-
-    }
-
-    let tmpcards = defineCards()
-    addFormDataToCard()
-    let mergedFormData = mergeFormData()
-
-    return defineCardsToShow()
-
-  }
-
-  function createSchemaObject(cardId, formData) {
-
-    setSchemaObject(
-      {
-        "cardId": cardId,
-        "formData": formData
-      }
-    )
-  }
-
+  // Funcao para aguardar
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // Monta a estrutura do objeto JSON
   function assembleJSONObjectStructure(source) {
     let obj = JSON.parse(JSON.stringify(source))
     // iterate over the property names
@@ -276,16 +215,14 @@ function Resumo(props) {
     });
     return obj
   }
-
+  // Checa se um valor existe no Objeto JSON
   function isValueInObject(searchObject, referenceObject) {
-
     function get(obj, path) {
       return path.split('.').reduce((r, e) => {
         if (!r) return r
         else return r[e] || undefined
       }, obj)
     }
-
     function compare(a, b, prev = "") {
       return Object.keys(a).reduce((r, e) => {
         const path = prev + (prev ? '.' + e : e);
@@ -299,14 +236,241 @@ function Resumo(props) {
         return r;
       }, false)
     }
-
     return compare(searchObject, referenceObject);
   }
 
+
+  /*******************************************
+   * Hooks
+   *******************************************/
+  useEffect(() => { // Rodando apenas uma vez no início do form
+    if(!initialform.id){
+      setSchema()
+      return
+    };
+    const fetchInitialForm = async () => {
+      let data = {
+        command: "fetchSchema",
+        tenant: initialform.tenant,
+        id: initialform.id
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${props.codeId}`,
+        data
+      }
+      const res = await axios(config);
+
+      if (res.data && res.data.output) {
+        let iSchema = res.data.output;
+        let initialSchema = [{
+          cardId: iSchema.id,
+          card_conditions: iSchema.card_conditions,
+          dmnStructure: iSchema.dmnStructure,
+          schema: iSchema.schema,
+          uiSchema: iSchema.uiSchema,
+          formData: {},
+          tagName: 'div'
+        }];
+        setCards(setSchema(initialSchema))
+        setIsLoading(false)
+        return true;
+      }
+    }
+    let maxAttempts = 3;
+    for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
+      fetchInitialForm()
+        .then(res => {
+          countAttempts = maxAttempts;
+          setIsLoading(false);
+        })
+        .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
+          setIsLoading(false);
+          if (countAttempts >= maxAttempts) {
+            setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
+          }
+          sleep(500);
+        });
+    }
+  }, []);
+
+  useEffect(() => {
+    let newSchema = setSchema(cards, schemaObject.cardId, schemaObject.formData);
+    setCards(newSchema)
+  }, [schemaObject])
+
+  useEffect(() => {
+    activeCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+      inline: "nearest"
+    });
+  }, [activeCardRef.current]);
+
+
+
+
+  /*******************************************
+   * Funções de manipulação de Cards e Card Deck
+   *******************************************/
+  // Essa função é utilizada para definir os cards que deverão ser exibidos
+  function setSchema(initialcards = [], cardId = '', formData = {}){
+    // Carregando cards do RJSF
+    let tmpcards = props.rjsf.cards;
+    // Aqui vamos carregar cards que tenham sido carregados na memória (no lugar o arquivo rjsf)
+    if (initialcards && initialcards.length > 0) {
+      tmpcards = initialcards;
+    }
+    // Antes de atualizar a exibição, vamos atualizar o 
+    // formData caso fornecido para um card
+    tmpcards.forEach(cd => {
+      if (cd.cardId === cardId) {
+        cd.formData = formData
+      }
+    })
+    // Aqui vamos definir uma variavel com todos os dados dos cards,
+    // agrupados por scope. Se não houver scope, vamos jogar para a 
+    // raiz do formData
+    let mergedFormData = {}
+    for (let i = 0; i < tmpcards.length; i++) {
+      let tcard = tmpcards[i];
+      if (tcard.scope && tcard.scope !== '') {
+        mergedFormData[tcard.scope] = { ...tcard.formData }
+      } else {
+        mergedFormData = { ...mergedFormData, ...tcard.formData }
+      }
+    }
+    // Para cada card, vamos verificar as condicoes para exibicao
+    let cards2Show = [];
+    tmpcards.forEach(cd => {
+      /**  Se eu nao tiver "card_conditions" ou se as "card_conditions" 
+       * forem vazias, vamos mostrar o card
+      */
+      if (!cd.hasOwnProperty('card_conditions') || (cd.hasOwnProperty('card_conditions') && isObjectEmpty(cd.card_conditions))) cards2Show.push(cd);
+      // Se temos "card_conditions", vamos verificar se todas estão 
+      // em nosso parâmetro fornecido e se o valor é compatível
+      if (cd.hasOwnProperty('card_conditions') && !isObjectEmpty(cd.card_conditions)) {
+        let includeInDeck = true;
+        let formatted_card_conditions = assembleJSONObjectStructure(cd.card_conditions)
+        for (const card_condition in formatted_card_conditions) {
+          let searchObj = {};
+          searchObj[card_condition] = formatted_card_conditions[card_condition];
+          let exists = isValueInObject(searchObj, mergedFormData);
+          // cd.searchObj = searchObj
+          // cd.mergedFormData = mergedFormData
+          // cd.includeInDeck = exists
+          if (!exists) { includeInDeck = false; }// Entao nao incluimos no deck
+        }
+        if (includeInDeck) cards2Show.push(cd)
+      }
+    })
+    // Ao final, retornamos o array com cards que atendem as conditions
+    return cards2Show;
+  }
+
+  function createSchemaObject(cardId, formData) {
+    setSchemaObject(
+      {
+        "cardId": cardId,
+        "formData": formData
+      }
+    )
+  }
+
+  async function loadRemoteSchema(id, cardId, formData, scope = '', card_conditions = {}) {
+    const fetchRemoteSchema = async () => {
+      let data = {
+        command: "fetchSchema",
+        tenant: initialform.tenant,
+        id: id
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${props.codeId}`,
+        data
+      }
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        let iSchema = res.data.output;
+        let newCard = {
+          cardId: iSchema.id,
+          card_conditions: card_conditions,
+          scope: (scope && scope != '') ? scope : '',
+          dmnStructure: iSchema.dmnStructure,
+          schema: iSchema.schema,
+          uiSchema: iSchema.uiSchema,
+          formData: {},
+          tagName: 'div'
+        };
+        let tmpCards = cards;
+        tmpCards.push(newCard);
+        setCards(setSchema(tmpCards, cardId, formData))
+      }
+      setIsLoading(false)
+    }
+    setIsLoading(true);
+    return await fetchRemoteSchema()
+      .catch(err => {
+        // setTmpVisor('Erro ao carregar Schema Remoto: ' + err.message)
+        setIsLoading(false);
+      });
+  }
+
+  /*******************************************
+   * Ações do Formulário
+   *******************************************/
   async function handleClickEvent(cardId, formData, cardTargetIdx) {
     setIsReady2Submit(false);
     setIsLoading(false);
+    let load_card = cards.filter(cd => cd.cardId === cardId)[0];
+    let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
+    let canRunDMN = true;
+    let dmnVariables = {};
 
+    if (!isObjectEmpty(dmnStructure)) {
+      for (let dmnInput in dmnStructure.map) {
+        dmnVariables[dmnInput] = dmnStructure.map[dmnInput].split('.').reduce(
+          (preview, current) => preview[current],
+          formData
+        )
+      }
+      // setTmpVisor(JSON.stringify(dmnVariables))
+      for (let [dmnInput2, localVar] of Object.entries(dmnStructure.map)) {
+        if (dmnVariables[dmnInput2] === undefined) {
+          canRunDMN = false;
+        }
+      }
+      if (canRunDMN) {
+        setIsLoading(true)
+        let arrayIDs = await runDMN(formData, dmnStructure, load_card['partitionKey'])
+        if (arrayIDs && arrayIDs.length > 0 && arrayIDs[0].cardID) {
+          let current_ID = arrayIDs[0].cardID
+          let scope = arrayIDs[0].scope
+          let card_conditions = (arrayIDs[0].card_conditions && arrayIDs[0].card_conditions !== '') ? JSON.parse(arrayIDs[0].card_conditions) : {};
+
+          let card_loaded = cards.filter(cd => cd.cardId === current_ID);
+          if (!card_loaded || card_loaded.length === 0) {
+            await loadRemoteSchema(current_ID, cardId, formData, scope, card_conditions)
+          }
+          setIsLoading(false)
+          setIsReady2Submit(true);
+        } else {
+          setIsReady2Submit(true);
+          setIsLoading(false)
+
+        }
+      }
+    } else {
+      setIsReady2Submit(true);
+    }
+
+    /** 
+     * Aqui temos que atualizar
+     * condicoes para um card ser exibido ou nao 
+     * 
+     * Essa função é acionada quando mudamos algum campo
+     * 
+    */
     if (cards.length > 1) {
       /**
        * Se eu só tiver mais que 1 card eu não posso chamar o setSchema
@@ -352,7 +516,7 @@ function Resumo(props) {
     setCards(nextState)
     // Vamos também verificar se o nosso botão tem que ser renderizado novamente
     let load_card = cards.filter(cd => cd.cardId === cardId)[0];
-    let dmnStructure = load_card['dmnStructure'];
+    let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
 
     if (!isObjectEmpty(dmnStructure)) {
       // setTmpVisor(JSON.stringify(dmnStructure.map))
@@ -380,7 +544,8 @@ function Resumo(props) {
     }
 
     setSubmitted('Submitted: ' + JSON.stringify(merged))
-      ;
+
+    return;
     const res = await axios({
       method: "post",
       url: `/api/code/${props.codeId}`,
@@ -392,32 +557,38 @@ function Resumo(props) {
     //)
   }
 
+  async function runDMN(formData, dmnStructure, tenant) {
+    // formData é a variável com o objeto de respostas atuais do formulário
+    // dmnStrucutre é o atributo dmn do card (contém dmnID e map)
+    let { id, map } = dmnStructure
+    let dmnVariables = {};
 
-  const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
-  const [cards, setCards] = useState(props.rjsf.cards)
-  const [submitted, setSubmitted] = useState('')
-
-  const [isLoading, setIsLoading] = useState(false)
-  const [isReady2Submit, setIsReady2Submit] = useState(false)
-  const [activeCard, setActiveCard] = useState(0);
-  const myCarouselRef = useRef(null);
-  const activeCardRef = useRef(null);
-
-
-  useEffect(() => {
-
-    let newSchema = setSchema(cards, schemaObject.cardId, schemaObject.formData);
-    setCards(newSchema)
-  }, [schemaObject])
-
-  useEffect(() => {
-    activeCardRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-      inline: "nearest"
-    });
-
-  }, [activeCardRef.current]);
+    for (let i in map) {
+      dmnVariables[i] = map[i].split('.').reduce(
+        (preview, current) => preview[current],
+        formData
+      )
+    }
+    try{
+      let data = {
+        command: "runDMN",
+        tenant: tenant,
+        id: id,
+        variables: dmnVariables
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${props.codeId}`,
+        data
+      }
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        return res.data.output.output;
+      }
+    }catch(e){
+      throw new Error('Erro ao executar DMN')
+    }
+  }
 
 
   return (
@@ -457,6 +628,8 @@ function Resumo(props) {
         <div className='card'>
             <main>
               <section class="deckofcards">
+              {tmpVisor}
+              {submitted}
               <div ref={myCarouselRef} className='d-carousel d-w-full'>
                 {
                   cards.length === 0 ?
@@ -491,14 +664,14 @@ function Resumo(props) {
             </main>
           <aside>
             <div className="card-navigation">
-              <button className={ previewDoc == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPreviewDoc('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-              <button className={ previewDoc == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-              <button className={ previewDoc == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-              <button className={ previewDoc == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPreviewDoc('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+              <button className={ panelView == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+              <button className={ panelView == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+              <button className={ panelView == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+              <button className={ panelView == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
             </div>
             <div className="card-summary">
               {
-                (previewDoc == 'summary') &&
+                (panelView == 'summary') &&
                 (
                   <>
                     <Description description={{
@@ -511,7 +684,7 @@ function Resumo(props) {
                   </>
                 )
               }{
-                (previewDoc == 'preview') &&
+                (panelView == 'preview') &&
                 (
                   <div className="previewWrapper">
                     <iframe
@@ -530,14 +703,14 @@ function Resumo(props) {
                   </div>
                 )
               }{
-                (previewDoc == 'attachments') &&
+                (panelView == 'attachments') &&
                 (
                   <>
                     Anexos
                   </>
                 )
               }{
-                (previewDoc == 'versions') &&
+                (panelView == 'versions') &&
                 (
                   <>
                     Versões Anteriores
