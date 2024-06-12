@@ -315,3 +315,7 @@ legend#root__title::before{
   content: 'Novo anexo';
   text-transform: none;
 }
+
+.version-table{
+  background-color: #FFF;
+}

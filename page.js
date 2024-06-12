@@ -66,7 +66,7 @@ function Row(props) {
 
   let row =
     <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
-      <td style={{ wordBreak: "break-all", minWidth: "100px" }}  className="table-highlight">{title}</td>
+      <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{title}</td>
       <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{priorValue}</td>
       <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{currentValue}</td>
     </tr>
@@ -83,11 +83,11 @@ function TableRow(props) {
   let sublevel = props.sublevel
   let table =
     <>
-    <tr class="table-subtitle">
-      <td class="table-subtitle" colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
-    </tr>
-    {rows}
-  </>
+      <tr class="table-subtitle">
+        <td class="table-subtitle" colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
+      </tr>
+      {rows}
+    </>
   return table
 }
 
@@ -104,7 +104,7 @@ function Section(props) {
     <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
       <table class="table table-hover table-sm table-bordered">
         <thead class="thead-light">
-          <tr  className="table-title">
+          <tr className="table-title">
             <th className="table-title" scope="col">Campo</th>
             <th className="table-title" scope="col">Original</th>
             <th className="table-title" scope="col">Alterado</th>
@@ -121,7 +121,7 @@ function Section(props) {
 
 // Montagem do sumário efetiva
 function Resumo(props) {
-  function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel=0) {
+  function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
     let items = []
     for (let i = 0; i < Object.keys(schema.properties).length; i++) {
       let key = Object.keys(schema.properties)[i]
@@ -132,7 +132,7 @@ function Resumo(props) {
         items.push(row)
       }
       if (type == 'object') {
-        let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel+1}/>
+        let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
         items.push(row)
       }
     }
@@ -158,6 +158,44 @@ function Resumo(props) {
   )
 }
 
+// Montagem da tabela de versões
+function PreviousVersions(props) {
+  function tableBuilder(version) {
+    let versiontable =
+      <div className="version-table">
+        <table class="table table-sm table-bordered">
+          <tbody>
+            <tr class="table-subtitle">
+              <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
+              <td class="table-subtitle" colspan="1">Data: {version.date}</td>
+              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-outline-secondary"} onClick={(e) => { e.preventDefault(); }}>Comparar</button></td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Autor</td>
+              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.author}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Descrição</td>
+              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    return versiontable;
+  }
+
+  let versions = props.versions.versions
+  let sections = []
+  for (let i = 0; i < versions.length; i++) {
+    sections.push(tableBuilder(versions[i]))
+  }
+  return (
+    <>
+      {sections}
+    </>
+  )
+}
+
 /*******************************************************************
 * Início do Código Principal
 ********************************************************************/
@@ -173,20 +211,23 @@ function Resumo(props) {
   const [panelView, setPanelView] = useState('summary')
   const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
   const [cards, setCards] = useState(props.rjsf.cards)
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
-  
+
+  const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
+  const [previousVersions, setPreviousVersions] = useState({});
+
   const [tmpVisor, setTmpVisor] = useState('')
   const [submitted, setSubmitted] = useState('')
 
   /*******************************************
    * Helper Functions
    *******************************************/
-  
+
   // Funcao que verifica se o objeto é vazio
   function isObjectEmpty(objectName) {
     return Object.keys(objectName).length === 0
@@ -244,7 +285,7 @@ function Resumo(props) {
    * Hooks
    *******************************************/
   useEffect(() => { // Rodando apenas uma vez no início do form
-    if(!initialform.id){
+    if (!initialform.id) {
       setSchema()
       return
     };
@@ -294,6 +335,44 @@ function Resumo(props) {
     }
   }, []);
 
+  useEffect(() => { // Rodando apenas uma vez no início do form: buscar versoes passadas
+    const fetchPreviousVersions = async () => {
+      let data = {
+        command: "fetchPreviousVersions",
+        tenant: initialform.tenant,
+        id: 'teste001'
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${props.codeId}`,
+        data
+      }
+      const res = await axios(config);
+
+      if (res.data && res.data.output) {
+        setPreviousVersions(res.data.output);
+        setTmpVisor(JSON.stringify(res.data.output))
+        setIsLoading(false)
+        return true;
+      }
+    }
+    let maxAttempts = 3;
+    for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
+      fetchPreviousVersions()
+        .then(res => {
+          countAttempts = maxAttempts;
+          setIsLoading(false);
+        })
+        .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
+          setIsLoading(false);
+          if (countAttempts >= maxAttempts) {
+            setTmpVisor('Erro ao carregar as versões anteriores: ' + err.message)
+          }
+          sleep(500);
+        });
+    }
+  }, []);
+
   useEffect(() => {
     let newSchema = setSchema(cards, schemaObject.cardId, schemaObject.formData);
     setCards(newSchema)
@@ -314,7 +393,7 @@ function Resumo(props) {
    * Funções de manipulação de Cards e Card Deck
    *******************************************/
   // Essa função é utilizada para definir os cards que deverão ser exibidos
-  function setSchema(initialcards = [], cardId = '', formData = {}){
+  function setSchema(initialcards = [], cardId = '', formData = {}) {
     // Carregando cards do RJSF
     let tmpcards = props.rjsf.cards;
     // Aqui vamos carregar cards que tenham sido carregados na memória (no lugar o arquivo rjsf)
@@ -533,6 +612,7 @@ function Resumo(props) {
   async function handleSubmit(event) {
     event.preventDefault()
     event.stopPropagation()
+    myForm.validate()
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -569,7 +649,7 @@ function Resumo(props) {
         formData
       )
     }
-    try{
+    try {
       let data = {
         command: "runDMN",
         tenant: tenant,
@@ -585,11 +665,34 @@ function Resumo(props) {
       if (res.data && res.data.output) {
         return res.data.output.output;
       }
-    }catch(e){
+    } catch (e) {
       throw new Error('Erro ao executar DMN')
     }
   }
 
+  function generatePreview() {
+    // setPreviewDocURL('novaURL');
+    return;
+  }
+
+  function downloadFile() {
+    // Download File
+    return;
+  }
+
+  async function loadPreviousVersions() {
+    // Get previous
+    return;
+  }
+
+  async function compareVersions(baseversion) {
+    // aspose compare current version with previous one
+    return;
+  }
+
+  async function loadAttachments() {
+    // load attachments
+  }
 
   return (
     <div id='layout'>
@@ -624,102 +727,100 @@ function Resumo(props) {
         <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
       </div>
       <div className='container-form'>
-        <form method='POST' action='/' onSubmit={handleSubmit}>        
-        <div className='card'>
+        <form method='POST' action='/' onSubmit={handleSubmit}>
+          <div className='card'>
             <main>
               <section class="deckofcards">
-              {tmpVisor}
-              {submitted}
-              <div ref={myCarouselRef} className='d-carousel d-w-full'>
-                {
-                  cards.length === 0 ?
-                    <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                    : ''
-                }
-                {cards.map((card, index) => {
-                  const active = index === activeCard;
-                  return (
-                    <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                      <div className="d-w-full">
+                {tmpVisor}
+                {submitted}
+                <div ref={myCarouselRef} className='d-carousel d-w-full'>
+                  {
+                    cards.length === 0 ?
+                      <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                      : ''
+                  }
+                  {cards.map((card, index) => {
+                    const active = index === activeCard;
+                    return (
+                      <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                         <div className="d-w-full">
-                          <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} />
+                          <div className="d-w-full">
+                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
               </section>
               <section className="navigation d-flex align-items-end flex-column">
                 <div className="d-flex d-space-x-4 align-items-center">
-                    <button className={ (activeCard - 1) >= 0 ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled" } onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(cards[activeCard].formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
-                    <span class="glyphicon glyphicon-option-horizontal"></span>
-                    <button type="button" className={(activeCard + 1) < cards.length ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                  <button className={(activeCard - 1) >= 0 ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(cards[activeCard].formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                  <span class="glyphicon glyphicon-option-horizontal"></span>
+                  <button type="button" className={(activeCard + 1) < cards.length ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
                 <div className="mt-auto d-flex align-items-end d-space-x-4">
-                  <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : e.preventDefault(); }}>Baixar</button>
+                  <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? downloadFile() : e.preventDefault(); }}>Baixar</button>
                   <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar')}</button>
                 </div>
               </section>
             </main>
-          <aside>
-            <div className="card-navigation">
-              <button className={ panelView == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-              <button className={ panelView == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-              <button className={ panelView == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-              <button className={ panelView == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
-            </div>
-            <div className="card-summary">
-              {
-                (panelView == 'summary') &&
-                (
-                  <>
-                    <Description description={{
-                      "version": 2,
-                      "priorReviewer": "Erick Kitada",
-                      "dateReview": "03/05/2024",
-                      "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"
-                    }} />
-                    <Resumo cards={cards} activeCard={activeCard} />
-                  </>
-                )
-              }{
-                (panelView == 'preview') &&
-                (
-                  <div className="previewWrapper">
-                    <iframe
-                      id='preview'
-                      name='preview'
-                      width='100%'
-                      height='100%'
-                      frameBorder='0'
-                      src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-                        "https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx"
-                      )}`}
-                    ></iframe>
-                    <button className="btn btn-reload-preview btn-outline-secondary">
-                      <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                    </button>
-                  </div>
-                )
-              }{
-                (panelView == 'attachments') &&
-                (
-                  <>
-                    Anexos
-                  </>
-                )
-              }{
-                (panelView == 'versions') &&
-                (
-                  <>
-                    Versões Anteriores
-                  </>
-                )
-              }
-            </div>
-          </aside>
-        </div>
+            <aside>
+              <div className="card-navigation">
+                <button className={panelView == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+                <button className={panelView == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+                <button className={panelView == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+                <button className={panelView == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+              </div>
+              <div className="card-summary">
+                {
+                  (panelView == 'summary') &&
+                  (
+                    <>
+                      <Description description={{
+                        "version": 2,
+                        "priorReviewer": "Erick Kitada",
+                        "dateReview": "03/05/2024",
+                        "comments": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum"
+                      }} />
+                      <Resumo cards={cards} activeCard={activeCard} />
+                    </>
+                  )
+                }{
+                  (panelView == 'preview') &&
+                  (
+                    <div className="previewWrapper">
+                      <iframe
+                        id='preview'
+                        name='preview'
+                        width='100%'
+                        height='100%'
+                        frameBorder='0'
+                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                      ></iframe>
+                      <button className="btn btn-reload-preview btn-outline-secondary" onClick={() => { generatePreview() }}>
+                        <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                      </button>
+                    </div>
+                  )
+                }{
+                  (panelView == 'attachments') &&
+                  (
+                    <>
+                      Anexos
+                    </>
+                  )
+                }{
+                  (panelView == 'versions') &&
+                  (
+                    <>
+                      <PreviousVersions versions={previousVersions} />
+                    </>
+                  )
+                }
+              </div>
+            </aside>
+          </div>
         </form>
       </div>
     </div>
