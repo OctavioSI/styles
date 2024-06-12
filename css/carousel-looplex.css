@@ -316,6 +316,10 @@ legend#root__title::before{
   text-transform: none;
 }
 
+.btn-link{
+  text-decoration:none;
+}
+
 .version-table{
   background-color: #FFF;
 }

@@ -168,7 +168,7 @@ function PreviousVersions(props) {
             <tr class="table-subtitle">
               <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
               <td class="table-subtitle" colspan="1">Data: {version.date}</td>
-              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-outline-secondary"} onClick={(e) => { e.preventDefault(); }}>Comparar</button></td>
+              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-link"} onClick={(e) => { e.preventDefault(); compareVersions(version); }}>Comparar</button></td>
             </tr>
             <tr className="table-default">
               <td colspan="1" className="table-subtitle">Autor</td>
@@ -194,6 +194,35 @@ function PreviousVersions(props) {
       {sections}
     </>
   )
+}
+
+/*********************************************************************
+ * Funções externas
+ */
+
+
+function generatePreview() {
+  // setPreviewDocURL('novaURL');
+  return;
+}
+
+function downloadFile() {
+  // Download File
+  return;
+}
+
+async function loadPreviousVersions() {
+  // Get previous
+  return;
+}
+
+async function compareVersions(baseversion) {
+  // aspose compare current version with previous one
+  return;
+}
+
+async function loadAttachments() {
+  // load attachments
 }
 
 /*******************************************************************
@@ -351,7 +380,7 @@ function PreviousVersions(props) {
 
       if (res.data && res.data.output) {
         setPreviousVersions(res.data.output);
-        setTmpVisor(JSON.stringify(res.data.output))
+        // setTmpVisor(JSON.stringify(res.data.output))
         setIsLoading(false)
         return true;
       }
@@ -668,30 +697,6 @@ function PreviousVersions(props) {
     } catch (e) {
       throw new Error('Erro ao executar DMN')
     }
-  }
-
-  function generatePreview() {
-    // setPreviewDocURL('novaURL');
-    return;
-  }
-
-  function downloadFile() {
-    // Download File
-    return;
-  }
-
-  async function loadPreviousVersions() {
-    // Get previous
-    return;
-  }
-
-  async function compareVersions(baseversion) {
-    // aspose compare current version with previous one
-    return;
-  }
-
-  async function loadAttachments() {
-    // load attachments
   }
 
   return (
