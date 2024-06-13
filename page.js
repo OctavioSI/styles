@@ -772,10 +772,10 @@ async function loadAttachments() {
             </main>
             <aside>
               <div className="card-navigation">
-                <button className={panelView == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={() => { setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-                <button className={panelView == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-                <button className={panelView == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-                <button className={panelView == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={() => { setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+                <button className={panelView == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+                <button className={panelView == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+                <button className={panelView == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+                <button className={panelView == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
               </div>
               <div className="card-summary">
                 {
@@ -803,7 +803,7 @@ async function loadAttachments() {
                         frameBorder='0'
                         src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
                       ></iframe>
-                      <button className="btn btn-reload-preview btn-outline-secondary" onClick={() => { generatePreview() }}>
+                      <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
                         <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
                       </button>
                     </div>
