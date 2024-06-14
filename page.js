@@ -184,10 +184,47 @@ function PreviousVersions(props) {
     return versiontable;
   }
 
-  let versions = props.versions.versions
+  let versions = props.docdetails.versions
   let sections = []
   for (let i = 0; i < versions.length; i++) {
     sections.push(tableBuilder(versions[i]))
+  }
+  return (
+    <>
+      {sections}
+    </>
+  )
+}
+
+// Montagem da tabela de versões
+function AttachmentsPanel(props) {
+  function tableBuilder(attachment) {
+    let attachmenttable =
+      <div className="attachment-table">
+        <table class="table table-sm table-bordered">
+          <tbody>
+            <tr class="table-subtitle">
+              <td class="table-subtitle" colspan="2">{attachment.title}</td>
+              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-link"} onClick={(e) => { e.preventDefault(); downloadFile('download', attachment); }}>Baixar</button></td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Descrição</td>
+              <td colspan="2" style={{ wordBreak: "break-all" }} className="table-highlight">{attachment.description}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Data</td>
+              <td colspan="2" className="table-highlight">{attachment.date}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    return attachmenttable;
+  }
+
+  let attachments = props.docdetails.attachments
+  let sections = []
+  for (let i = 0; i < attachments.length; i++) {
+    sections.push(tableBuilder(attachments[i]))
   }
   return (
     <>
@@ -200,29 +237,41 @@ function PreviousVersions(props) {
  * Funções externas
  */
 
-
-function generatePreview() {
-  // setPreviewDocURL('novaURL');
-  return;
-}
-
-function downloadFile() {
-  // Download File
-  return;
-}
-
-async function loadPreviousVersions() {
-  // Get previous
-  return;
+function downloadFile(filename, url) {
+    console.log('downloading...')
+    // Create a new anchor element
+    const a = document.createElement('a');
+    // Set the href and download attributes for the anchor element
+    // You can optionally set other attributes like `title`, etc
+    // Especially, if the anchor element will be attached to the DOM
+    a.href = url;
+    a.download = filename || 'download';
+    // Click handler that releases the object URL after the element has been clicked
+    // This is required for one-off downloads of the blob content
+    const clickHandler = () => {
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        removeEventListener('click', clickHandler);
+      }, 150);
+    };
+    // Add the click event listener on the anchor element
+    // Comment out this line if you don't want a one-off download of the blob content
+    a.addEventListener('click', clickHandler, false);
+    // Programmatically trigger a click on the anchor element
+    // Useful if you want the download to happen automatically
+    // Without attaching the anchor element to the DOM
+    // Comment out this line if you don't want an automatic download of the blob content
+    //a.click();
+  
+    // Return the anchor element
+    // Useful if you want a reference to the element
+    // in order to attach it to the DOM or use it in some other way
+    return a;
 }
 
 async function compareVersions(baseversion) {
   // aspose compare current version with previous one
   return;
-}
-
-async function loadAttachments() {
-  // load attachments
 }
 
 /*******************************************************************
@@ -243,12 +292,13 @@ async function loadAttachments() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
+  const [isPreviewLoaded, setIsPreviewLoaded] = useState(true)
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
 
   const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
-  const [previousVersions, setPreviousVersions] = useState({});
+  const [documentDetails, setDocumentDetails] = useState({});
 
   const [tmpVisor, setTmpVisor] = useState('')
   const [submitted, setSubmitted] = useState('')
@@ -364,10 +414,10 @@ async function loadAttachments() {
     }
   }, []);
 
-  useEffect(() => { // Rodando apenas uma vez no início do form: buscar versoes passadas
-    const fetchPreviousVersions = async () => {
+  useEffect(() => { // Rodando apenas uma vez no início do form: buscar info do documento
+    const fetchDocumentDetails = async () => {
       let data = {
-        command: "fetchPreviousVersions",
+        command: "fetchDocumentDetails",
         tenant: initialform.tenant,
         id: 'teste001'
       };
@@ -379,15 +429,14 @@ async function loadAttachments() {
       const res = await axios(config);
 
       if (res.data && res.data.output) {
-        setPreviousVersions(res.data.output);
-        // setTmpVisor(JSON.stringify(res.data.output))
+        setDocumentDetails(res.data.output);
         setIsLoading(false)
         return true;
       }
     }
     let maxAttempts = 3;
     for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
-      fetchPreviousVersions()
+      fetchDocumentDetails()
         .then(res => {
           countAttempts = maxAttempts;
           setIsLoading(false);
@@ -641,7 +690,6 @@ async function loadAttachments() {
   async function handleSubmit(event) {
     event.preventDefault()
     event.stopPropagation()
-    myForm.validate()
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -697,6 +745,49 @@ async function loadAttachments() {
     } catch (e) {
       throw new Error('Erro ao executar DMN')
     }
+  }
+
+  async function generatePreview() {
+    setIsPreviewLoaded(false);
+    // Criando o datasource
+    let merged = {}
+    for (let i = 0; i < cards.length; i++) {
+      let tcard = cards[i];
+      if (tcard.scope && tcard.scope !== '') {
+        merged[tcard.scope] = { ...tcard.formData }
+      } else {
+        merged = { ...merged, ...tcard.formData }
+      }
+    }
+
+    let datacontent = {
+      command: "renderDocument",
+      datasource: merged,
+      templateDocument: documentDetails.template,
+      documentName: new Date().getTime() +'_'+documentDetails.base_filename,
+      tenant: initialform.tenant
+    };
+    let data = {
+      command: "renderDocument",
+      datacontent
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    try {
+      const res = await axios(config);
+  
+      if (res.data && res.data.output) {
+        setPreviewDocURL(res.data.output);
+        setIsPreviewLoaded(true);
+      }
+    } catch (e) {
+      setIsPreviewLoaded(true);
+      throw new Error('Falha ao gerar o Render')
+    }
+    return;
   }
 
   return (
@@ -765,7 +856,7 @@ async function loadAttachments() {
                   <button type="button" className={(activeCard + 1) < cards.length ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
                 <div className="mt-auto d-flex align-items-end d-space-x-4">
-                  <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? downloadFile() : e.preventDefault(); }}>Baixar</button>
+                  <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? downloadFile('porretinho.png','https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/daiani/porretinho.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAVBKADHNBJ2X72NFH%2F20240614%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240614T184731Z&X-Amz-Expires=120000&X-Amz-Signature=eac8f89826070cc6792d0df53ff54f8fb8db23bead991abe2cb3a5c83e7b4f4f&X-Amz-SignedHeaders=host&x-id=GetObject') : e.preventDefault(); }}>Baixar</button>
                   <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar')}</button>
                 </div>
               </section>
@@ -793,33 +884,38 @@ async function loadAttachments() {
                   )
                 }{
                   (panelView == 'preview') &&
-                  (
-                    <div className="previewWrapper">
-                      <iframe
-                        id='preview'
-                        name='preview'
-                        width='100%'
-                        height='100%'
-                        frameBorder='0'
-                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                      ></iframe>
-                      <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                        <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                      </button>
-                    </div>
-                  )
+                      (isPreviewLoaded ? (
+                          <div className="previewWrapper">
+                            <iframe
+                              id='preview'
+                              name='preview'
+                              width='100%'
+                              height='100%'
+                              frameBorder='0'
+                              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                            ></iframe>
+                            <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                              <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                            </button>
+                          </div>
+                        ) :
+                        (
+                          <div className="d-flex align-items-center preview-warning d-p-4">Gerando prévia...</div>
+                        )
+                      )
                 }{
                   (panelView == 'attachments') &&
                   (
                     <>
                       Anexos
+                      <AttachmentsPanel docdetails={documentDetails} />
                     </>
                   )
                 }{
                   (panelView == 'versions') &&
                   (
                     <>
-                      <PreviousVersions versions={previousVersions} />
+                      <PreviousVersions docdetails={documentDetails} />
                     </>
                   )
                 }

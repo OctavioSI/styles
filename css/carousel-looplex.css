@@ -320,11 +320,12 @@ legend#root__title::before{
   text-decoration:none;
 }
 
-.version-table{
+.version-table,
+.attachment-table{
   background-color: #FFF;
 }
 
 .preview-warning{
-  font-size: 2em;
+  font-size: 1em;
   text-align: center;
 }

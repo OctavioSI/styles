@@ -10,13 +10,15 @@
 var defaultCommand = 'fetchSchema';
 var actions = {
   fetchSchema,
-  fetchPreviousVersions,
+  fetchDocumentDetails,
+  renderDocument,
   runDMN
 }
 var services = {
   Actions: {
     fetchSchemaService,
-    fetchPreviousVersionsService,
+    fetchDocumentDetailsService,
+    renderDocumentService,
     runDMNService
   }
 }
@@ -25,6 +27,7 @@ const APIM_URL = 'https://actions.looplex.com/api/code/'
 const RJSF_SCHEMA_ENDPOINT = 'AD16A7D0-CFFE-11EE-B340-F535C9AF96AD';
 const COSMOSDB_ENDPOINT = '5082CEE0-57AE-11EE-B671-8F0CE0BE21ED';
 const CODEFLOW_ENDPOINT = '2BB47D4E-1DF8-4B4F-9A55-D0C68CE70411';
+const RENDER_ENDPOINT = '29C64FC0-2828-11EF-BA19-6DEDEC828F31';
 
 // --[ helpers ]---------------------------------------------------------------
 
@@ -57,7 +60,7 @@ async function fetchSchema(payload) {
   return await Actions.fetchSchemaService(inputs)
 }
 
-async function fetchPreviousVersions(payload) {
+async function fetchDocumentDetails(payload) {
   const schema = {
     type: 'object',
     properties: {
@@ -81,7 +84,32 @@ async function fetchPreviousVersions(payload) {
   };
 
   // execute
-  return await Actions.fetchPreviousVersionsService(inputs)
+  return await Actions.fetchDocumentDetailsService(inputs)
+}
+
+async function renderDocument(payload) {
+  const schema = {
+    type: 'object',
+    properties: {
+      datacontent: { type: 'object' }
+    },
+    required: [
+      'datacontent'
+    ],
+    additionalProperties: false
+  }
+  const valid = ajv.validate(schema, payload)
+  if (!valid) throw new Error(JSON.stringify(ajv.errors))
+
+  // services
+  const { Actions } = services
+
+  let inputs = {
+    datacontent: payload.datacontent
+  };
+
+  // execute
+  return await Actions.renderDocumentService(inputs)
 }
 
 async function runDMN(payload) {
@@ -140,7 +168,7 @@ async function fetchSchemaService(inputs) {
   }
 };
 
-async function fetchPreviousVersionsService(inputs) {
+async function fetchDocumentDetailsService(inputs) {
   const { tenant, id } = inputs;
   try{
     let headers = {
@@ -150,7 +178,7 @@ async function fetchPreviousVersionsService(inputs) {
       "command": "read",
       "config": {
           "database": "Workflows",
-          "container": "assembler_versions",
+          "container": "assembler",
           "partitionKey": tenant,
           "id": id
       }
@@ -166,6 +194,26 @@ async function fetchPreviousVersionsService(inputs) {
     return res.data.output;
   }catch(e){
     throw new Error('Error fetching form: '+e.message)
+  }
+};
+
+async function renderDocumentService(inputs) {
+  const { datacontent } = inputs;
+  try {
+    let headers = {
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let config = {
+      method: 'post',
+      url: `${APIM_URL}${RENDER_ENDPOINT}`,
+      headers,
+      data: datacontent
+    }
+    // console.log('config', config)
+    const res = await axios(config);
+    return res.data.output.documentUrl;
+  } catch (e) {
+    throw new Error('Error fetching form: ' + e.message)
   }
 };
 
