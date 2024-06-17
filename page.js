@@ -1,263 +1,23 @@
 /*******************************************************************
- * Elementos do Sumário
- * 
- * As funções a seguir definem elementos que são utilizados no painel
- * de sumário. A ideia é componentizar cada um dos elementos que são 
- * repetidos durante a implementação
- *******************************************************************/
-
-// Descrição do documento que está sendo construído. No painel de 
-// sumário ele aparece como "Informações Gerais"
-function Description(props) {
-  let description = props.description
-  return (
-    <div >
-      <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>Informações Gerais</a>
-      <div class="collapse" id="overview">
-        <table class="table table-hover table-sm table-bordered">
-
-          <tbody>
-            <tr>
-              <td className="table-highlight">
-                Número da Alteração
-              </td>
-              <td>
-                {description.version}
-              </td>
-            </tr>
-            <tr>
-              <td className="table-highlight">
-                Último Revisor
-              </td>
-              <td>
-                {description.priorReviewer}
-              </td>
-            </tr>
-            <tr>
-              <td className="table-highlight">
-                Data Última Revisão
-              </td>
-              <td>
-                {description.dateReview}
-              </td>
-            </tr>
-            <tr>
-              <td className="table-highlight">
-                Comentários última atualização
-              </td>
-              <td>
-                {description.comments}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div >
-    </div >
-  )
-}
-
-// Cada uma das linhas com o conteúdo que estamos populando.
-// Ele indica que há um valor original e o destaca com o valor atual
-// que é trazido no formulario
-function Row(props) {
-  let title = props.title
-  let priorValue = props.priorValue
-  let currentValue = props.currentValue
-
-  let row =
-    <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
-      <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{title}</td>
-      <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{priorValue}</td>
-      <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{currentValue}</td>
-    </tr>
-
-  return row
-}
-
-// Quando em nosso RJSF temos uma subseção, colocaremos o elemento 
-// a seguir para indicar que as linhas seguintes dizem respeito 
-// a essa subseção usando um subtítulo
-function TableRow(props) {
-  let rows = props.rows
-  let subtitle = props.subtitle
-  let sublevel = props.sublevel
-  let table =
-    <>
-      <tr class="table-subtitle">
-        <td class="table-subtitle" colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
-      </tr>
-      {rows}
-    </>
-  return table
-}
-
-// Cada uma das seções do sumário
-function Section(props) {
-  let table = props.table
-  let title = props.title
-  let id = props.id
-  let isCurrentCard = props.isCurrentCard
-  let section = <div style={{
-    width: "100%", height: "100%", backgroundColor: "white"
-  }} >
-    <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>{title}</a>
-    <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
-      <table class="table table-hover table-sm table-bordered">
-        <thead class="thead-light">
-          <tr className="table-title">
-            <th className="table-title" scope="col">Campo</th>
-            <th className="table-title" scope="col">Original</th>
-            <th className="table-title" scope="col">Alterado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {table}
-        </tbody>
-      </table>
-    </div>
-  </div >
-  return section
-}
-
-// Montagem do sumário efetiva
-function Resumo(props) {
-  function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
-    let items = []
-    for (let i = 0; i < Object.keys(schema.properties).length; i++) {
-      let key = Object.keys(schema.properties)[i]
-      let formItem = schema.properties[key]
-      let type = formItem.type
-      if (type == 'string') {
-        let row = <Row title={formItem.title ? formItem.title : ""} priorValue={previewFormData[key] ? previewFormData[key] : ""} currentValue={currentFormData[key] ? currentFormData[key] : ""} />
-        items.push(row)
-      }
-      if (type == 'object') {
-        let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
-        items.push(row)
-      }
-    }
-    return items
-  }
-  let cards = props.cards
-  let activeCard = props.activeCard
-  let sections = []
-  let currentCard = cards[activeCard];
-  for (let i = 0; i < cards.length; i++) {
-    let card = cards[i]
-    let title = card.schema?.title ? card.schema?.title : card.cardId
-    let cardSchema = card.schema
-    let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
-    let cardCurrentFormData = card.formData ? card.formData : {}
-    let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
-    sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} />)
-  }
-  return (
-    <div>
-      {sections}
-    </div>
-  )
-}
-
-// Montagem da tabela de versões
-function PreviousVersions(props) {
-  function formatUTCDate(utcdate){
-    let utc = new Date(utcdate).toUTCString();
-    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear()+" "+("0" + (new Date(utc).getHours())).slice(-2)+":"+("0" + (new Date(utc).getMinutes())).slice(-2)+":"+("0" + (new Date(utc).getSeconds())).slice(-2)
-  }
-  function tableBuilder(version) {
-    let versiontable =
-      <div className="version-table">
-        <table class="table table-sm table-bordered">
-          <tbody>
-            <tr class="table-subtitle">
-              <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
-              <td class="table-subtitle" colspan="1">Data: {formatUTCDate(version.date)}</td>
-              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-link"} onClick={(e) => { e.preventDefault(); compareVersions(version); }}>Comparar</button></td>
-            </tr>
-            <tr className="table-default">
-              <td colspan="1" className="table-subtitle">Autor</td>
-              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.author}</td>
-            </tr>
-            <tr className="table-default">
-              <td colspan="1" className="table-subtitle">Descrição</td>
-              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    return versiontable;
-  }
-
-  let versions = props.docdetails.versions
-  let sections = []
-  for (let i = 0; i < versions.length; i++) {
-    sections.push(tableBuilder(versions[i]))
-  }
-  return (
-    <>
-      {sections}
-    </>
-  )
-}
-
-// Montagem da tabela de versões
-function AttachmentsPanel(props) {
-  function formatUTCDate(utcdate){
-    let utc = new Date(utcdate).toUTCString();
-    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear()+" "+("0" + (new Date(utc).getHours())).slice(-2)+":"+("0" + (new Date(utc).getMinutes())).slice(-2)+":"+("0" + (new Date(utc).getSeconds())).slice(-2)
-  }
-  function tableBuilder(attachment) {
-    let attachmenttable =
-      <div className="attachment-table">
-        <table class="table table-sm table-bordered">
-          <tbody>
-            <tr class="table-subtitle">
-              <td class="table-subtitle" colspan="2">{attachment.title}</td>
-              <td class="table-subtitle" colspan="1">
-                <a href={attachment.document.path} download={attachment.document.filename+'.'+attachment.document.type}>
-                  <button type="button" className={"btn btn-link"}>Baixar</button>
-                </a>
-              </td>
-            </tr>
-            <tr className="table-default">
-              <td colspan="1" className="table-subtitle">Descrição</td>
-              <td colspan="2" style={{ wordBreak: "break-all" }} className="table-highlight">{attachment.description}</td>
-            </tr>
-            <tr className="table-default">
-              <td colspan="1" className="table-subtitle">Data</td>
-              <td colspan="2" className="table-highlight">{formatUTCDate(attachment.date)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    return attachmenttable;
-  }
-
-  let attachments = props.docdetails.attachments
-  let sections = []
-  for (let i = 0; i < attachments.length; i++) {
-    sections.push(tableBuilder(attachments[i]))
-  }
-  return (
-    <>
-      {sections}
-    </>
-  )
-}
-
-/*********************************************************************
- * Funções externas
- */
-
-async function compareVersions(baseversion) {
-  // aspose compare current version with previous one
-  return;
-}
-
-/*******************************************************************
-* Início do Código Principal
+* Carousel Padrão Flows
 ********************************************************************/
 (function () {
+
+/********************************************************************
+ * # Configurações
+ * 
+ * Este Carousel foi projetado para ser o único endpoint necessário
+ * para a utilização de formulários na Looplex.
+ * 
+ * Para tanto, você deverá informar os seguintes parâmetros no 
+ * payload JSON, codificado no seguinte endereço:
+ * 
+ * 
+ * 
+ * 
+ *
+ ********************************************************************/
+
   const initialform = {
     id: props.embeddedData.initialformId,
     tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br'
@@ -271,6 +31,7 @@ async function compareVersions(baseversion) {
   const [cards, setCards] = useState(props.rjsf.cards)
 
   const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(true)
   const [activeCard, setActiveCard] = useState(0);
@@ -279,7 +40,8 @@ async function compareVersions(baseversion) {
 
   const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
   const [documentDetails, setDocumentDetails] = useState({});
-  
+  const [documentRendered, setDocumentRendered] = useState("");
+
   const [tmpVisor, setTmpVisor] = useState('')
   const [submitted, setSubmitted] = useState('')
 
@@ -669,7 +431,11 @@ async function compareVersions(baseversion) {
   async function handleSubmit(event) {
     event.preventDefault()
     event.stopPropagation()
-    let merged = {}
+    setIsSubmitting(true)
+    let render = await renderDocument();
+    setDocumentRendered(render)
+    setIsSubmitting(false)
+    /*let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
       if (tcard.scope && tcard.scope !== '') {
@@ -678,19 +444,9 @@ async function compareVersions(baseversion) {
         merged = { ...merged, ...tcard.formData }
       }
     }
-
     setSubmitted('Submitted: ' + JSON.stringify(merged))
-
+    */
     return;
-    const res = await axios({
-      method: "post",
-      url: `/api/code/${props.codeId}`,
-      data: { ...merged, state }
-    })
-    // TODO: Alterar tela de sucesso para uma mensagem dentro do layout do form
-    //router.push(
-    //'https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/code/templates/standard/success.html'
-    //)
   }
 
   async function runDMN(formData, dmnStructure, tenant) {
@@ -726,9 +482,7 @@ async function compareVersions(baseversion) {
     }
   }
 
-  async function generatePreview() {
-    setIsPreviewLoaded(false);
-    // Criando o datasource
+  async function renderDocument(){
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -757,15 +511,24 @@ async function compareVersions(baseversion) {
     }
     try {
       const res = await axios(config);
-
       if (res.data && res.data.output) {
-        setPreviewDocURL(res.data.output);
-        setIsPreviewLoaded(true);
+        setTmpVisor(JSON.stringify(res.data.output))
+        return res.data.output;
       }
     } catch (e) {
-      setIsPreviewLoaded(true);
       throw new Error('Falha ao gerar o Render')
     }
+  }
+
+  async function generatePreview() {
+    setIsPreviewLoaded(false);
+    let preview = await renderDocument();
+    if(preview){
+      setPreviewDocURL(preview);
+    }else{
+      setPreviewDocURL({});
+    }
+    setIsPreviewLoaded(true);
     return;
   }
 
@@ -830,17 +593,17 @@ async function compareVersions(baseversion) {
               </section>
               <section className="navigation d-flex align-items-end flex-column">
                 <div className="d-flex d-space-x-4 align-items-center">
-                  <button className={(activeCard - 1) >= 0 ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(cards[activeCard].formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                  <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0) && 'disabled'}` } onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(cards[activeCard].formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
                   <span class="glyphicon glyphicon-option-horizontal"></span>
-                  <button type="button" className={(activeCard + 1) < cards.length ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                  <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
                 <div className="mt-auto d-flex align-items-end d-space-x-4">
-                  { (documentDetails && documentDetails.currentVersion ) && (
-                  <a href={documentDetails.currentVersion.path} download={documentDetails.currentVersion.filename+'_'+documentDetails.currentVersion.version+'.'+documentDetails.currentVersion.type} >
-                    <button type="button" className={"btn btn-outline-secondary"} alt={"Baixar a última versão ("+documentDetails.currentVersion.version+")"}>Baixar {"(v."+documentDetails.currentVersion.version+")"}</button>
+                  { (documentRendered && documentRendered !== '') && (
+                  <a href={documentRendered} download>
+                    <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
                   </a>
                   ) }
-                  <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar')}</button>
+                  <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting) && 'disabled' }`} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar')) }</button>
                 </div>
               </section>
             </main>
@@ -878,12 +641,12 @@ async function compareVersions(baseversion) {
                         src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
                       ></iframe>
                       <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                        <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                        <span class="spinner-border right-margin-5px"></span>Atualizar Prévia
                       </button>
                     </div>
                   ) :
                     (
-                      <div className="d-flex align-items-center preview-warning d-p-4">Gerando prévia...</div>
+                      <div className="d-flex align-items-center preview-warning d-p-4"><span class="glyphicon glyphicon-repeat right-margin-5px"></span>Gerando prévia...</div>
                     )
                   )
                 }{
@@ -910,3 +673,259 @@ async function compareVersions(baseversion) {
     </div>
   )
 })()
+
+/*******************************************************************
+ * Elementos do Sumário
+ * 
+ * As funções a seguir definem elementos que são utilizados no painel
+ * de sumário. A ideia é componentizar cada um dos elementos que são 
+ * repetidos durante a implementação
+ *******************************************************************/
+
+// Descrição do documento que está sendo construído. No painel de 
+// sumário ele aparece como "Informações Gerais"
+function Description(props) {
+  let description = props.description
+  return (
+    <div >
+      <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>Informações Gerais</a>
+      <div class="collapse" id="overview">
+        <table class="table table-hover table-sm table-bordered">
+
+          <tbody>
+            <tr>
+              <td className="table-highlight">
+                Número da Alteração
+              </td>
+              <td>
+                {description.version}
+              </td>
+            </tr>
+            <tr>
+              <td className="table-highlight">
+                Último Revisor
+              </td>
+              <td>
+                {description.priorReviewer}
+              </td>
+            </tr>
+            <tr>
+              <td className="table-highlight">
+                Data Última Revisão
+              </td>
+              <td>
+                {description.dateReview}
+              </td>
+            </tr>
+            <tr>
+              <td className="table-highlight">
+                Comentários última atualização
+              </td>
+              <td>
+                {description.comments}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div >
+    </div >
+  )
+}
+
+// Cada uma das linhas com o conteúdo que estamos populando.
+// Ele indica que há um valor original e o destaca com o valor atual
+// que é trazido no formulario
+function Row(props) {
+  let title = props.title
+  let priorValue = props.priorValue
+  let currentValue = props.currentValue
+
+  let row =
+    <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
+      <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{title}</td>
+      <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{priorValue}</td>
+      <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{currentValue}</td>
+    </tr>
+
+  return row
+}
+
+// Quando em nosso RJSF temos uma subseção, colocaremos o elemento 
+// a seguir para indicar que as linhas seguintes dizem respeito 
+// a essa subseção usando um subtítulo
+function TableRow(props) {
+  let rows = props.rows
+  let subtitle = props.subtitle
+  let sublevel = props.sublevel
+  let table =
+    <>
+      <tr class="table-subtitle">
+        <td class="table-subtitle" colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
+      </tr>
+      {rows}
+    </>
+  return table
+}
+
+// Cada uma das seções do sumário
+function Section(props) {
+  let table = props.table
+  let title = props.title
+  let id = props.id
+  let isCurrentCard = props.isCurrentCard
+  let section = <div style={{
+    width: "100%", height: "100%", backgroundColor: "white"
+  }} >
+    <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>{title}</a>
+    <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
+      <table class="table table-hover table-sm table-bordered">
+        <thead class="thead-light">
+          <tr className="table-title">
+            <th className="table-title" scope="col">Campo</th>
+            <th className="table-title" scope="col">Original</th>
+            <th className="table-title" scope="col">Alterado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {table}
+        </tbody>
+      </table>
+    </div>
+  </div >
+  return section
+}
+
+// Montagem do sumário efetiva
+function Resumo(props) {
+  function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
+    let items = []
+    for (let i = 0; i < Object.keys(schema.properties).length; i++) {
+      let key = Object.keys(schema.properties)[i]
+      let formItem = schema.properties[key]
+      let type = formItem.type
+      if (type == 'string') {
+        let row = <Row title={formItem.title ? formItem.title : ""} priorValue={previewFormData[key] ? previewFormData[key] : ""} currentValue={currentFormData[key] ? currentFormData[key] : ""} />
+        items.push(row)
+      }
+      if (type == 'object') {
+        let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
+        items.push(row)
+      }
+    }
+    return items
+  }
+  let cards = props.cards
+  let activeCard = props.activeCard
+  let sections = []
+  let currentCard = cards[activeCard];
+  for (let i = 0; i < cards.length; i++) {
+    let card = cards[i]
+    let title = card.schema?.title ? card.schema?.title : card.cardId
+    let cardSchema = card.schema
+    let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
+    let cardCurrentFormData = card.formData ? card.formData : {}
+    let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
+    sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} />)
+  }
+  return (
+    <div>
+      {sections}
+    </div>
+  )
+}
+
+// Montagem da tabela de versões
+function PreviousVersions(props) {
+  function formatUTCDate(utcdate){
+    let utc = new Date(utcdate).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear()+" "+("0" + (new Date(utc).getHours())).slice(-2)+":"+("0" + (new Date(utc).getMinutes())).slice(-2)+":"+("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
+  function tableBuilder(version) {
+    let versiontable =
+      <div className="version-table">
+        <table class="table table-sm table-bordered">
+          <tbody>
+            <tr class="table-subtitle">
+              <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
+              <td class="table-subtitle" colspan="1">Data: {formatUTCDate(version.date)}</td>
+              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-link"} onClick={(e) => { e.preventDefault(); compareVersions(version); }}>Comparar</button></td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Autor</td>
+              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.author}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Descrição</td>
+              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    return versiontable;
+  }
+
+  let versions = props.docdetails.versions
+  let sections = []
+  for (let i = 0; i < versions.length; i++) {
+    sections.push(tableBuilder(versions[i]))
+  }
+  return (
+    <>
+      {sections}
+    </>
+  )
+}
+
+// Montagem da tabela de versões
+function AttachmentsPanel(props) {
+  function formatUTCDate(utcdate){
+    let utc = new Date(utcdate).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear()+" "+("0" + (new Date(utc).getHours())).slice(-2)+":"+("0" + (new Date(utc).getMinutes())).slice(-2)+":"+("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
+  function tableBuilder(attachment) {
+    let attachmenttable =
+      <div className="attachment-table">
+        <table class="table table-sm table-bordered">
+          <tbody>
+            <tr class="table-subtitle">
+              <td class="table-subtitle" colspan="2">{attachment.title}</td>
+              <td class="table-subtitle" colspan="1">
+                <a href={attachment.document.path} download={attachment.document.filename+'.'+attachment.document.type}>
+                  <button type="button" className={"btn btn-link"}>Baixar</button>
+                </a>
+              </td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Descrição</td>
+              <td colspan="2" style={{ wordBreak: "break-all" }} className="table-highlight">{attachment.description}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">Data</td>
+              <td colspan="2" className="table-highlight">{formatUTCDate(attachment.date)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    return attachmenttable;
+  }
+
+  let attachments = props.docdetails.attachments
+  let sections = []
+  for (let i = 0; i < attachments.length; i++) {
+    sections.push(tableBuilder(attachments[i]))
+  }
+  return (
+    <>
+      {sections}
+    </>
+  )
+}
+
+/*********************************************************************
+ * Funções externas
+ */
+
+async function compareVersions(baseversion) {
+  // aspose compare current version with previous one
+  return;
+}
