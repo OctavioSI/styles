@@ -160,6 +160,10 @@ function Resumo(props) {
 
 // Montagem da tabela de versões
 function PreviousVersions(props) {
+  function formatUTCDate(utcdate){
+    let utc = new Date(utcdate).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear()+" "+("0" + (new Date(utc).getHours())).slice(-2)+":"+("0" + (new Date(utc).getMinutes())).slice(-2)+":"+("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
   function tableBuilder(version) {
     let versiontable =
       <div className="version-table">
@@ -167,7 +171,7 @@ function PreviousVersions(props) {
           <tbody>
             <tr class="table-subtitle">
               <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
-              <td class="table-subtitle" colspan="1">Data: {version.date}</td>
+              <td class="table-subtitle" colspan="1">Data: {formatUTCDate(version.date)}</td>
               <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-link"} onClick={(e) => { e.preventDefault(); compareVersions(version); }}>Comparar</button></td>
             </tr>
             <tr className="table-default">
@@ -198,6 +202,10 @@ function PreviousVersions(props) {
 
 // Montagem da tabela de versões
 function AttachmentsPanel(props) {
+  function formatUTCDate(utcdate){
+    let utc = new Date(utcdate).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear()+" "+("0" + (new Date(utc).getHours())).slice(-2)+":"+("0" + (new Date(utc).getMinutes())).slice(-2)+":"+("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
   function tableBuilder(attachment) {
     let attachmenttable =
       <div className="attachment-table">
@@ -205,7 +213,11 @@ function AttachmentsPanel(props) {
           <tbody>
             <tr class="table-subtitle">
               <td class="table-subtitle" colspan="2">{attachment.title}</td>
-              <td class="table-subtitle" colspan="1"><button type="button" className={"btn btn-link"} onClick={(e) => { e.preventDefault(); downloadFile('download', attachment); }}>Baixar</button></td>
+              <td class="table-subtitle" colspan="1">
+                <a href={attachment.document.path} download={attachment.document.filename+'.'+attachment.document.type}>
+                  <button type="button" className={"btn btn-link"}>Baixar</button>
+                </a>
+              </td>
             </tr>
             <tr className="table-default">
               <td colspan="1" className="table-subtitle">Descrição</td>
@@ -213,7 +225,7 @@ function AttachmentsPanel(props) {
             </tr>
             <tr className="table-default">
               <td colspan="1" className="table-subtitle">Data</td>
-              <td colspan="2" className="table-highlight">{attachment.date}</td>
+              <td colspan="2" className="table-highlight">{formatUTCDate(attachment.date)}</td>
             </tr>
           </tbody>
         </table>
@@ -236,38 +248,6 @@ function AttachmentsPanel(props) {
 /*********************************************************************
  * Funções externas
  */
-
-function downloadFile(filename, url) {
-    console.log('downloading...')
-    // Create a new anchor element
-    const a = document.createElement('a');
-    // Set the href and download attributes for the anchor element
-    // You can optionally set other attributes like `title`, etc
-    // Especially, if the anchor element will be attached to the DOM
-    a.href = url;
-    a.download = filename || 'download';
-    // Click handler that releases the object URL after the element has been clicked
-    // This is required for one-off downloads of the blob content
-    const clickHandler = () => {
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-        removeEventListener('click', clickHandler);
-      }, 150);
-    };
-    // Add the click event listener on the anchor element
-    // Comment out this line if you don't want a one-off download of the blob content
-    a.addEventListener('click', clickHandler, false);
-    // Programmatically trigger a click on the anchor element
-    // Useful if you want the download to happen automatically
-    // Without attaching the anchor element to the DOM
-    // Comment out this line if you don't want an automatic download of the blob content
-    //a.click();
-  
-    // Return the anchor element
-    // Useful if you want a reference to the element
-    // in order to attach it to the DOM or use it in some other way
-    return a;
-}
 
 async function compareVersions(baseversion) {
   // aspose compare current version with previous one
@@ -299,7 +279,7 @@ async function compareVersions(baseversion) {
 
   const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
   const [documentDetails, setDocumentDetails] = useState({});
-
+  
   const [tmpVisor, setTmpVisor] = useState('')
   const [submitted, setSubmitted] = useState('')
 
@@ -358,7 +338,6 @@ async function compareVersions(baseversion) {
     }
     return compare(searchObject, referenceObject);
   }
-
 
   /*******************************************
    * Hooks
@@ -764,7 +743,7 @@ async function compareVersions(baseversion) {
       command: "renderDocument",
       datasource: merged,
       templateDocument: documentDetails.template,
-      documentName: new Date().getTime() +'_'+documentDetails.base_filename,
+      documentName: new Date().getTime() + '_' + documentDetails.base_filename,
       tenant: initialform.tenant
     };
     let data = {
@@ -778,7 +757,7 @@ async function compareVersions(baseversion) {
     }
     try {
       const res = await axios(config);
-  
+
       if (res.data && res.data.output) {
         setPreviewDocURL(res.data.output);
         setIsPreviewLoaded(true);
@@ -856,17 +835,21 @@ async function compareVersions(baseversion) {
                   <button type="button" className={(activeCard + 1) < cards.length ? "btn btn-outline-secondary btn-navigation" : "btn btn-outline-secondary btn-navigation disabled"} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                 </div>
                 <div className="mt-auto d-flex align-items-end d-space-x-4">
-                  <button type="button" className={isReady2Submit ? "btn btn-outline-secondary" : "btn btn-outline-secondary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? downloadFile('porretinho.png','https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/daiani/porretinho.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAVBKADHNBJ2X72NFH%2F20240614%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240614T184731Z&X-Amz-Expires=120000&X-Amz-Signature=eac8f89826070cc6792d0df53ff54f8fb8db23bead991abe2cb3a5c83e7b4f4f&X-Amz-SignedHeaders=host&x-id=GetObject') : e.preventDefault(); }}>Baixar</button>
+                  { (documentDetails && documentDetails.currentVersion ) && (
+                  <a href={documentDetails.currentVersion.path} download={documentDetails.currentVersion.filename+'_'+documentDetails.currentVersion.version+'.'+documentDetails.currentVersion.type} >
+                    <button type="button" className={"btn btn-outline-secondary"} alt={"Baixar a última versão ("+documentDetails.currentVersion.version+")"}>Baixar {"(v."+documentDetails.currentVersion.version+")"}</button>
+                  </a>
+                  ) }
                   <button type="button" className={isReady2Submit ? "btn btn-primary" : "btn btn-primary disabled"} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar')}</button>
                 </div>
               </section>
             </main>
             <aside>
               <div className="card-navigation">
-                <button className={panelView == 'summary' ? "btn btn-secondary active" : "btn btn-secondary"} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-                <button className={panelView == 'preview' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-                <button className={panelView == 'attachments' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-                <button className={panelView == 'versions' ? "btn btn-secondary active" : "btn btn-secondary left-margin-2px"} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary'     && 'active' }`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview'     && 'active' }`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active' } ${(!documentDetails.attachments || documentDetails.attachments.length == 0) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions'    && 'active' } ${(!documentDetails.versions || documentDetails.versions.length == 0) && 'disabled'}`}  onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
               </div>
               <div className="card-summary">
                 {
@@ -884,25 +867,25 @@ async function compareVersions(baseversion) {
                   )
                 }{
                   (panelView == 'preview') &&
-                      (isPreviewLoaded ? (
-                          <div className="previewWrapper">
-                            <iframe
-                              id='preview'
-                              name='preview'
-                              width='100%'
-                              height='100%'
-                              frameBorder='0'
-                              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                            ></iframe>
-                            <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                              <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                            </button>
-                          </div>
-                        ) :
-                        (
-                          <div className="d-flex align-items-center preview-warning d-p-4">Gerando prévia...</div>
-                        )
-                      )
+                  (isPreviewLoaded ? (
+                    <div className="previewWrapper">
+                      <iframe
+                        id='preview'
+                        name='preview'
+                        width='100%'
+                        height='100%'
+                        frameBorder='0'
+                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                      ></iframe>
+                      <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                        <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                      </button>
+                    </div>
+                  ) :
+                    (
+                      <div className="d-flex align-items-center preview-warning d-p-4">Gerando prévia...</div>
+                    )
+                  )
                 }{
                   (panelView == 'attachments') &&
                   (
