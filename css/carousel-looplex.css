@@ -329,3 +329,7 @@ legend#root__title::before{
   font-size: 1em;
   text-align: center;
 }
+
+.panel.panel-danger.errors{
+  display:none;
+}

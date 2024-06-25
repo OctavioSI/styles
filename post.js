@@ -12,13 +12,18 @@ var actions = {
   fetchSchema,
   fetchDocumentDetails,
   renderDocument,
-  runDMN
+  downloadDocument,
+  compareDocuments,
+  runDMN,
+  validateForm
 }
 var services = {
   Actions: {
     fetchSchemaService,
     fetchDocumentDetailsService,
     renderDocumentService,
+    downloadDocumentService,
+    compareDocumentsService,
     runDMNService
   }
 }
@@ -28,6 +33,8 @@ const RJSF_SCHEMA_ENDPOINT = 'AD16A7D0-CFFE-11EE-B340-F535C9AF96AD';
 const COSMOSDB_ENDPOINT = '5082CEE0-57AE-11EE-B671-8F0CE0BE21ED';
 const CODEFLOW_ENDPOINT = '2BB47D4E-1DF8-4B4F-9A55-D0C68CE70411';
 const RENDER_ENDPOINT = '29C64FC0-2828-11EF-BA19-6DEDEC828F31';
+const S3_ENDPOINT = '2C21C26A-1E62-4D3E-940B-2973688BD120';
+const ASPOSE_ENDPOINT = '5B178600-2E7E-11EF-83D7-891BE967B89F';
 
 // --[ helpers ]---------------------------------------------------------------
 
@@ -112,6 +119,59 @@ async function renderDocument(payload) {
   return await Actions.renderDocumentService(inputs)
 }
 
+async function downloadDocument(payload) {
+  const schema = {
+    type: 'object',
+    properties: {
+      path: { type: 'string' }
+    },
+    required: [
+      'path'
+    ],
+    additionalProperties: false
+  }
+  const valid = ajv.validate(schema, payload)
+  if (!valid) throw new Error(JSON.stringify(ajv.errors))
+
+  // services
+  const { Actions } = services
+
+  let inputs = {
+    path: payload.path
+  };
+
+  // execute
+  return await Actions.downloadDocumentService(inputs)
+}
+
+async function compareDocuments(payload) {
+  const schema = {
+    type: 'object',
+    properties: {
+      original: { type: 'string' },
+      final: { type: 'string' }
+    },
+    required: [
+      'original',
+      'final'
+    ],
+    additionalProperties: false
+  }
+  const valid = ajv.validate(schema, payload)
+  if (!valid) throw new Error(JSON.stringify(ajv.errors))
+
+  // services
+  const { Actions } = services
+
+  let inputs = {
+    originalDoc: payload.original,
+    finalDoc: payload.final
+  };
+
+  // execute
+  return await Actions.compareDocumentsService(inputs)
+}
+
 async function runDMN(payload) {
   const schema = {
     type: 'object',
@@ -140,6 +200,28 @@ async function runDMN(payload) {
 
   // execute
   return await Actions.runDMNService(inputs)
+}
+
+async function validateForm(payload) {
+  const schema = {
+    type: 'object',
+    properties: {
+      schema: { type: 'object' },
+      formData: { type: 'object' }
+    },
+    required: [
+      'schema',
+      'formData'
+    ],
+    additionalProperties: false
+  }
+  const valid = ajv.validate(schema, payload)
+  if (!valid) throw new Error(JSON.stringify(ajv.errors))
+
+  // execute
+  const validform = ajv.validate(payload.schema, payload.formData)
+  if (!validform) return ajv.errors
+  return true;
 }
 
 // --[ services ]--------------------------------------------------------------
@@ -211,9 +293,60 @@ async function renderDocumentService(inputs) {
     }
     // console.log('config', config)
     const res = await axios(config);
-    return res.data.output.documentUrl;
+    return res.data.output;
   } catch (e) {
     throw new Error('Error fetching form: ' + e.message)
+  }
+};
+
+async function downloadDocumentService(inputs) {
+  const { path } = inputs;
+  try {
+    let data = {
+      command: "downloadFile",
+      subscription_key: secrets.APIM_SUBSCRIPTIONKEY,
+      path_has_escaped_chars: true,
+      treated_path: path,
+      get_type: 'url'
+    }
+    let headers = {
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let config = {
+      method: 'post',
+      url: `${APIM_URL}${S3_ENDPOINT}`,
+      headers,
+      data
+    }
+    // console.log('config', config)
+    const res = await axios(config);
+    return res.data.output;
+  } catch (e) {
+    throw new Error('Error fetching form: ' + e.message)
+  }
+};
+
+async function compareDocumentsService(inputs) {
+  const { originalDoc, finalDoc } = inputs;
+  try {
+    let headers = {
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let data = {
+      originalDoc,
+      finalDoc
+    };
+    let config = {
+      method: 'post',
+      url: `${APIM_URL}${ASPOSE_ENDPOINT}`,
+      headers,
+      data
+    }
+    // console.log('config', config)
+    const res = await axios(config);
+    return res.data.output;
+  } catch (e) {
+    throw new Error('Error comparing document: ' + e.message + '  *****  ' + e.response.data)
   }
 };
 
