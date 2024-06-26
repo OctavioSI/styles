@@ -29,7 +29,10 @@
   const [panelView, setPanelView] = useState('summary')
   const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
   const [cards, setCards] = useState(props.rjsf.cards)
-  const [modal, setModal] = useState({})
+  const [modal, setModal] = useState({
+    title: "Título",
+    description: "Descrição do Modal"
+  })
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -619,11 +622,22 @@
   const updateVersions = (versions) => {
     let docdetails = documentdetails;
     docdetails.versions = versions;
-    this.setDocumentDetails(docdetails);
+    setDocumentDetails(docdetails);
   }
 
   const updateTmpVisor = (tmpVisor) => {
     setTmpVisor(tmpVisor)
+  }
+
+  const alertModal = (title, message, content) => {
+    let modal = {
+      title: title,
+      description: message,
+      content: content,
+      hasCloseButton: false
+    };
+    setModal(modal)
+    modalRef.current.showModal()
   }
 
   return (
@@ -657,7 +671,7 @@
       
       <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
         <div className="d-modal-box">
-          <Modal title={modal.title} description={modal.description} schema={modal.schema} formData={modal.formData} action={modal.action} />
+          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} />
         </div>
         <form method="dialog" className="d-modal-backdrop">
           <button>close</button>
@@ -709,7 +723,7 @@
                   )}
                   <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
 
-                  <button type="button" className={"btn btn-outline-secondary"} onClick={(e)=> {e.preventDefault(); modalRef.current.showModal();}}>open modal</button>
+                  <button type="button" className={"btn btn-outline-secondary"} onClick={(e)=> {e.preventDefault(); alertModal('Título Aqui', 'Mensagem de alerta aqui', 'Conteúdo do alerta aqui')}}>open modal</button>
 
                 </div>
               </section>
@@ -1058,20 +1072,31 @@
 function Modal(props){
   let title = props.title ? props.title : ""
   let description = props.description ?  props.description : ""
-  let schema = props.schema ? props.schema : {}
-  let formData = props.formData ? props.formData : {}
+  let content = props.content ?  props.content : ""
+  let rjsf = props.rjsf ? props.rjsf : {}
   let action = props.action ? props.action : ""
+  let hasCloseButton = props.hasCloseButton ? props.hasCloseButton : false
 
   let modal =
     <>
       <h3 className="modal-title">{title}</h3>
       <p className="modal-description">{description}</p>
+      {rjsf && !isObjectEmpty(rjsf) ? (
+        <Form {...rjsf} onChange={(event, id) => runAction(action)} liveValidate />
+      )
+      :
+      (
+        <p className="modal-description">{content}</p>
+      )
+      }
+      { hasCloseButton && (
       <div className="d-modal-action">
         <form method="dialog">
           {/* if there is a button in form, it will close the modal */}
           <button className="d-btn">Cancelar</button>
         </form>
       </div>
+      )}
     </>
   return modal
 }
