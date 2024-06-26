@@ -29,6 +29,7 @@
   const [panelView, setPanelView] = useState('summary')
   const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
   const [cards, setCards] = useState(props.rjsf.cards)
+  const [modal, setModal] = useState({})
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -37,11 +38,13 @@
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
+  const modalRef = useRef(null);  
 
   const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
   const [documentDetails, setDocumentDetails] = useState({});
   const [documentRendered, setDocumentRendered] = useState({});
 
+  const [extraErrors, setExtraErrors] = useState({});
   const [tmpVisor, setTmpVisor] = useState('')
   const [tmpVisor2, setTmpVisor2] = useState('')
   const [submitted, setSubmitted] = useState('')
@@ -470,6 +473,9 @@
     event.stopPropagation()
     let validated = await validateForm()
     setTmpVisor(JSON.stringify(validated))
+    if(!validated){
+      // TODO
+    }
     setIsSubmitting(true)
     let render = await renderDocument();
     setDocumentRendered(render)
@@ -566,13 +572,20 @@
     let requiredFields = [];
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
-      if (tcard.scope && tcard.scope !== '') {
-        mergedFormData[tcard.scope] = { ...tcard.formData }
-        mergedSchema[tcard.scope] = { ...tcard.schema.properties }
-      } else {
-        mergedFormData = { ...mergedFormData, ...tcard.formData }
-        mergedSchema = { ...mergedSchema, ...tcard.schema.properties }
+      if(tcard.schema.hasOwnProperty('required')){
+        requiredFields.concat(tcard.schema.required)
       }
+      mergedFormData = { ...mergedFormData, ...tcard.formData }
+      mergedSchema = { ...mergedSchema, ...tcard.schema.properties }
+
+      // TODO: Analisar melhor como tratar em casos de definição com scope
+      // if (tcard.scope && tcard.scope !== '') {
+      //   mergedFormData[tcard.scope] = { ...tcard.formData }
+      //   mergedSchema[tcard.scope] = { ...tcard.schema.properties }
+      // } else {
+      //   mergedFormData = { ...mergedFormData, ...tcard.formData }
+      //   mergedSchema = { ...mergedSchema, ...tcard.schema.properties }
+      // }
     }
     // Para cada campo obrigatório do schema, precisamos
     // montar como required tb o campo "pai"
@@ -592,13 +605,11 @@
       url: `/api/code/${props.codeId}`,
       data
     }
-    // setTmpVisor2(JSON.stringify(cards))
-    setTmpVisor2(JSON.stringify(config))
+    // setTmpVisor(JSON.stringify(config))
     try {
       const res = await axios(config);
-      if (res.data) {
-        // setTmpVisor(res.data.output)
-        return res.data;
+      if (res.data && res.data.output) {
+        return res.data.output;
       }
     } catch (e) {
       throw new Error('Falha ao validar o formulário')
@@ -643,6 +654,15 @@
         <script src='https://cdn.tailwindcss.com?plugins=typography'></script>
         <script>{`tailwind.config = {prefix: 'd-' }`}</script>
       </Head>
+      
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
+        <div className="d-modal-box">
+          <Modal title={modal.title} description={modal.description} schema={modal.schema} formData={modal.formData} action={modal.action} />
+        </div>
+        <form method="dialog" className="d-modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
 
       <div className="looplex-header">
         <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
@@ -667,7 +687,7 @@
                       <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                         <div className="d-w-full">
                           <div className="d-w-full">
-                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} />
+                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
                           </div>
                         </div>
                       </div>
@@ -688,6 +708,9 @@
                     </a>
                   )}
                   <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+
+                  <button type="button" className={"btn btn-outline-secondary"} onClick={(e)=> {e.preventDefault(); modalRef.current.showModal();}}>open modal</button>
+
                 </div>
               </section>
             </main>
@@ -763,8 +786,7 @@
       </div>
     </div>
   )
-  //})()
-
+  
   /*******************************************************************
    * Elementos do Sumário
    * 
@@ -1031,6 +1053,28 @@
       </>
     )
   }
+
+// Modal
+function Modal(props){
+  let title = props.title ? props.title : ""
+  let description = props.description ?  props.description : ""
+  let schema = props.schema ? props.schema : {}
+  let formData = props.formData ? props.formData : {}
+  let action = props.action ? props.action : ""
+
+  let modal =
+    <>
+      <h3 className="modal-title">{title}</h3>
+      <p className="modal-description">{description}</p>
+      <div className="d-modal-action">
+        <form method="dialog">
+          {/* if there is a button in form, it will close the modal */}
+          <button className="d-btn">Cancelar</button>
+        </form>
+      </div>
+    </>
+  return modal
+}
 
   /*********************************************************************
    * Funções externas

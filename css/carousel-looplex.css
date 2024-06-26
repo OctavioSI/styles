@@ -240,7 +240,8 @@ legend::before{
   margin-right: 10px;
 }
 
-legend#root__title{
+legend#root__title,
+.modal-title{
   font-size: 1.2em;
   background-color: transparent;
   padding-left: 12px !important;

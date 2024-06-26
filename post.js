@@ -203,6 +203,11 @@ async function runDMN(payload) {
 }
 
 async function validateForm(payload) {
+  // Adicionando validacoes que nao existem por padrao no AJV puro
+  ajv.addFormat('date', function(dateTimeString) {
+    return !isNaN(Date.parse(dateTimeString));  // any test that returns true/false 
+  });
+  
   const schema = {
     type: 'object',
     properties: {
@@ -215,6 +220,7 @@ async function validateForm(payload) {
     ],
     additionalProperties: false
   }
+  
   const valid = ajv.validate(schema, payload)
   if (!valid) throw new Error(JSON.stringify(ajv.errors))
 
