@@ -20,7 +20,8 @@
 
   const initialform = {
     id: props.embeddedData.initialformId,
-    tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br'
+    tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br',
+    document: props.embeddedData.initialformDocument ? props.embeddedData.initialformDocument : 'teste001',
   };
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
   const state = props.embeddedData.rjsf?.formData?.state == undefined ? { message: "iniciarFluxo", domain: "looplex.com.br" } : { message: props.embeddedData.rjsf.formData.state.message, domain: props.embeddedData.rjsf.formData.state.domain, executionId: props.embeddedData.rjsf.formData.state.executionId }
@@ -36,12 +37,15 @@
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isModalSubmitting, setIsModalSubmitting] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
+  const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(true)
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
   const modalRef = useRef(null);  
+  const modalFormRef = useRef(null);  
 
   const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
   const [documentDetails, setDocumentDetails] = useState({});
@@ -194,7 +198,7 @@
       let data = {
         command: "fetchDocumentDetails",
         tenant: initialform.tenant,
-        id: 'teste001'
+        id: initialform.document
       };
       let config = {
         method: 'post',
@@ -479,10 +483,11 @@
     if(!validated){
       // TODO
     }
-    setIsSubmitting(true)
-    let render = await renderDocument();
-    setDocumentRendered(render)
-    setIsSubmitting(false)
+    submitNewVersion()
+    // setIsSubmitting(true)
+    // let render = await renderDocument();
+    // setDocumentRendered(render)
+    // setIsSubmitting(false)
     return;
   }
 
@@ -554,6 +559,49 @@
       }
     } catch (e) {
       throw new Error('Falha ao gerar o Render')
+    }
+  }
+
+  async function saveNewVersion(version, description) {
+    let merged = {}
+    for (let i = 0; i < cards.length; i++) {
+      let tcard = cards[i];
+      if (tcard.scope && tcard.scope !== '') {
+        merged[tcard.scope] = { ...tcard.formData }
+      } else {
+        merged = { ...merged, ...tcard.formData }
+      }
+    }
+
+    let datacontent = {
+      command: "renderDocument",
+      datasource: merged,
+      templateDocument: documentDetails.template,
+      documentName: new Date().getTime() + '_' + documentDetails.base_filename,
+      tenant: initialform.tenant
+    };
+    let data = {
+      command: "saveNewVersion",
+      title: documentDetails.title,
+      version,
+      description,
+      id: initialform.document ? initialform.document : crypto.randomUUID(),
+      author: "Octavio Ietsugu",
+      datacontent
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        // setTmpVisor(JSON.stringify(res.data.output))
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao salvar nova versão **** '+JSON.stringify(e.response.data))
     }
   }
 
@@ -641,6 +689,47 @@
     modalRef.current.showModal()
   }
 
+  function submitNewVersion(){
+    let modal = {
+      title: "Nova versão",
+      description: "Deseja criar uma nova versão deste documento?",
+      rjsf: {
+        "schema": {
+          "type": "object",
+          "required": [
+          "version",
+          "description"
+          ],
+          "properties": {
+          "version": {
+            "type": "string",
+            "title": "Versão"
+          },
+          "description": {
+            "type": "string",
+            "title": "Descrição"
+          }
+          }
+        },
+        "uiSchema":{
+          // "ui:submitButtonOptions": {
+          //   "norender": true
+          // },
+          "description": {
+            "ui:widget" : "textarea",
+            "ui:placeholder": "Forneça uma breve descrição para esta versão do documento",
+            "ui:options": {
+              "rows": 5
+            }
+          }
+        }
+      },
+      action: "createNewDocumentVersion"
+    }
+    setModal(modal);
+    modalRef.current.showModal();
+  }
+
   return (
     <div id='layout'>
       <Head>
@@ -723,9 +812,6 @@
                     </a>
                   )}
                   <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
-
-                  <button type="button" className={"btn btn-outline-secondary"} onClick={(e)=> {e.preventDefault(); alertModal('Título Aqui', 'glyphicon-exclamation-sign', 'Mensagem de alerta aqui', 'Conteúdo do alerta aqui')}}>open modal</button>
-
                 </div>
               </section>
             </main>
@@ -996,7 +1082,7 @@
                       <button type="button" className={"btn btn-link"}>Comparação</button>
                     </a>
                   )}
-                  <a href={version.link} download={version.document.filename} target="_blank">
+                  <a href={version.link} download target="_blank">
                     <button type="button" className={"btn btn-link"}>Baixar</button>
                   </a>
                 </td>
@@ -1038,7 +1124,7 @@
               <tr class="table-subtitle">
                 <td class="table-subtitle" colspan="2">{attachment.title}</td>
                 <td class="table-subtitle" colspan="1">
-                  <a href={attachment.link} download={attachment.document.filename} target="_blank">
+                  <a href={attachment.link} download target="_blank">
                     <button type="button" className={"btn btn-link"}>Baixar</button>
                   </a>
                 </td>
@@ -1069,6 +1155,24 @@
     )
   }
 
+async function runAction(action, inputs){
+  let render;
+  switch(action){
+    case 'createNewDocumentVersion':
+      setIsModalSubmitting(true)
+      let version = inputs.formData?.version;
+      let description = inputs.formData?.description;
+      console.log(inputs)
+      render = await saveNewVersion(version, description);
+      setDocumentRendered(render)
+      setIsModalSubmitting(false)
+      modalRef.current.close()
+      break;
+    default: 
+      return;
+  }
+}
+
 // Modal
 function Modal(props){
   let title = props.title ? props.title : ""
@@ -1091,7 +1195,9 @@ function Modal(props){
       </h3>
       <p className="modal-description">{description}</p>
       {rjsf && !isObjectEmpty(rjsf) ? (
-        <Form {...rjsf} onChange={(event, id) => runAction(action)} liveValidate />
+        <>
+          <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate ref={modalFormRef} />
+        </>
       )
       :
       (
