@@ -629,8 +629,9 @@
     setTmpVisor(tmpVisor)
   }
 
-  const alertModal = (title, message, content) => {
+  const alertModal = (title, icon, message, content) => {
     let modal = {
+      icon: icon,
       title: title,
       description: message,
       content: content,
@@ -671,7 +672,7 @@
       
       <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
         <div className="d-modal-box">
-          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} />
+          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
         </div>
         <form method="dialog" className="d-modal-backdrop">
           <button>close</button>
@@ -723,7 +724,7 @@
                   )}
                   <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
 
-                  <button type="button" className={"btn btn-outline-secondary"} onClick={(e)=> {e.preventDefault(); alertModal('Título Aqui', 'Mensagem de alerta aqui', 'Conteúdo do alerta aqui')}}>open modal</button>
+                  <button type="button" className={"btn btn-outline-secondary"} onClick={(e)=> {e.preventDefault(); alertModal('Título Aqui', 'glyphicon-exclamation-sign', 'Mensagem de alerta aqui', 'Conteúdo do alerta aqui')}}>open modal</button>
 
                 </div>
               </section>
@@ -1071,6 +1072,7 @@
 // Modal
 function Modal(props){
   let title = props.title ? props.title : ""
+  let icon = props.icon ? props.icon : ""
   let description = props.description ?  props.description : ""
   let content = props.content ?  props.content : ""
   let rjsf = props.rjsf ? props.rjsf : {}
@@ -1079,7 +1081,14 @@ function Modal(props){
 
   let modal =
     <>
-      <h3 className="modal-title">{title}</h3>
+      <h3 className="modal-title">
+        {
+          (icon && icon !== '') && (
+            <span className={`glyphicon ${icon}`}></span>
+          )
+        }
+        {title}
+      </h3>
       <p className="modal-description">{description}</p>
       {rjsf && !isObjectEmpty(rjsf) ? (
         <Form {...rjsf} onChange={(event, id) => runAction(action)} liveValidate />

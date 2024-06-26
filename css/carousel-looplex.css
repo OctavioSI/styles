@@ -250,6 +250,10 @@ legend#root__title,
   border: 0;
 }
 
+.modal-title .glyphicon{
+  margin-right: 10px;
+}
+
 .modal-description{
   font-size: .9em;
   color: #ccc;
