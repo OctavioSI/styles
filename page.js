@@ -1095,7 +1095,7 @@ function Modal(props){
       )
       :
       (
-        <p className="modal-description">{content}</p>
+        <p className="modal-contentbody">{content}</p>
       )
       }
       { hasCloseButton && (
