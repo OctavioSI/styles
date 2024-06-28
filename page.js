@@ -36,7 +36,11 @@
   })
 
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRendering, setIsRendering] = useState(false)
+  const [isComparing, setIsComparing] = useState({})
+  const [isComparingError, setIsComparingError] = useState({})
   const [isModalSubmitting, setIsModalSubmitting] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
@@ -45,7 +49,6 @@
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
   const modalRef = useRef(null);  
-  const modalFormRef = useRef(null);  
 
   const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
   const [documentDetails, setDocumentDetails] = useState({});
@@ -205,6 +208,7 @@
         url: `/api/code/${props.codeId}`,
         data
       }
+      setIsLoadingDocumentDetails(true);
       const res = await axios(config);
 
       if (res.data && res.data.output) {
@@ -219,6 +223,7 @@
         }
         setDocumentDetails(documentdetails);
         setIsLoading(false)
+        setIsLoadingDocumentDetails(false);
         return true;
       }
     }
@@ -237,6 +242,7 @@
           sleep(500);
         });
     }
+
   }, []);
 
   useEffect(() => {
@@ -251,9 +257,6 @@
       inline: "nearest"
     });
   }, [activeCardRef.current]);
-
-
-
 
   /*******************************************
    * Funções de manipulação de Cards e Card Deck
@@ -475,19 +478,22 @@
     }
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event, justrender) {
     event.preventDefault()
     event.stopPropagation()
     let validated = await validateForm()
-    setTmpVisor(JSON.stringify(validated))
+    // setTmpVisor(JSON.stringify(validated))
     if(!validated){
       // TODO
     }
-    submitNewVersion()
-    // setIsSubmitting(true)
-    // let render = await renderDocument();
-    // setDocumentRendered(render)
-    // setIsSubmitting(false)
+    if(justrender){
+      setIsRendering(true)
+      let render = await renderDocument();
+      setDocumentRendered(render);
+      setIsRendering(false);
+    }else{
+      submitNewVersion()
+    }
     return;
   }
 
@@ -563,6 +569,7 @@
   }
 
   async function saveNewVersion(version, description) {
+    let author = "Octavio Ietsugu"
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -586,7 +593,7 @@
       version,
       description,
       id: initialform.document ? initialform.document : crypto.randomUUID(),
-      author: "Octavio Ietsugu",
+      author,
       datacontent
     };
     let config = {
@@ -594,10 +601,17 @@
       url: `/api/code/${props.codeId}`,
       data
     }
+    // console.log('config', config)
+    // setTmpVisor(JSON.stringify(config))
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
         // setTmpVisor(JSON.stringify(res.data.output))
+        // Vamos atualizar o documentDetails relevante
+        let docdetails = documentDetails;
+        docdetails.versions.push(res.data.output.newversion)
+        setDocumentDetails(docdetails)
+        setDocumentRendered(res.data.output.docrendered)
         return res.data.output;
       }
     } catch (e) {
@@ -712,9 +726,10 @@
           }
         },
         "uiSchema":{
-          // "ui:submitButtonOptions": {
-          //   "norender": true
-          // },
+          "ui:submitButtonOptions": {
+            "norender": false,
+            "submitText": "Enviar"
+          },
           "description": {
             "ui:widget" : "textarea",
             "ui:placeholder": "Forneça uma breve descrição para esta versão do documento",
@@ -760,7 +775,7 @@
       </Head>
       
       <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
-        <div className="d-modal-box">
+        <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
         </div>
         <form method="dialog" className="d-modal-backdrop">
@@ -811,7 +826,8 @@
                       <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
                     </a>
                   )}
-                  <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit ? handleSubmit(e) : handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                  <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+                  <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
                 </div>
               </section>
             </main>
@@ -819,8 +835,8 @@
               <div className="card-navigation">
                 <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
                 <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(!documentDetails.attachments || documentDetails.attachments.length == 0) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(!documentDetails.attachments || documentDetails.attachments.length == 0) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(!documentDetails.versions || documentDetails.versions.length == 0) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(!documentDetails.versions || documentDetails.versions.length == 0) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
               </div>
               <div className="card-summary">
                 {
@@ -1059,11 +1075,25 @@
   // Montagem da tabela de versões
   function PreviousVersions(props) {
     async function triggerCompareVersions(version, docrendered, versionidx) {
-      let comparison = await compareVersions(version, docrendered);
-      updateTmpVisor(comparison)
-      let versions = props.docdetails.versions;
-      versions[versionidx].comparacao = comparison;
-      updateVersions(versions)
+      let comparearray = isComparing;
+      let comparearrayerror = isComparingError;
+      comparearray[versionidx] = true;
+      comparearrayerror[versionidx] = false;
+      setIsComparing(comparearray);
+      setIsComparingError(comparearrayerror);
+      try{
+        let comparison = await compareVersions(version, docrendered);
+        comparearray[versionidx] = false;
+        setIsComparing(comparearray);
+        let versions = props.docdetails.versions;
+        versions[versionidx].comparacao = comparison;
+        updateVersions(versions)
+      }catch(e){
+        comparearray[versionidx] = false;
+        comparearrayerror[versionidx] = true;
+        setIsComparing(comparearray);
+        setIsComparingError(comparearrayerror);
+      }
     }
     function tableBuilder(version, docrendered, versionidx) {
       let versiontable =
@@ -1072,20 +1102,7 @@
             <tbody>
               <tr class="table-subtitle">
                 <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
-                <td class="table-subtitle" colspan="1">Data: {formatUTCDate(version.date)}</td>
-                <td class="table-subtitle" colspan="1">
-                  {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
-                    <button type="button" className={"btn btn-link right-margin-5px"} onClick={(e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }}>Comparar</button>
-                  )}
-                  {(version && version.hasOwnProperty('comparacao') && version.comparacao !== '') && (
-                    <a href={version.comparacao} download target="_blank">
-                      <button type="button" className={"btn btn-link"}>Comparação</button>
-                    </a>
-                  )}
-                  <a href={version.link} download target="_blank">
-                    <button type="button" className={"btn btn-link"}>Baixar</button>
-                  </a>
-                </td>
+                <td class="table-subtitle" colspan="2">Data: {formatUTCDate(version.date)}</td>
               </tr>
               <tr className="table-default">
                 <td colspan="1" className="table-subtitle">Autor</td>
@@ -1095,6 +1112,22 @@
                 <td colspan="1" className="table-subtitle">Descrição</td>
                 <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
               </tr>
+              <tr className="table-default">
+                <td colspan="1" className="table-subtitle">Ações</td>
+                <td class="table-subtitle" colspan="2">
+                    <a href={version.link} download target="_blank">
+                      <button type="button" className={"btn btn-outline-secondary"}>Baixar</button>
+                    </a>                  
+                    {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
+                      <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing[versionidx] ? 'disabled' : '')}`} onClick={(e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError[versionidx] && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing[versionidx] && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing[versionidx] ? ((cards[activeCard].formData?.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
+                    )}
+                    {(version && version.hasOwnProperty('comparacao') && version.comparacao !== '') && (
+                      <a href={version.comparacao} download target="_blank">
+                        <button type="button" className={"btn btn-outline-secondary"}>Ver Comparação</button>
+                      </a>
+                    )}
+                  </td>
+                </tr>
             </tbody>
           </table>
         </div>
@@ -1104,8 +1137,14 @@
     let versions = props.docdetails.versions
     let docrendered = props.docrendered
     let sections = []
-    for (let i = 0; i < versions.length; i++) {
-      sections.push(tableBuilder(versions[i], docrendered, i))
+    if(versions && versions.length > 0){
+      for (let i = 0; i < versions.length; i++) {
+        sections.push(tableBuilder(versions[i], docrendered, i))
+      }
+    }else{
+      sections.push(
+        <>Sem versões anteriores</>
+      )
     }
     return (
       <>
@@ -1145,8 +1184,15 @@
 
     let attachments = props.docdetails.attachments
     let sections = []
-    for (let i = 0; i < attachments.length; i++) {
-      sections.push(tableBuilder(attachments[i]))
+
+    if(attachments && attachments.length > 0){
+      for (let i = 0; i < attachments.length; i++) {
+        sections.push(tableBuilder(attachments[i]))
+      }
+    }else{
+      sections.push(
+        <>Sem anexos anteriores</>
+      )
     }
     return (
       <>
@@ -1164,7 +1210,7 @@ async function runAction(action, inputs){
       let description = inputs.formData?.description;
       console.log(inputs)
       render = await saveNewVersion(version, description);
-      setDocumentRendered(render)
+      // setDocumentRendered(render)
       setIsModalSubmitting(false)
       modalRef.current.close()
       break;
@@ -1196,7 +1242,7 @@ function Modal(props){
       <p className="modal-description">{description}</p>
       {rjsf && !isObjectEmpty(rjsf) ? (
         <>
-          <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate ref={modalFormRef} />
+          <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate id="modalForm" />
         </>
       )
       :
@@ -1232,14 +1278,14 @@ function Modal(props){
       url: `/api/code/${props.codeId}`,
       data
     }
-    setTmpVisor2(JSON.stringify(config))
+    // setTmpVisor2(JSON.stringify(config))
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
         return res.data.output;
       }
     } catch (e) {
-      throw new Error('Falha ao comparar o arquivo')
+      throw new Error('Falha ao comparar versões **** '+JSON.stringify(e.response.data))
     }
 
     return;

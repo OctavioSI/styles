@@ -379,6 +379,7 @@ async function saveNewVersionService(inputs) {
       // Aqui, com o documento gerado, vamos criar o registro da nova versão no Cosmos
       let data = {};
       let content = {};
+      let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
       if(!id || id == ''){
         // Não tenho ID, então preciso gravar um novo registro na DB
         content = {
@@ -386,7 +387,7 @@ async function saveNewVersionService(inputs) {
               {
                   "version": version,
                   "author": author,
-                  "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+                  "date": updateddate,
                   "description": description,
                   "document": {
                       "path": render.data.output.resPresigned.data.info.docpath
@@ -398,8 +399,8 @@ async function saveNewVersionService(inputs) {
           "currentVersion": version,
           "author": author,
           "description": description,
-          "created_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
-          "updated_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+          "created_at": updateddate,
+          "updated_at": updateddate,
           "title": title,
           "base_filename": "testeoctavio.docx",
           "template": datacontent.templateDocument
@@ -419,7 +420,7 @@ async function saveNewVersionService(inputs) {
         content = {
           "version": version,
           "author": author,
-          "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+          "date": updateddate,
           "description": description,
           "document": {
               "path": render.data.output.resPresigned.data.info.docpath
@@ -437,7 +438,7 @@ async function saveNewVersionService(inputs) {
           "operations": [
               { "op": "add", "path": "/versions/-", "value": content },
               { "op": "set", "path": "/currentVersion", "value": version },
-              { "op": "set", "path": "/updated_at", "value": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss") }
+              { "op": "set", "path": "/updated_at", "value": updateddate }
           ]
         }
       }
@@ -450,7 +451,22 @@ async function saveNewVersionService(inputs) {
       }
       // console.log('config', config)
       const res = await axios(config);
-      return res.data.output;
+      if(res.data && res.data.output){
+        return {
+          "newversion": {
+            "version": version,
+            "author": author,
+            "date": updateddate,
+            "description": description,
+            "link": render.data.output.documentUrl,
+            "document": {
+                "path": render.data.output.resPresigned.data.info.docpath
+            }
+          },
+          "docrendered": render.data.output
+        }
+      }
+      // return res.data.output;
 
     }
   } catch (e) {
@@ -505,7 +521,7 @@ async function compareDocumentsService(inputs) {
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error comparing document: ' + e.message + '  *****  ' + e.response.data)
+    throw new Error('Error comparing document: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
