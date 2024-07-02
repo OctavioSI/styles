@@ -50,7 +50,7 @@
   const activeCardRef = useRef(null);
   const modalRef = useRef(null);  
 
-  const [previewDocURL, setPreviewDocURL] = useState("https://looplex-ged.s3.us-east-1.amazonaws.com/Anbima/anuncio_de_inicio.docx")
+  const [previewDocURL, setPreviewDocURL] = useState("")
   const [documentDetails, setDocumentDetails] = useState({});
   const [documentRendered, setDocumentRendered] = useState({});
 
@@ -279,6 +279,35 @@
     // Aqui vamos definir uma variavel com todos os dados dos cards,
     // agrupados por scope. Se não houver scope, vamos jogar para a 
     // raiz do formData
+    // Antes de montar o FormData, vamos passar pelo schema e criar as propriedades que não existirem
+    for (let i = 0; i < tmpcards.length; i++) {
+      let tmpschema = tmpcards[i].schema;
+      for (const property in tmpschema.properties) {
+        switch(tmpschema.properties[property].type){
+          case 'string':
+            if(!tmpcards[i].formData.hasOwnProperty(property)){
+              tmpcards[i].formData[property] = '';
+            }
+            break;
+          case 'number':
+            if(!tmpcards[i].formData.hasOwnProperty(property)){
+              tmpcards[i].formData[property] = 0;
+            }
+            break;
+          case 'array':
+            if(!tmpcards[i].formData.hasOwnProperty(property)){
+              tmpcards[i].formData[property] = [];
+            }
+            break;
+          case 'object':
+            if(!tmpcards[i].formData.hasOwnProperty(property)){
+              tmpcards[i].formData[property] = {};
+            }
+            break;
+        }
+      }
+    }
+
     let mergedFormData = {}
     for (let i = 0; i < tmpcards.length; i++) {
       let tcard = tmpcards[i];
@@ -482,7 +511,7 @@
     event.preventDefault()
     event.stopPropagation()
     let validated = await validateForm()
-    setTmpVisor(JSON.stringify(validated))
+    // setTmpVisor(JSON.stringify(validated))
     if(Array.isArray(validated)){ // Se eu tenho uma array, houve erros
       let errors = treatAJVErrors(validated)
       let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>"+errors+"</ul>";
@@ -491,6 +520,7 @@
       if(justrender){
         setIsRendering(true)
         let render = await renderDocument();
+        setPreviewDocURL(render.documentUrl);
         setDocumentRendered(render);
         setIsRendering(false);
       }else{
@@ -628,7 +658,7 @@
     if (preview) {
       setPreviewDocURL(preview.documentUrl);
     } else {
-      setPreviewDocURL({});
+      setPreviewDocURL('');
     }
     setIsPreviewLoaded(true);
     return;
@@ -638,7 +668,7 @@
     let errorsmsg = "";
     if(errors && errors.length > 0){
       for(let i = 0; i < errors.length; i++){
-        errorsmsg += "<li>"+errors[i].instancePath+": "+errors[i].message+"</li>"
+        errorsmsg += "<li><strong>"+errors[i].instancePath+":</strong> "+errors[i].message+"</li>"
       }
     }
     return errorsmsg
@@ -683,7 +713,7 @@
       url: `/api/code/${props.codeId}`,
       data
     }
-    setTmpVisor2(JSON.stringify(config))
+    // setTmpVisor2(JSON.stringify(config))
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
@@ -847,7 +877,7 @@
             <aside>
               <div className="card-navigation">
                 <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
                 <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
                 <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
               </div>
@@ -876,6 +906,7 @@
                 }{
                   (panelView == 'preview') &&
                   (isPreviewLoaded ? (
+                    previewDocURL ? (
                     <div className="previewWrapper">
                       <iframe
                         id='preview'
@@ -889,7 +920,11 @@
                         <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
                       </button>
                     </div>
-                  ) :
+                    ) :
+                    (
+                      <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                    )
+                  ):
                     (
                       <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                     )

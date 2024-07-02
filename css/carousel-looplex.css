@@ -353,3 +353,7 @@ legend#root__title::before{
   padding: 12px;
   background-color: #FAFAFA;
 }
+
+.disabled{
+  cursor: not-allowed;
+}
