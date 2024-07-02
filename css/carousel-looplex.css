@@ -347,3 +347,9 @@ legend#root__title::before{
 .panel.panel-danger.errors{
   display:none;
 }
+
+.errorlist {
+  border: 1px solid #efefef;
+  padding: 12px;
+  background-color: #FAFAFA;
+}

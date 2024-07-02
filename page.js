@@ -39,8 +39,8 @@
   const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRendering, setIsRendering] = useState(false)
-  const [isComparing, setIsComparing] = useState({})
-  const [isComparingError, setIsComparingError] = useState({})
+  // const [isComparing, setIsComparing] = useState({})
+  // const [isComparingError, setIsComparingError] = useState({})
   const [isModalSubmitting, setIsModalSubmitting] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
@@ -482,17 +482,20 @@
     event.preventDefault()
     event.stopPropagation()
     let validated = await validateForm()
-    // setTmpVisor(JSON.stringify(validated))
-    if(!validated){
-      // TODO
-    }
-    if(justrender){
-      setIsRendering(true)
-      let render = await renderDocument();
-      setDocumentRendered(render);
-      setIsRendering(false);
+    setTmpVisor(JSON.stringify(validated))
+    if(Array.isArray(validated)){ // Se eu tenho uma array, houve erros
+      let errors = treatAJVErrors(validated)
+      let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>"+errors+"</ul>";
+      alertModal("Erros no Formulário", "", "Verifique as informações encaminhadas", content)
     }else{
-      submitNewVersion()
+      if(justrender){
+        setIsRendering(true)
+        let render = await renderDocument();
+        setDocumentRendered(render);
+        setIsRendering(false);
+      }else{
+        submitNewVersion()
+      }
     }
     return;
   }
@@ -631,6 +634,16 @@
     return;
   }
 
+  function treatAJVErrors(errors = []){
+    let errorsmsg = "";
+    if(errors && errors.length > 0){
+      for(let i = 0; i < errors.length; i++){
+        errorsmsg += "<li>"+errors[i].instancePath+": "+errors[i].message+"</li>"
+      }
+    }
+    return errorsmsg
+  }
+
   async function validateForm() {
     let mergedFormData = {}
     let mergedSchema = {};
@@ -670,7 +683,7 @@
       url: `/api/code/${props.codeId}`,
       data
     }
-    // setTmpVisor(JSON.stringify(config))
+    setTmpVisor2(JSON.stringify(config))
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
@@ -1074,34 +1087,33 @@
 
   // Montagem da tabela de versões
   function PreviousVersions(props) {
-    async function triggerCompareVersions(version, docrendered, versionidx) {
-      let comparearray = isComparing;
-      let comparearrayerror = isComparingError;
-      comparearray[versionidx] = true;
-      comparearrayerror[versionidx] = false;
-      setIsComparing(comparearray);
-      setIsComparingError(comparearrayerror);
-      try{
-        let comparison = await compareVersions(version, docrendered);
-        comparearray[versionidx] = false;
-        setIsComparing(comparearray);
-        let versions = props.docdetails.versions;
-        versions[versionidx].comparacao = comparison;
-        updateVersions(versions)
-      }catch(e){
-        comparearray[versionidx] = false;
-        comparearrayerror[versionidx] = true;
-        setIsComparing(comparearray);
-        setIsComparingError(comparearrayerror);
-      }
-    }
     function tableBuilder(version, docrendered, versionidx) {
+      const [isComparing, setIsComparing] = useState(false)
+      const [isComparingError, setIsComparingError] = useState(false)
+      const [comparisonLink, setComparisonLink] = useState(false)
+      async function triggerCompareVersions(version, docrendered, versionidx) {
+          setIsComparing(true);
+          setIsComparingError(false);
+          try{
+            let comparisondoc = await compareVersions(version, docrendered);
+            setIsComparing(false);
+            setIsComparingError(false);
+            setComparisonLink(comparisondoc)
+            return true;
+          }catch(e){
+            setIsComparing(false);
+            setIsComparingError(true);
+            setComparisonLink('') 
+            return;
+          }
+        }      
+
       let versiontable =
         <div className="version-table">
           <table class="table table-sm table-bordered">
             <tbody>
               <tr class="table-subtitle">
-                <td class="table-subtitle" colspan="1">Versão: {version.version}</td>
+                <td class="table-subtitle" colspan="1">Versão {version.version}</td>
                 <td class="table-subtitle" colspan="2">Data: {formatUTCDate(version.date)}</td>
               </tr>
               <tr className="table-default">
@@ -1113,16 +1125,16 @@
                 <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
               </tr>
               <tr className="table-default">
-                <td colspan="1" className="table-subtitle">Ações</td>
-                <td class="table-subtitle" colspan="2">
+                <td colspan="1" className="table-subtitle col-xs-4">Ações</td>
+                <td className="table-subtitle col-xs-8" colspan="2">
                     <a href={version.link} download target="_blank">
                       <button type="button" className={"btn btn-outline-secondary"}>Baixar</button>
                     </a>                  
                     {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
-                      <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing[versionidx] ? 'disabled' : '')}`} onClick={(e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError[versionidx] && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing[versionidx] && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing[versionidx] ? ((cards[activeCard].formData?.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
+                      <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((cards[activeCard].formData?.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
                     )}
-                    {(version && version.hasOwnProperty('comparacao') && version.comparacao !== '') && (
-                      <a href={version.comparacao} download target="_blank">
+                    {(comparisonLink && comparisonLink !== '') && (
+                      <a href={comparisonLink} download target="_blank">
                         <button type="button" className={"btn btn-outline-secondary"}>Ver Comparação</button>
                       </a>
                     )}
@@ -1247,7 +1259,7 @@ function Modal(props){
       )
       :
       (
-        <p className="modal-contentbody">{content}</p>
+        <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
       )
       }
       { hasCloseButton && (
