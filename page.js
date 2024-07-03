@@ -24,12 +24,9 @@
     document: props.embeddedData.initialformDocument ? props.embeddedData.initialformDocument : 'teste001',
   };
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
-  const state = props.embeddedData.rjsf?.formData?.state == undefined ? { message: "iniciarFluxo", domain: "looplex.com.br" } : { message: props.embeddedData.rjsf.formData.state.message, domain: props.embeddedData.rjsf.formData.state.domain, executionId: props.embeddedData.rjsf.formData.state.executionId }
-  let previewFormData = props.embeddedData?.formData ? props.embeddedData?.formData : {}
-  const [formData, setFormData] = useState(previewFormData)
   const [panelView, setPanelView] = useState('summary')
   const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
-  const [cards, setCards] = useState(props.rjsf.cards)
+  const [cards, setCards] = useState([])
   const [modal, setModal] = useState({
     title: "Título",
     description: "Descrição do Modal"
@@ -48,7 +45,7 @@
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
-  const modalRef = useRef(null);  
+  const modalRef = useRef(null);
 
   const [previewDocURL, setPreviewDocURL] = useState("")
   const [documentDetails, setDocumentDetails] = useState({});
@@ -139,7 +136,7 @@
 
   function formatUTCDate(utcdate) {
     let d = new Date(utcdate)
-    let utc = new Date(d.getTime() - d.getTimezoneOffset()*60000).toUTCString();
+    let utc = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toUTCString();
     return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear() + " " + ("0" + (new Date(utc).getHours())).slice(-2) + ":" + ("0" + (new Date(utc).getMinutes())).slice(-2) + ":" + ("0" + (new Date(utc).getSeconds())).slice(-2)
   }
 
@@ -151,6 +148,8 @@
       setSchema()
       return
     };
+    const maxAttempts = 3; // maximo de retries nas requests
+
     const fetchInitialForm = async () => {
       let data = {
         command: "fetchSchema",
@@ -163,41 +162,47 @@
         data
       }
       const res = await axios(config);
-
+      // setTmpVisor(JSON.stringify(res.data.output))
+      // setTmpVisor2(JSON.stringify(config))
       if (res.data && res.data.output) {
-        let iSchema = res.data.output;
-        let initialSchema = [{
-          cardId: iSchema.id,
-          card_conditions: iSchema.card_conditions,
-          dmnStructure: iSchema.dmnStructure,
-          schema: iSchema.schema,
-          uiSchema: iSchema.uiSchema,
-          formData: {},
-          tagName: 'div'
-        }];
-        setCards(setSchema(initialSchema))
+        let initialSchema = [];
+        let iSchema = {};
+        if (res.data.output.hasOwnProperty('cards') && Array.isArray(res.data.output.cards)) { // É um array, não um objeto
+          let tmpcards = res.data.output.cards;
+          let tmpcard = {};
+          for (let i = 0; i < tmpcards.length; i++) {
+            iSchema = tmpcards[i];
+            tmpcard = {
+              cardId: iSchema.cardId,
+              partitionKey: iSchema.partitionKey,
+              card_conditions: iSchema.card_conditions,
+              dmnStructure: iSchema.dmnStructure,
+              schema: iSchema.schema,
+              uiSchema: iSchema.uiSchema,
+              formData: {},
+              tagName: 'div'
+            }
+            initialSchema.push(tmpcard)
+          }
+        } else { // Tenho só o objeto de um card
+          iSchema = res.data.output;
+          initialSchema = [{
+            cardId: iSchema.id,
+            partitionKey: iSchema.partitionKey,
+            card_conditions: iSchema.card_conditions,
+            dmnStructure: iSchema.dmnStructure,
+            schema: iSchema.schema,
+            uiSchema: iSchema.uiSchema,
+            formData: {},
+            tagName: 'div'
+          }];
+        }
         setIsLoading(false)
+        setCards(setSchema(initialSchema))
         return true;
       }
     }
-    let maxAttempts = 3;
-    for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
-      fetchInitialForm()
-        .then(res => {
-          countAttempts = maxAttempts;
-          setIsLoading(false);
-        })
-        .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
-          setIsLoading(false);
-          if (countAttempts >= maxAttempts) {
-            setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
-          }
-          sleep(500);
-        });
-    }
-  }, []);
 
-  useEffect(() => { // Rodando apenas uma vez no início do form: buscar info do documento
     const fetchDocumentDetails = async () => {
       let data = {
         command: "fetchDocumentDetails",
@@ -223,23 +228,37 @@
           documentdetails.versions[i].link = await downloadFile(documentdetails.versions[i].document.path);
         }
         setDocumentDetails(documentdetails);
-        let ncards = loadPriorFormData(documentdetails);        
-        setCards(ncards)
-        setIsLoading(false)
         setIsLoadingDocumentDetails(false);
         return true;
       }
     }
-    let maxAttempts = 3;
+
     for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
-      fetchDocumentDetails()
+      setIsLoading(true)
+      fetchInitialForm()
         .then(res => {
           countAttempts = maxAttempts;
           setIsLoading(false);
         })
-        .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
+        .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
           setIsLoading(false);
           if (countAttempts >= maxAttempts) {
+            setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
+          }
+          sleep(500);
+        });
+    }
+
+    for (let countAttemptsDoc = 0; countAttemptsDoc < maxAttempts; countAttemptsDoc++) {
+      setIsLoadingDocumentDetails(true)
+      fetchDocumentDetails()
+        .then(res => {
+          countAttemptsDoc = maxAttempts;
+          setIsLoadingDocumentDetails(false);
+        })
+        .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
+          setIsLoadingDocumentDetails(false);
+          if (countAttemptsDoc >= maxAttempts) {
             setTmpVisor('Erro ao carregar as versões anteriores: ' + err.message)
           }
           sleep(500);
@@ -247,6 +266,13 @@
     }
 
   }, []);
+
+  // Quando carregar os documentdetails, usamos esse hook para atualizar os cards
+  useEffect(() => {
+    if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
+      setCards(loadPriorFormData(documentDetails))
+    }
+  }, [documentDetails])
 
   useEffect(() => {
     let newSchema = setSchema(cards, schemaObject.cardId, schemaObject.formData);
@@ -286,24 +312,24 @@
     for (let i = 0; i < tmpcards.length; i++) {
       let tmpschema = tmpcards[i].schema;
       for (const property in tmpschema.properties) {
-        switch(tmpschema.properties[property].type){
+        switch (tmpschema.properties[property].type) {
           case 'string':
-            if(!tmpcards[i].formData.hasOwnProperty(property)){
+            if (!tmpcards[i].formData.hasOwnProperty(property)) {
               tmpcards[i].formData[property] = '';
             }
             break;
           case 'number':
-            if(!tmpcards[i].formData.hasOwnProperty(property)){
+            if (!tmpcards[i].formData.hasOwnProperty(property)) {
               tmpcards[i].formData[property] = 0;
             }
             break;
           case 'array':
-            if(!tmpcards[i].formData.hasOwnProperty(property)){
+            if (!tmpcards[i].formData.hasOwnProperty(property)) {
               tmpcards[i].formData[property] = [];
             }
             break;
           case 'object':
-            if(!tmpcards[i].formData.hasOwnProperty(property)){
+            if (!tmpcards[i].formData.hasOwnProperty(property)) {
               tmpcards[i].formData[property] = {};
             }
             break;
@@ -371,41 +397,73 @@
       }
       const res = await axios(config);
       if (res.data && res.data.output) {
-        let iSchema = res.data.output;
-        let newCard = {
-          cardId: iSchema.id,
-          card_conditions: card_conditions,
-          scope: (scope && scope != '') ? scope : '',
-          dmnStructure: iSchema.dmnStructure,
-          schema: iSchema.schema,
-          uiSchema: iSchema.uiSchema,
-          formData: {},
-          tagName: 'div'
-        };
+        let newCard = {};
+        let iSchema = {};
         let tmpCards = cards;
-        tmpCards.push(newCard);
+
+        if (res.data.output.hasOwnProperty('cards') && Array.isArray(res.data.output.cards)) { // É um array, não um objeto
+          let tmpcardsarray = res.data.output.cards;
+          for (let i = 0; i < tmpcardsarray.length; i++) {
+            iSchema = tmpcardsarray[i];
+            newCard = {
+              cardId: iSchema.cardId,
+              partitionKey: iSchema.partitionKey,
+              card_conditions: iSchema.card_conditions,
+              scope: iSchema.scope,
+              dmnStructure: iSchema.dmnStructure,
+              schema: iSchema.schema,
+              uiSchema: iSchema.uiSchema,
+              formData: {},
+              tagName: 'div'
+            }
+            tmpCards.push(newCard);
+          }
+        } else { // Tenho só o objeto de um card
+          iSchema = res.data.output;
+          newCard = {
+            cardId: iSchema.id,
+            card_conditions: card_conditions,
+            scope: (scope && scope != '') ? scope : '',
+            dmnStructure: iSchema.dmnStructure,
+            schema: iSchema.schema,
+            uiSchema: iSchema.uiSchema,
+            formData: {},
+            tagName: 'div'
+          };
+          tmpCards.push(newCard);
+        }
         setCards(setSchema(tmpCards, cardId, formData))
       }
       setIsLoading(false)
     }
-    setIsLoading(true);
-    return await fetchRemoteSchema()
-      .catch(err => {
-        // setTmpVisor('Erro ao carregar Schema Remoto: ' + err.message)
-        setIsLoading(false);
-      });
+    let maxAttempts = 3;
+    for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
+      setIsLoading(true);
+      fetchRemoteSchema()
+        .then(res => {
+          countAttempts = maxAttempts;
+          setIsLoading(false);
+        })
+        .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
+          setIsLoading(false);
+          if (countAttempts >= maxAttempts) {
+            setTmpVisor('Erro ao carregar o formulário remoto: ' + err.message)
+          }
+          sleep(500);
+        });
+    }
   }
 
-  function loadPriorFormData(docdetails){
+  function loadPriorFormData(docdetails) {
     let currentVersion = docdetails.versions.filter(v => v.version == docdetails.currentVersion);
     let formDataComplete = {};
-    if(currentVersion && currentVersion.length > 0){
+    if (currentVersion && currentVersion.length > 0) {
       formDataComplete = currentVersion[0].formData;
     }
     let priorDataCards = cards.map((card) => {
       // Para cada schema no card, vou montar o objeto de prior correspondente
       let priorData = {}
-      if(card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')){
+      if (card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')) {
         for (const property in card.schema.properties) {
           priorData[property] = formDataComplete[property];
         }
@@ -430,7 +488,7 @@
     let canRunDMN = true;
     let dmnVariables = {};
 
-    if (!isObjectEmpty(dmnStructure)) {
+    if (dmnStructure && !isObjectEmpty(dmnStructure)) {
       for (let dmnInput in dmnStructure.map) {
         dmnVariables[dmnInput] = dmnStructure.map[dmnInput].split('.').reduce(
           (preview, current) => preview[current],
@@ -489,8 +547,10 @@
       })
       setCards(nextState)
       //setTmpVisor(JSON.stringify(cards))
+      // console.log(nextState)
       let moveLeft = Math.max(0, activeCard - 1);
       let moveRight = Math.min(cards.length - 1, activeCard + 1);
+      // console.log(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
       setActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
     }
 
@@ -538,18 +598,18 @@
     event.stopPropagation()
     let validated = await validateForm()
     // setTmpVisor(JSON.stringify(validated))
-    if(Array.isArray(validated)){ // Se eu tenho uma array, houve erros
+    if (Array.isArray(validated)) { // Se eu tenho uma array, houve erros
       let errors = treatAJVErrors(validated)
-      let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>"+errors+"</ul>";
+      let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>" + errors + "</ul>";
       alertModal("Erros no Formulário", "", "Verifique as informações encaminhadas", content)
-    }else{
-      if(justrender){
+    } else {
+      if (justrender) {
         setIsRendering(true)
         let render = await renderDocument();
         setPreviewDocURL(render.documentUrl);
         setDocumentRendered(render);
         setIsRendering(false);
-      }else{
+      } else {
         submitNewVersion()
       }
     }
@@ -675,7 +735,7 @@
         return res.data.output;
       }
     } catch (e) {
-      throw new Error('Falha ao salvar nova versão **** '+JSON.stringify(e.response.data))
+      throw new Error('Falha ao salvar nova versão **** ' + JSON.stringify(e.response.data))
     }
   }
 
@@ -691,11 +751,11 @@
     return;
   }
 
-  function treatAJVErrors(errors = []){
+  function treatAJVErrors(errors = []) {
     let errorsmsg = "";
-    if(errors && errors.length > 0){
-      for(let i = 0; i < errors.length; i++){
-        errorsmsg += "<li><strong>"+errors[i].instancePath+":</strong> "+errors[i].message+"</li>"
+    if (errors && errors.length > 0) {
+      for (let i = 0; i < errors.length; i++) {
+        errorsmsg += "<li><strong>" + errors[i].instancePath + ":</strong> " + errors[i].message + "</li>"
       }
     }
     return errorsmsg
@@ -707,7 +767,7 @@
     let requiredFields = [];
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
-      if(tcard.schema.hasOwnProperty('required')){
+      if (tcard.schema.hasOwnProperty('required')) {
         requiredFields.concat(tcard.schema.required)
       }
       mergedFormData = { ...mergedFormData, ...tcard.formData }
@@ -773,7 +833,7 @@
     modalRef.current.showModal()
   }
 
-  function submitNewVersion(){
+  function submitNewVersion() {
     let modal = {
       title: "Nova versão",
       description: "Deseja criar uma nova versão deste documento?",
@@ -781,27 +841,27 @@
         "schema": {
           "type": "object",
           "required": [
-          "version",
-          "description"
+            "version",
+            "description"
           ],
           "properties": {
-          "version": {
-            "type": "string",
-            "title": "Versão"
-          },
-          "description": {
-            "type": "string",
-            "title": "Descrição"
-          }
+            "version": {
+              "type": "string",
+              "title": "Versão"
+            },
+            "description": {
+              "type": "string",
+              "title": "Descrição"
+            }
           }
         },
-        "uiSchema":{
+        "uiSchema": {
           "ui:submitButtonOptions": {
             "norender": false,
             "submitText": "Enviar"
           },
           "description": {
-            "ui:widget" : "textarea",
+            "ui:widget": "textarea",
             "ui:placeholder": "Forneça uma breve descrição para esta versão do documento",
             "ui:options": {
               "rows": 5
@@ -818,7 +878,8 @@
   return (
     <div id='layout'>
       <Head>
-        <title>{props.embeddedData.formTitle ? props.embeddedData.formTitle : 'Formulário Negociação'}</title>
+        <title>{props.embeddedData.formTitle ? props.embeddedData.formTitle : 'Formulário Looplex'}</title>
+        <link rel="icon" type="image/x-icon" href="https://www.looplex.com.br/img/favicon.ico"></link>
         <link
           href='https://bootswatch.com/5/lumen/bootstrap.min.css'
           rel='stylesheet'
@@ -843,7 +904,7 @@
         <script src='https://cdn.tailwindcss.com?plugins=typography'></script>
         <script>{`tailwind.config = {prefix: 'd-' }`}</script>
       </Head>
-      
+
       <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
         <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
@@ -866,7 +927,7 @@
                 {submitted}
                 <div ref={myCarouselRef} className='d-carousel d-w-full'>
                   {
-                    cards.length === 0 ?
+                    (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
                       <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
                       : ''
                   }
@@ -885,20 +946,24 @@
                 </div>
               </section>
               <section className="navigation d-flex align-items-end flex-column">
-                <div className="d-flex d-space-x-4 align-items-center">
-                  <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(cards[activeCard].formData?.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
-                  <span class="glyphicon glyphicon-option-horizontal"></span>
-                  <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(cards[activeCard].formData?.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
-                </div>
-                <div className="mt-auto d-flex align-items-end d-space-x-4">
-                  {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
-                    <a href={documentRendered.documentUrl} download>
-                      <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
-                    </a>
-                  )}
-                  <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-                  <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((cards[activeCard].formData?.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((cards[activeCard].formData?.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
-                </div>
+                {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
+                  <>
+                    <div className="d-flex d-space-x-4 align-items-center">
+                      <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(props.embeddedData.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                      <span class="glyphicon glyphicon-option-horizontal"></span>
+                      <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(props.embeddedData.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                    </div>
+                    <div className="mt-auto d-flex align-items-end d-space-x-4">
+                      {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
+                        <a href={documentRendered.documentUrl} download>
+                          <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
+                        </a>
+                      )}
+                      <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((props.embeddedData.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((props.embeddedData.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((props.embeddedData.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+                      <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((props.embeddedData.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((props.embeddedData.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((props.embeddedData.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                    </div>
+                  </>
+                )}
               </section>
             </main>
             <aside>
@@ -922,7 +987,7 @@
                             "updated_at": documentDetails.updated_at,
                             "description": documentDetails.description
                           }} />
-                          <Resumo cards={cards} activeCard={activeCard} />
+                          <Resumo cards={cards} activeCard={activeCard} embeddedData={props.embeddedData}/>
                         </>
                       )
                       :
@@ -934,24 +999,24 @@
                   (panelView == 'preview') &&
                   (isPreviewLoaded ? (
                     previewDocURL ? (
-                    <div className="previewWrapper">
-                      <iframe
-                        id='preview'
-                        name='preview'
-                        width='100%'
-                        height='100%'
-                        frameBorder='0'
-                        src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                      ></iframe>
-                      <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                        <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                      </button>
-                    </div>
+                      <div className="previewWrapper">
+                        <iframe
+                          id='preview'
+                          name='preview'
+                          width='100%'
+                          height='100%'
+                          frameBorder='0'
+                          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                        ></iframe>
+                        <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                          <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                        </button>
+                      </div>
                     ) :
-                    (
-                      <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
-                    )
-                  ):
+                      (
+                        <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                      )
+                  ) :
                     (
                       <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                     )
@@ -967,7 +1032,7 @@
                   (panelView == 'versions') &&
                   (
                     <>
-                      <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
+                      <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} embeddedData={props.embeddedData} />
                     </>
                   )
                 }
@@ -978,7 +1043,7 @@
       </div>
     </div>
   )
-  
+
   /*******************************************************************
    * Elementos do Sumário
    * 
@@ -1055,9 +1120,9 @@
 
     let row =
       <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
-        <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{title}</td>
-        <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{priorValue}</td>
-        <td style={{ wordBreak: "break-all", minWidth: "200px" }}>{currentValue}</td>
+        <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight col-xs-4" colspan="1">{title}</td>
+        <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-4" colspan="1">{priorValue}</td>
+        <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-4" colspan="1">{currentValue}</td>
       </tr>
 
     return row
@@ -1094,9 +1159,9 @@
         <table class="table table-hover table-sm table-bordered">
           <thead class="thead-light">
             <tr className="table-title">
-              <th className="table-title" scope="col">Campo</th>
-              <th className="table-title" scope="col">Original</th>
-              <th className="table-title" scope="col">Alterado</th>
+              <th className="table-title col-xs-4" scope="col">{props.embeddedData.language === 'en_us' ? 'Field' : 'Campo'}</th>
+              <th className="table-title col-xs-4" scope="col">{props.embeddedData.language === 'en_us' ? 'Original' : 'Original'}</th>
+              <th className="table-title col-xs-4" scope="col">{props.embeddedData.language === 'en_us' ? 'Modified' : 'Alterado'}</th>
             </tr>
           </thead>
           <tbody>
@@ -1138,7 +1203,7 @@
       let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
       let cardCurrentFormData = card.formData ? card.formData : {}
       let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
-      sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} />)
+      sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} embeddedData={props.embeddedData}/>)
     }
     return (
       <div>
@@ -1154,21 +1219,23 @@
       const [isComparingError, setIsComparingError] = useState(false)
       const [comparisonLink, setComparisonLink] = useState(false)
       async function triggerCompareVersions(version, docrendered, versionidx) {
-          setIsComparing(true);
+        console.log('docrendered', docrendered)
+        console.log('version', version)
+        setIsComparing(true);
+        setIsComparingError(false);
+        try {
+          let comparisondoc = await compareVersions(version, docrendered);
+          setIsComparing(false);
           setIsComparingError(false);
-          try{
-            let comparisondoc = await compareVersions(version, docrendered);
-            setIsComparing(false);
-            setIsComparingError(false);
-            setComparisonLink(comparisondoc)
-            return true;
-          }catch(e){
-            setIsComparing(false);
-            setIsComparingError(true);
-            setComparisonLink('') 
-            return;
-          }
-        }      
+          setComparisonLink(comparisondoc)
+          return true;
+        } catch (e) {
+          setIsComparing(false);
+          setIsComparingError(true);
+          setComparisonLink('')
+          return;
+        }
+      }
 
       let versiontable =
         <div className="version-table">
@@ -1189,19 +1256,19 @@
               <tr className="table-default">
                 <td colspan="1" className="table-subtitle col-xs-4">Ações</td>
                 <td className="table-subtitle col-xs-8" colspan="2">
-                    <a href={version.link} download target="_blank">
-                      <button type="button" className={"btn btn-outline-secondary"}>Baixar</button>
-                    </a>                  
-                    {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
-                      <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((cards[activeCard].formData?.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((cards[activeCard].formData?.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
-                    )}
-                    {(comparisonLink && comparisonLink !== '') && (
-                      <a href={comparisonLink} download target="_blank">
-                        <button type="button" className={"btn btn-outline-secondary"}>Ver Comparação</button>
-                      </a>
-                    )}
-                  </td>
-                </tr>
+                  <a href={version.link} download target="_blank">
+                    <button type="button" className={"btn btn-outline-secondary"}>Baixar</button>
+                  </a>
+                  {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
+                    <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((props.embeddedData.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((props.embeddedData.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
+                  )}
+                  {(comparisonLink && comparisonLink !== '') && (
+                    <a href={comparisonLink} download target="_blank">
+                      <button type="button" className={"btn btn-outline-secondary"}>Ver Comparação</button>
+                    </a>
+                  )}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1211,11 +1278,11 @@
     let versions = props.docdetails.versions
     let docrendered = props.docrendered
     let sections = []
-    if(versions && versions.length > 0){
+    if (versions && versions.length > 0) {
       for (let i = 0; i < versions.length; i++) {
         sections.push(tableBuilder(versions[i], docrendered, i))
       }
-    }else{
+    } else {
       sections.push(
         <>Sem versões anteriores</>
       )
@@ -1259,11 +1326,11 @@
     let attachments = props.docdetails.attachments
     let sections = []
 
-    if(attachments && attachments.length > 0){
+    if (attachments && attachments.length > 0) {
       for (let i = 0; i < attachments.length; i++) {
         sections.push(tableBuilder(attachments[i]))
       }
-    }else{
+    } else {
       sections.push(
         <>Sem anexos anteriores</>
       )
@@ -1275,66 +1342,66 @@
     )
   }
 
-async function runAction(action, inputs){
-  let render;
-  switch(action){
-    case 'createNewDocumentVersion':
-      setIsModalSubmitting(true)
-      let version = inputs.formData?.version;
-      let description = inputs.formData?.description;
-      console.log(inputs)
-      render = await saveNewVersion(version, description);
-      // setDocumentRendered(render)
-      setIsModalSubmitting(false)
-      modalRef.current.close()
-      break;
-    default: 
-      return;
+  async function runAction(action, inputs) {
+    let render;
+    switch (action) {
+      case 'createNewDocumentVersion':
+        setIsModalSubmitting(true)
+        let version = inputs.formData?.version;
+        let description = inputs.formData?.description;
+        console.log(inputs)
+        render = await saveNewVersion(version, description);
+        // setDocumentRendered(render)
+        setIsModalSubmitting(false)
+        modalRef.current.close()
+        break;
+      default:
+        return;
+    }
   }
-}
 
-// Modal
-function Modal(props){
-  let title = props.title ? props.title : ""
-  let icon = props.icon ? props.icon : ""
-  let description = props.description ?  props.description : ""
-  let content = props.content ?  props.content : ""
-  let rjsf = props.rjsf ? props.rjsf : {}
-  let action = props.action ? props.action : ""
-  let hasCloseButton = props.hasCloseButton ? props.hasCloseButton : false
+  // Modal
+  function Modal(props) {
+    let title = props.title ? props.title : ""
+    let icon = props.icon ? props.icon : ""
+    let description = props.description ? props.description : ""
+    let content = props.content ? props.content : ""
+    let rjsf = props.rjsf ? props.rjsf : {}
+    let action = props.action ? props.action : ""
+    let hasCloseButton = props.hasCloseButton ? props.hasCloseButton : false
 
-  let modal =
-    <>
-      <h3 className="modal-title">
-        {
-          (icon && icon !== '') && (
-            <span className={`glyphicon ${icon}`}></span>
+    let modal =
+      <>
+        <h3 className="modal-title">
+          {
+            (icon && icon !== '') && (
+              <span className={`glyphicon ${icon}`}></span>
+            )
+          }
+          {title}
+        </h3>
+        <p className="modal-description">{description}</p>
+        {rjsf && !isObjectEmpty(rjsf) ? (
+          <>
+            <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate id="modalForm" />
+          </>
+        )
+          :
+          (
+            <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
           )
         }
-        {title}
-      </h3>
-      <p className="modal-description">{description}</p>
-      {rjsf && !isObjectEmpty(rjsf) ? (
-        <>
-          <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate id="modalForm" />
-        </>
-      )
-      :
-      (
-        <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
-      )
-      }
-      { hasCloseButton && (
-      <div className="d-modal-action">
-        <form method="dialog">
-          {/* if there is a button in form, it will close the modal */}
-          <button className="d-btn">Cancelar</button>
-        </form>
-      </div>
-      )}
-    </>
-  return modal
-}
+        {hasCloseButton && (
+          <div className="d-modal-action">
+            <form method="dialog">
+              {/* if there is a button in form, it will close the modal */}
+              <button className="d-btn">Cancelar</button>
+            </form>
+          </div>
+        )}
+      </>
+    return modal
+  }
 
   /*********************************************************************
    * Funções externas
@@ -1359,7 +1426,7 @@ function Modal(props){
         return res.data.output;
       }
     } catch (e) {
-      throw new Error('Falha ao comparar versões **** '+JSON.stringify(e.response.data))
+      throw new Error('Falha ao comparar versões **** ' + JSON.stringify(e.response.data))
     }
 
     return;
