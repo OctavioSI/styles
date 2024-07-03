@@ -138,7 +138,8 @@
   }
 
   function formatUTCDate(utcdate) {
-    let utc = new Date(utcdate).toUTCString();
+    let d = new Date(utcdate)
+    let utc = new Date(d.getTime() - d.getTimezoneOffset()*60000).toUTCString();
     return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear() + " " + ("0" + (new Date(utc).getHours())).slice(-2) + ":" + ("0" + (new Date(utc).getMinutes())).slice(-2) + ":" + ("0" + (new Date(utc).getSeconds())).slice(-2)
   }
 
@@ -222,6 +223,8 @@
           documentdetails.versions[i].link = await downloadFile(documentdetails.versions[i].document.path);
         }
         setDocumentDetails(documentdetails);
+        let ncards = loadPriorFormData(documentdetails);        
+        setCards(ncards)
         setIsLoading(false)
         setIsLoadingDocumentDetails(false);
         return true;
@@ -391,6 +394,29 @@
         // setTmpVisor('Erro ao carregar Schema Remoto: ' + err.message)
         setIsLoading(false);
       });
+  }
+
+  function loadPriorFormData(docdetails){
+    let currentVersion = docdetails.versions.filter(v => v.version == docdetails.currentVersion);
+    let formDataComplete = {};
+    if(currentVersion && currentVersion.length > 0){
+      formDataComplete = currentVersion[0].formData;
+    }
+    let priorDataCards = cards.map((card) => {
+      // Para cada schema no card, vou montar o objeto de prior correspondente
+      let priorData = {}
+      if(card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')){
+        for (const property in card.schema.properties) {
+          priorData[property] = formDataComplete[property];
+        }
+      }
+      return {
+        ...card,
+        priorFormData: priorData,
+        formData: priorData
+      }
+    })
+    return priorDataCards
   }
 
   /*******************************************
@@ -645,6 +671,7 @@
         docdetails.versions.push(res.data.output.newversion)
         setDocumentDetails(docdetails)
         setDocumentRendered(res.data.output.docrendered)
+        setPreviewDocURL(res.data.output.docrendered.documentUrl);
         return res.data.output;
       }
     } catch (e) {

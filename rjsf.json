@@ -1,154 +1,115 @@
 {
   "cards": [
     {
-      "cardId": "trademaster-termos",
+      "cardId": "newui-primeiro",
       "card_conditions": {},
       "schema": {
-        "title": "Solicitação",
+        "title": "Partes",
         "type": "object",
         "properties": {
-          "strSolicitante": {
+          "strContratada": {
             "required": [
               "nome",
-              "cpf",
-              "email",
-              "telefone"
+              "cnpj"
             ],
-            "title": "Solicitante",
+            "title": "Contratada",
             "type": "object",
             "properties": {
               "nome": {
                 "type": "string",
                 "title": "Nome"
               },
-              "cpf": {
-                "type": "string",
-                "title": "CPF"
-              },
-              "email": {
-                "type": "string",
-                "title": "E-mail"
-              },
-              "telefone": {
-                "type": "string",
-                "title": "Telefone"
-              }
-            }
-          },
-          "vecInfosContrato": {
-            "title": "Solicitação de Contrato",
-            "type": "object",
-            "required": [
-              "tipoContrato"
-            ],
-            "properties": {
-              "tipoContrato": {
-                "type": "string",
-                "title": "Tipo de Contrato",
-                "enum": [
-                  "",
-                  "Termo de Quitação",
-                  "Termo de Confissão de Dívida",
-                  "Termo de Confidencialidade"
-                ],
-                "default": ""
-              },
-              "anexos": {
-                "type": "array",
-                "title": "Anexos",
-                "items": {
-                  "type": "string",
-                  "title": "Adicione os anexos para sua solicitação"
-                }
-              }
-            }
-          }
-        }
-      },
-      "uiSchema": {
-        "vecInfosContrato": {
-          "anexos": {
-            "items": {
-              "ui:widget": "filepond"
-            }
-          }
-        },
-        "ui:submitButtonOptions": {
-          "norender": true
-        }
-      },
-      "partitionKey": "trademaster.com.br",
-      "formData": {
-        "vecInfosContrato": {
-          "tipoContrato": "Termo de Quitação",
-          "anexos": []
-        },
-        "strSolicitante": {
-          "nome": "Erick Takahama Kitada",
-          "email": "kitada.erick@gmail.com",
-          "telefone": "34992380126",
-          "cpf": "40331256800"
-        }
-      },
-      "priorFormData": {
-        "vecInfosContrato": {
-          "tipoContrato": "Termo de Quitação",
-          "anexos": []
-        },
-        "strSolicitante": {
-          "nome": "Erick Takahama Kitada",
-          "email": "kitada.erick@gmail.com",
-          "telefone": "34992380126",
-          "cpf": "40331256800"
-        }
-      },
-      "tagName": "div"
-    },
-    {
-      "cardId": "termo-quitacao",
-      "card_conditions": {},
-      "dmnStructure": {},
-      "schema": {
-        "title": "Termo de Quitação",
-        "type": "object",
-        "properties": {
-          "strDevedora": {
-            "type": "object",
-            "title": "Dados da Devedora",
-            "required": [
-              "cnpj"
-            ],
-            "properties": {
               "cnpj": {
                 "type": "string",
                 "title": "CNPJ"
               }
             }
-          },
-          "strReceptora": {
-            "type": "string",
-            "title": "Dados da Devedora",
-            "items": {
-              "type": "string"
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "looplex.com.br",
+      "formData": {
+        "strContratada": {
+          "nome": "Octavio Ietsugu",
+          "cnpj": "01.002.122/0001-16"
+        }
+      },
+      "priorFormData": {
+        "strContratada": {
+          "nome": "Octavio Ietsugu",
+          "cnpj": "01.002.122/0001-16"
+        }
+      },
+      "tagName": "div"
+    },
+    {
+      "cardId": "newui-segundo",
+      "card_conditions": {},
+      "dmnStructure": {},
+      "schema": {
+        "title": "Contratação",
+        "type": "object",
+        "properties": {
+          "strContrato": {
+            "title": "Prazo para aviso",
+            "type": "object",
+            "required": [
+              "prazoAvisoVolume"
+            ],
+            "properties": {
+              "prazoAvisoVolume": {
+                "type": "number",
+                "title": "Prazo para aviso do volume"
+              },
+              "inicioVigencia": {
+                "type": "string",
+                "title": "Início da Vigência"
+              },
+              "fimVigencia": {
+                "type": "string",
+                "title": "Final da Vigência"
+              },
+              "prazoPagamento": {
+                "type": "number",
+                "title": "Prazo para Pagamento"
+              },
+              "dataExp": {
+                "type": "string",
+                "title": "Data de Assinatura"
+              }
             }
           }
         }
       },
       "uiSchema": {
-        "vecInfosContrato": {
-          "anexos": {
-            "items": {
-              "ui:widget": "filepond"
-            }
-          }
-        },
         "ui:submitButtonOptions": {
           "norender": true
         }
       },
-      "partitionKey": "trademaster.com.br",
-      "formData": {},
-      "priorFormData": {},
+      "partitionKey": "looplex.com.br",
+      "formData": {
+        "strContrato": {
+          "prazoAvisoVolume": 5,
+          "inicioVigencia": "01/12/2024",
+          "fimVigencia": "31/12/2024",
+          "prazoPagamento": 7,
+          "dataExp": "02 de julho de 2024"
+        }
+      },
+      "priorFormData": {
+        "strContrato": {
+          "prazoAvisoVolume": 5,
+          "inicioVigencia": "01/12/2024",
+          "fimVigencia": "31/12/2024",
+          "prazoPagamento": 7,
+          "dataExp": "02 de julho de 2024"
+        }
+      },
       "tagName": "div"
     }
   ]

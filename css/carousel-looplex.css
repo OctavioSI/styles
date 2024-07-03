@@ -357,3 +357,7 @@ legend#root__title::before{
 .disabled{
   cursor: not-allowed;
 }
+
+.d-modal-box{
+  background-color: white;
+}
