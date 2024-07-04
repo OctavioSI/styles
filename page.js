@@ -22,6 +22,11 @@
     id: props.embeddedData.initialformId,
     tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br',
     document: props.embeddedData.initialformDocument ? props.embeddedData.initialformDocument : 'teste001',
+    base_filename: props.embeddedData.base_filename ? props.embeddedData.base_filename : 'file.docx',
+    formTitle: props.embeddedData.formTitle ? props.embeddedData.formTitle : "Form Looplex",
+    template: props.embeddedData.template,
+    author: props.embeddedData.author ? props.embeddedData.author : 'Looplex',
+    language: props.embeddedData.language ? props.embeddedData.language : 'pt_br'
   };
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
   const [panelView, setPanelView] = useState('summary')
@@ -233,6 +238,24 @@
       }
     }
 
+    // função chamada quando não existe um registro de documentDetails ainda
+    const setInitialDocumentDetails = () => {
+      let documentdetails = {
+        versions: [],
+        attachments: [],
+        author: initialform.author,
+        currentVersion: "1.0.0",
+        description: "",
+        created_at: "",
+        updated_at: "",
+        title: "",
+        base_filename: initialform.base_filename,
+        template: initialform.template
+      }
+      setDocumentDetails(documentdetails);
+      setIsLoadingDocumentDetails(false);
+    }
+
     for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
       setIsLoading(true)
       fetchInitialForm()
@@ -248,6 +271,11 @@
           sleep(500);
         });
     }
+
+    if (!initialform.document) {
+      setInitialDocumentDetails()
+      return
+    };
 
     for (let countAttemptsDoc = 0; countAttemptsDoc < maxAttempts; countAttemptsDoc++) {
       setIsLoadingDocumentDetails(true)
@@ -688,7 +716,6 @@
   }
 
   async function saveNewVersion(version, description) {
-    let author = "Octavio Ietsugu"
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -712,7 +739,7 @@
       version,
       description,
       id: initialform.document ? initialform.document : crypto.randomUUID(),
-      author,
+      author: initialform.author,
       datacontent
     };
     let config = {
@@ -724,11 +751,13 @@
     // setTmpVisor(JSON.stringify(config))
     try {
       const res = await axios(config);
+      console.log(res.data.output)
       if (res.data && res.data.output) {
         // setTmpVisor(JSON.stringify(res.data.output))
         // Vamos atualizar o documentDetails relevante
         let docdetails = documentDetails;
         docdetails.versions.push(res.data.output.newversion)
+        docdetails.attachments = docdetails.attachments.concat(res.data.output.newattachments)
         setDocumentDetails(docdetails)
         setDocumentRendered(res.data.output.docrendered)
         setPreviewDocURL(res.data.output.docrendered.documentUrl);
@@ -878,7 +907,7 @@
   return (
     <div id='layout'>
       <Head>
-        <title>{props.embeddedData.formTitle ? props.embeddedData.formTitle : 'Formulário Looplex'}</title>
+        <title>{initialform.formTitle}</title>
         <link rel="icon" type="image/x-icon" href="https://www.looplex.com.br/img/favicon.ico"></link>
         <link
           href='https://bootswatch.com/5/lumen/bootstrap.min.css'
@@ -949,9 +978,9 @@
                 {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
                   <>
                     <div className="d-flex d-space-x-4 align-items-center">
-                      <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(props.embeddedData.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                      <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
                       <span class="glyphicon glyphicon-option-horizontal"></span>
-                      <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(props.embeddedData.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                      <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                     </div>
                     <div className="mt-auto d-flex align-items-end d-space-x-4">
                       {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
@@ -959,8 +988,8 @@
                           <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
                         </a>
                       )}
-                      <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((props.embeddedData.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((props.embeddedData.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((props.embeddedData.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-                      <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((props.embeddedData.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((props.embeddedData.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((props.embeddedData.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                      <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+                      <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
                     </div>
                   </>
                 )}
@@ -968,10 +997,10 @@
             </main>
             <aside>
               <div className="card-navigation">
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(props.embeddedData.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(props.embeddedData.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(props.embeddedData.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
               </div>
               <div className="card-summary">
                 {
@@ -987,7 +1016,7 @@
                             "updated_at": documentDetails.updated_at,
                             "description": documentDetails.description
                           }} />
-                          <Resumo cards={cards} activeCard={activeCard} embeddedData={props.embeddedData}/>
+                          <Resumo cards={cards} activeCard={activeCard} />
                         </>
                       )
                       :
@@ -1032,7 +1061,7 @@
                   (panelView == 'versions') &&
                   (
                     <>
-                      <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} embeddedData={props.embeddedData} />
+                      <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
                     </>
                   )
                 }
@@ -1159,9 +1188,9 @@
         <table class="table table-hover table-sm table-bordered">
           <thead class="thead-light">
             <tr className="table-title">
-              <th className="table-title col-xs-4" scope="col">{props.embeddedData.language === 'en_us' ? 'Field' : 'Campo'}</th>
-              <th className="table-title col-xs-4" scope="col">{props.embeddedData.language === 'en_us' ? 'Original' : 'Original'}</th>
-              <th className="table-title col-xs-4" scope="col">{props.embeddedData.language === 'en_us' ? 'Modified' : 'Alterado'}</th>
+              <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Field' : 'Campo'}</th>
+              <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Original' : 'Original'}</th>
+              <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Modified' : 'Alterado'}</th>
             </tr>
           </thead>
           <tbody>
@@ -1203,7 +1232,7 @@
       let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
       let cardCurrentFormData = card.formData ? card.formData : {}
       let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
-      sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} embeddedData={props.embeddedData}/>)
+      sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} />)
     }
     return (
       <div>
@@ -1242,29 +1271,29 @@
           <table class="table table-sm table-bordered">
             <tbody>
               <tr class="table-subtitle">
-                <td class="table-subtitle" colspan="1">Versão {version.version}</td>
-                <td class="table-subtitle" colspan="2">Data: {formatUTCDate(version.date)}</td>
+                <td class="table-subtitle" colspan="1">{initialform.language === 'en_us' ? 'Version' : 'Versão'} {version.version}</td>
+                <td class="table-subtitle" colspan="2">{initialform.language === 'en_us' ? 'Date:' : 'Data:'} {formatUTCDate(version.date)}</td>
               </tr>
               <tr className="table-default">
-                <td colspan="1" className="table-subtitle">Autor</td>
+                <td colspan="1" className="table-subtitle">{initialform.language === 'en_us' ? 'Author' : 'Autor'}</td>
                 <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.author}</td>
               </tr>
               <tr className="table-default">
-                <td colspan="1" className="table-subtitle">Descrição</td>
+                <td colspan="1" className="table-subtitle">{initialform.language === 'en_us' ? 'Description' : 'Descrição'}</td>
                 <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
               </tr>
               <tr className="table-default">
-                <td colspan="1" className="table-subtitle col-xs-4">Ações</td>
+                <td colspan="1" className="table-subtitle col-xs-4">{initialform.language === 'en_us' ? 'Actions' : 'Ações'}</td>
                 <td className="table-subtitle col-xs-8" colspan="2">
                   <a href={version.link} download target="_blank">
-                    <button type="button" className={"btn btn-outline-secondary"}>Baixar</button>
+                    <button type="button" className={"btn btn-outline-secondary"}>{initialform.language === 'en_us' ? 'Download' : 'Baixar'}</button>
                   </a>
                   {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
-                    <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((props.embeddedData.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((props.embeddedData.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
+                    <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((initialform.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((initialform.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
                   )}
                   {(comparisonLink && comparisonLink !== '') && (
                     <a href={comparisonLink} download target="_blank">
-                      <button type="button" className={"btn btn-outline-secondary"}>Ver Comparação</button>
+                      <button type="button" className={"btn btn-outline-secondary"}>{initialform.language === 'en_us' ? 'Check Comparison' : 'Ver Comparação'}</button>
                     </a>
                   )}
                 </td>
@@ -1284,7 +1313,7 @@
       }
     } else {
       sections.push(
-        <>Sem versões anteriores</>
+        <>{initialform.language === 'en_us' ? 'No previous versions.' : 'Sem versões anteriores.'}</>
       )
     }
     return (
@@ -1302,20 +1331,20 @@
           <table class="table table-sm table-bordered">
             <tbody>
               <tr class="table-subtitle">
-                <td class="table-subtitle" colspan="2">{attachment.title}</td>
-                <td class="table-subtitle" colspan="1">
+                <td class="table-subtitle col-xs-4" colspan="1">{attachment.title}</td>
+                <td class="table-subtitle col-xs-8" colspan="2">
                   <a href={attachment.link} download target="_blank">
-                    <button type="button" className={"btn btn-link"}>Baixar</button>
+                    <button type="button" className={"btn btn-link"}>{initialform.language === 'en_us' ? 'Download' : 'Baixar'}</button>
                   </a>
                 </td>
               </tr>
               <tr className="table-default">
-                <td colspan="1" className="table-subtitle">Descrição</td>
-                <td colspan="2" style={{ wordBreak: "break-all" }} className="table-highlight">{attachment.description}</td>
+                <td colspan="1" className="table-subtitle col-xs-4">{initialform.language === 'en_us' ? 'Description' : 'Descrição'}</td>
+                <td colspan="2" style={{ wordBreak: "break-all" }} className="table-highlight col-xs-8">{attachment.description}</td>
               </tr>
               <tr className="table-default">
-                <td colspan="1" className="table-subtitle">Data</td>
-                <td colspan="2" className="table-highlight">{formatUTCDate(attachment.date)}</td>
+                <td colspan="1" className="table-subtitle col-xs-4">{initialform.language === 'en_us' ? 'Date' : 'Data'}</td>
+                <td colspan="2" className="table-highlight col-xs-8">{formatUTCDate(attachment.date)}</td>
               </tr>
             </tbody>
           </table>
@@ -1332,7 +1361,7 @@
       }
     } else {
       sections.push(
-        <>Sem anexos anteriores</>
+        <>{initialform.language === 'en_us' ? 'No attachments available' : 'Sem anexos disponíveis'}</>
       )
     }
     return (
@@ -1395,7 +1424,7 @@
           <div className="d-modal-action">
             <form method="dialog">
               {/* if there is a button in form, it will close the modal */}
-              <button className="d-btn">Cancelar</button>
+              <button className="d-btn">{initialform.language === 'en_us' ? 'Cancel' : 'Cancelar'}</button>
             </form>
           </div>
         )}

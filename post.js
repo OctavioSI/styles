@@ -38,6 +38,11 @@ const RENDER_ENDPOINT = '29C64FC0-2828-11EF-BA19-6DEDEC828F31';
 const S3_ENDPOINT = '2C21C26A-1E62-4D3E-940B-2973688BD120';
 const ASPOSE_ENDPOINT = '5B178600-2E7E-11EF-83D7-891BE967B89F';
 
+const REGIONS = {
+  'looplex-ged': 'us-east-1',
+  'looplex-workflows': 'sa-east-1'
+}
+
 // --[ helpers ]---------------------------------------------------------------
 function formatDate(x, y) {
   var z = {
@@ -54,6 +59,93 @@ function formatDate(x, y) {
   return y.replace(/(y+)/g, function (v) {
     return x.getFullYear().toString().slice(-v.length);
   });
+}
+
+async function getS3Object(Bucket, Key) {
+  return new Promise(async (resolve, reject) => {
+    const getObjectCommand = new s3.GetObjectCommand({ Bucket, Key })
+    try {
+      let BucketRegion = REGIONS.hasOwnProperty(Bucket) ? REGIONS[Bucket] : 'us-east-1';
+      let s3config = {
+        "region": BucketRegion,
+        "credentials": {
+          "accessKeyId": secrets.S3_ACCESSKEYID,
+          "secretAccessKey": secrets.S3_SECRETACCESSKEY
+        }
+      }
+      const client = new s3.S3Client(s3config);
+      const response = await client.send(getObjectCommand)
+      // Store all of data chunks returned from the response data stream 
+      // into an array then use Array#join() to use the returned contents as a String
+      let chunks = []
+      // Handle an error while streaming the response body
+      response.Body.once('error', err => reject(err))
+      // Attach a 'data' listener to add the chunks of data to our array
+      // Each chunk is a Buffer instance
+      response.Body.on('data', chunk => chunks.push(chunk))
+      // Once the stream has no more data, join the chunks into a string and return the string
+      response.Body.once('end', () => resolve(Buffer.concat(chunks)))
+    } catch (err) {
+      // Handle the error or throw
+      return reject(err)
+    }
+  })
+}
+
+async function getBufferFromFile(bucket = 'looplex-ged', file) {
+  let buf;
+  var base64regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
+  let isbase64 = base64regex.test(file);
+  if (isbase64) {
+    buf = Buffer.from(file, 'base64');
+    return buf
+  } else { //url
+    let res = getS3Object(bucket, file) // O Bucket looplex-ged tem restrição de acesso direto
+    return res;
+  }
+}
+
+async function uploadFilepondFile(file2save, path2save){
+  console.log(file2save)
+  console.log(path2save)
+  let document = await getBufferFromFile('looplex-ged', file2save)
+  let uploading = await uploadDocumentService({ path: path2save, uploadFile: document.toString('base64') })
+  return uploading
+}
+
+// Recebe o formData, identifica arquivos do Filepond e os transfere
+// para o caminho permanente (path)
+async function treatFilepondFiles(formData, base_path, path = ''){
+  let retorno = [];
+  for (const property in formData) {
+    if(typeof formData[property] === 'object' && !Array.isArray(formData[property]) && formData[property] !== null){ // checando se é um objeto
+      let uploaded = await treatFilepondFiles(formData[property], base_path, path+'/'+property)
+      if(typeof uploaded === 'object' && !Array.isArray(uploaded) && uploaded !== null){
+        retorno.push(uploaded)
+      }
+    }else if(Array.isArray(formData[property])){ // Temos uma Array
+      for(let i = 0; i < formData[property].length; i++){
+        let objectarr = {}
+        objectarr[i] = formData[property][i]
+        let uploaded = await treatFilepondFiles(objectarr, base_path, path+'/'+property+'/'+i)
+        if(typeof uploaded === 'object' && !Array.isArray(uploaded) && uploaded !== null){
+          retorno.push(uploaded)
+        }
+      }
+    }else{ // Não é um objeto nem uma array
+      if ((typeof formData[property] === 'string' || formData[property] instanceof String) && (formData[property].substring(0,5) === 'Temp/')){
+        // Temos aqui um caminho do Filepond
+        let filename = formData[property].split('/').pop();
+        let uploaded = await uploadFilepondFile(formData[property], base_path+'/'+(path && path !== '' ? path+'/': '')+filename);
+        if(path && path !== ''){ // Estou na recursão
+          return uploaded;
+        }else{ // Estou na prop raiz
+          retorno.push(uploaded)
+        }
+      }
+    }
+  }
+  return retorno;
 }
 
 // --[ actions ]---------------------------------------------------------------
@@ -377,11 +469,51 @@ async function saveNewVersionService(inputs) {
     const render = await axios(config);
     if(render.data && render.data.output){
       // Aqui, com o documento gerado, vamos criar o registro da nova versão no Cosmos
+
+      // Mas antes, vamos gravar quaisquer arquivos do filepond que temos no formData 
+      // recebido em um caminho permanente (já que ele grava em pasta temporária)
+      
+      // Tratamento para filepond: apesar de não ser o ideal, 
+      // vamos considerar que valores de string que tiverem o 
+      // começo "Temp/" são arquivos salvos pelo filepond
+      // Isso simplifica a lógica para identificar os arquivos 
+      // que foram encaminhados
+      let uploaded = await treatFilepondFiles(datacontent.datasource, 'looplex.com.br','')
+      // Vamos limpar registros vazios
+      let uploadedfiles = []
+      uploaded.forEach(up => {
+        if(typeof up === 'object' && !Array.isArray(up) && up !== null){
+          uploadedfiles.push(up)
+        }
+      })
+      // Aqui já fiz o upload dos arquivos que subi no form. Vamos montar o registro de anexos.
+      let attachments = [];
+      for(let i = 0; i < uploadedfiles.length; i++){
+        let file = uploadedfiles[i].docpath
+        let filenametmp = (file.split('/').pop()).split('.')
+        let extension = filenametmp.pop()
+        let filename = filenametmp.join('.')
+        let att = {
+          "title": filename,
+          "description": filename,
+          "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+          "document": {
+              "path": file,
+              "filename": filename,
+              "type": extension
+          },
+          "link": uploadedfiles[i].presigned
+        }  
+        attachments.push(att)
+      }
+      
+
       let data = {};
       let content = {};
       let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
       if(!id || id == ''){
         // Não tenho ID, então preciso gravar um novo registro na DB
+        id = crypto.randomUUID() // gerando um novo ID
         content = {
           "versions": [
               {
@@ -395,7 +527,7 @@ async function saveNewVersionService(inputs) {
                   "formData": datacontent.datasource
               }
           ],
-          "attachments": [],
+          "attachments": attachments,
           "currentVersion": version,
           "author": author,
           "description": description,
@@ -427,6 +559,16 @@ async function saveNewVersionService(inputs) {
           },
           "formData": datacontent.datasource
         }
+        let operations = [
+          { "op": "add", "path": "/versions/-", "value": content },
+          { "op": "set", "path": "/currentVersion", "value": version },
+          { "op": "set", "path": "/updated_at", "value": updateddate }
+        ];
+        attachments.forEach(att => {
+          let tmpatt = { ...att }
+          delete tmpatt.link
+          operations.push({ "op": "add", "path": "/attachments/-", "value": tmpatt })
+        })
         data = {
           "command": "partialUpdate",
           "config": {
@@ -435,11 +577,7 @@ async function saveNewVersionService(inputs) {
               "partitionKey": tenant,
               "id": id
           },
-          "operations": [
-              { "op": "add", "path": "/versions/-", "value": content },
-              { "op": "set", "path": "/currentVersion", "value": version },
-              { "op": "set", "path": "/updated_at", "value": updateddate }
-          ]
+          "operations": operations
         }
       }
       
@@ -463,6 +601,7 @@ async function saveNewVersionService(inputs) {
                 "path": render.data.output.resPresigned.data.info.docpath
             }
           },
+          "newattachments": attachments,
           "docrendered": render.data.output
         }
       }
@@ -498,6 +637,33 @@ async function downloadDocumentService(inputs) {
     return res.data.output;
   } catch (e) {
     throw new Error('Error fetching form: ' + e.message)
+  }
+};
+
+async function uploadDocumentService(inputs) {
+  const { path, uploadFile } = inputs;
+  try {
+    let data = {
+      command: "uploadFile",
+      subscription_key: secrets.APIM_SUBSCRIPTIONKEY,
+      path_has_escaped_chars: true,
+      upload_file: uploadFile,
+      path: path
+    }
+    let headers = {
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let config = {
+      method: 'post',
+      url: `${APIM_URL}${S3_ENDPOINT}`,
+      headers,
+      data
+    }
+    // console.log('config', config)
+    let res = await axios(config);
+    return res.data.output;
+  } catch (e) {
+    return 'Erro no upload do documento: ' + e.message + '  *****  ' + JSON.stringify(e.response.data)
   }
 };
 
