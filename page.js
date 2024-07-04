@@ -12,8 +12,24 @@
    * Para tanto, você deverá informar os seguintes parâmetros no 
    * payload JSON, codificado no seguinte endereço:
    * 
+   * https://evolved-functions.vercel.app/api/jwt/sign
    * 
-   * 
+    O payload JSON tem o seguinte formato:
+
+    {
+      "payload": {
+          "initialformId": "newuid-first", // schema inicial que está no Workflows/rjsf-schemas
+          "initialformTenant": "looplex.com.br", // tenando do schema inicial
+          "initialformDocument": "teste001", // documento com configurações básicas e onde será salvo o doc, em Workflows/assembler
+          "formTitle": "Assembler 3.0: Contrato de Fornecimento", // Título do formulário
+          "language": "pt_br" // idioma do formulário (en_us ou pt_br)
+      },
+      "privateKey": "A_PRIVATE_KEY_VAI_AQUI" // Private key para gerar o payload
+    }
+   * Após gerar acima, passamos no formulário como parâmetro payload, dessa forma:
+
+    https://actions.looplex.com/code/AC5701D0-2433-11EF-BDC7-77DDAE33E94A?payload=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbml0aWFsZm9ybUlkIjoibmV3dWlkLWZpcnN0IiwiaW5pdGlhbGZvcm1UZW5hbnQiOiJsb29wbGV4LmNvbS5iciIsImluaXRpYWxmb3JtRG9jdW1lbnQiOiJ0ZXN0ZTAwMSIsImZvcm1UaXRsZSI6IkFzc2VtYmxlciAzLjA6IENvbnRyYXRvIGRlIEZvcm5lY2ltZW50byIsImxhbmd1YWdlIjoicHRfYnIiLCJpYXQiOjE3MjAwNDU4NjV9.dTOLln85VWfRyRe1Me5KhO8p4UBP-9IBKse83CygPhnay_0x9gqoM-du_Mg0SFMgsWOZUzj9TsLbtnTWF5XaKDnOOwJeQLExXjlI3x73uLYKzlw-slFNAFrLjxjFOpj7MCug_fq8bw-E_wzpUKxftbdFH_NNBXB504aC089BP67MiCtuqsvHoT0kUDUotghQ9-uulPd8K0UDCgHPdd1CJYXpkNyv12HKZsLLQ7xZApLJ7jweRMF3fR2P_q-kA4TYsLddKEkoQpp3RWKfmMpcpASPAGGTLCz4mt2ebEWmPE55sVNGSamkkxBpoaGvGsreyFcBH10UHPv3He8ZXj2m1a9_3BgLKhky7wdl9WklI2Ckvvi211DvB38ZCa6X6rIUbScvNViiZXIp-F3elQZme_t0ynSsQDOGZa4o-3Pq7xPbR1wZTkLCkdMzU1UAEpT2fZ_3FcDn3xFIUfkAIUr8h-6zQe2orDCOU_kdIeA61QlQ_h99nD1ss9xUZshTkmvEqCm0Oth7_wZ6_Uwe8-qHLxzwdlYaMlyn7jJNvUmjYlHaVJTYIbBsZwrtYoex0rU2Ve3gt_NuWJl1V8LKWYgSfC6-PAnRDIH7hGRT5UgHkdjAH0PcmuHMRJl3drnWoPV6K5-_EOPjLZoS444ZcOSx_yCS2hObvX2_kfBt1gkgXVI
+
    * 
    *
    ********************************************************************/
