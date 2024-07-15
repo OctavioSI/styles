@@ -1,5 +1,43 @@
 /*******************************************************************
 * Carousel Padrão Flows
+* 
+* STATUS: Em desenvolvimento -- não usar
+* 
+* CHANGELOG
+*
+* v. 1.1
+*   - Page:         Reorganização do documento e comentários adicionais para 
+*                   facilitar a leitura e entendimento
+*
+* v. 1.0
+*   - Carousel:     Formulário pode ser usado com cards, sendo possível 
+*                   passar os cards no arquivo rjsf na pasta ou montar
+*                   os cards no cosmosDB (container Workflows > rjsf-schema).
+*                   No cosmosDB agora é possível também passar apenas 1 card
+*                   ou o array cards[]
+*   - Layout:       Este formulário agora tem o Layout atualizado em linha
+*                   com o design definido para o Cases. O formulário é 
+*                   renderizado do lado esquerdo e o painel com propriedades
+*                   e outras funções fica do lado direito.
+*   - Aspose:       Na guia de versões anteriores é possível fazer a 
+*                   comparação do documento renderizado autualmente com 
+*                   versões salvas anteriormente. Usamos o Aspose para isso
+*   - Versões:      Versões anteriores são salvas no cosmosDB, com o formData
+*                   utilizado. É possível baixar o documento da versão e
+*                   realizar comparação com a versão renderizada atualmente.
+*   - Modal:        Foi implementado modal para ações específicas -- você
+*                   usar o modal como popup para alertas ou como popup de 
+*                   interação, que recebe um RJSF próprio.
+*   - Anexos:       Anexos enviados no formulário usando o Filepond são
+*                   salvos em pastas definitivas e com o link disponibilizado
+*                   na guia de Anexos do painel lateral
+*
+* KNOWN ISSUES
+*
+*   - Aspose não funciona sempre para a comparação. Por vezes, 
+*     a depender do documento que está sendo comparado, recebemos um
+*     erro 400 na chamada. 
+* 
 ********************************************************************/
 (function () {
 
@@ -22,6 +60,10 @@
           "initialformTenant": "looplex.com.br", // tenando do schema inicial
           "initialformDocument": "teste001", // documento com configurações básicas e onde será salvo o doc, em Workflows/assembler
           "formTitle": "Assembler 3.0: Contrato de Fornecimento", // Título do formulário
+          "base_filename": 'file.docx', // base do documento que será renderizado
+          "formTitle": "Form Looplex", // Título do formulario
+          "template": "", // template do documento que será renderizado
+          author: props.embeddedData.author ? props.embeddedData.author : 'Looplex',
           "language": "pt_br" // idioma do formulário (en_us ou pt_br)
       },
       "privateKey": "A_PRIVATE_KEY_VAI_AQUI" // Private key para gerar o payload
@@ -48,6 +90,7 @@
   const [panelView, setPanelView] = useState('summary')
   const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
   const [cards, setCards] = useState([])
+  const [allLoadedCards, setAllLoadedCards] = useState([])
   const [modal, setModal] = useState({
     title: "Título",
     description: "Descrição do Modal"
@@ -57,8 +100,6 @@
   const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRendering, setIsRendering] = useState(false)
-  // const [isComparing, setIsComparing] = useState({})
-  // const [isComparingError, setIsComparingError] = useState({})
   const [isModalSubmitting, setIsModalSubmitting] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
@@ -82,9 +123,10 @@
    *******************************************/
 
   // Funcao que verifica se o objeto é vazio
-  function isObjectEmpty(objectName) {
-    return Object.keys(objectName).length === 0
-  }
+  const isObjectEmpty = (objectName) => {
+    return JSON.stringify(objectName) === '{}'
+  };
+
   // Funcao para aguardar
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   // Monta a estrutura do objeto JSON
@@ -94,7 +136,11 @@
     Object.keys(obj).forEach(function (k) {
       // slip the property value based on `.`
       var prop = k.split('.');
-      // get the last value fom array
+      let is_single_prop = false;
+      if(prop.length === 1){
+        is_single_prop = true;
+      }
+      // get the last value from array
       var last = prop.pop();
       // iterate over the remaining array value 
       // and define the object if not already defined
@@ -105,7 +151,8 @@
         // and set the property value
       }, obj)[last] = obj[k];
       // delete the original property from object
-      delete obj[k];
+      if(!is_single_prop)
+        delete obj[k];
     });
     return obj
   }
@@ -132,7 +179,6 @@
     }
     return compare(searchObject, referenceObject);
   }
-
   // Cria um presigned URL de um arquivo no S3 da Looplex
   async function downloadFile(path) {
     let data = {
@@ -154,7 +200,7 @@
       throw new Error('Falha ao baixar o arquivo')
     }
   }
-
+  // Formata uma data em UTC para a visualização correta e na timezone local
   function formatUTCDate(utcdate) {
     let d = new Date(utcdate)
     let utc = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toUTCString();
@@ -164,7 +210,8 @@
   /*******************************************
    * Hooks
    *******************************************/
-  useEffect(() => { // Rodando apenas uma vez no início do form
+  // Rodando apenas uma vez no início do form
+  useEffect(() => {
     if (!initialform.id) {
       setSchema()
       return
@@ -219,7 +266,9 @@
           }];
         }
         setIsLoading(false)
-        setCards(setSchema(initialSchema))
+        let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
+        setCards(newcards)
+        setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não
         return true;
       }
     }
@@ -314,15 +363,16 @@
   // Quando carregar os documentdetails, usamos esse hook para atualizar os cards
   useEffect(() => {
     if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
-      setCards(loadPriorFormData(documentDetails))
+      let newcards = setSchema(loadPriorFormData(documentDetails));
+      setCards(newcards)
     }
   }, [documentDetails])
-
+  // Atualiza os cards sempre que o schema for alterado
   useEffect(() => {
-    let newSchema = setSchema(cards, schemaObject.cardId, schemaObject.formData);
+    let newSchema = setSchema(allLoadedCards, schemaObject.cardId, schemaObject.formData);
     setCards(newSchema)
   }, [schemaObject])
-
+  // Efeito aplicado quando alterar o card atual
   useEffect(() => {
     activeCardRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -336,8 +386,7 @@
    *******************************************/
   // Essa função é utilizada para definir os cards que deverão ser exibidos
   function setSchema(initialcards = [], cardId = '', formData = {}) {
-    // Carregando cards do RJSF
-    let tmpcards = props.rjsf.cards;
+    let tmpcards = props.rjsf.cards; // Carregando cards do RJSF
     // Aqui vamos carregar cards que tenham sido carregados na memória (no lugar o arquivo rjsf)
     if (initialcards && initialcards.length > 0) {
       tmpcards = initialcards;
@@ -392,6 +441,7 @@
     }
     // Para cada card, vamos verificar as condicoes para exibicao
     let cards2Show = [];
+    // return tmpcards
     tmpcards.forEach(cd => {
       /**  Se eu nao tiver "card_conditions" ou se as "card_conditions" 
        * forem vazias, vamos mostrar o card
@@ -406,9 +456,6 @@
           let searchObj = {};
           searchObj[card_condition] = formatted_card_conditions[card_condition];
           let exists = isValueInObject(searchObj, mergedFormData);
-          // cd.searchObj = searchObj
-          // cd.mergedFormData = mergedFormData
-          // cd.includeInDeck = exists
           if (!exists) { includeInDeck = false; }// Entao nao incluimos no deck
         }
         if (includeInDeck) cards2Show.push(cd)
@@ -418,15 +465,7 @@
     return cards2Show;
   }
 
-  function createSchemaObject(cardId, formData) {
-    setSchemaObject(
-      {
-        "cardId": cardId,
-        "formData": formData
-      }
-    )
-  }
-
+  // Carrega um schema remoto, que está armazenado no cosmosDB
   async function loadRemoteSchema(id, cardId, formData, scope = '', card_conditions = {}) {
     const fetchRemoteSchema = async () => {
       let data = {
@@ -476,7 +515,10 @@
           };
           tmpCards.push(newCard);
         }
-        setCards(setSchema(tmpCards, cardId, formData))
+        let newcards = setSchema(tmpCards, cardId, formData)
+        // setTmpVisor(newcards)
+        setCards(newcards)
+        setAllLoadedCards(tmpCards) // criando um local que tem todas as cards, exibidas ou não
       }
       setIsLoading(false)
     }
@@ -497,14 +539,14 @@
         });
     }
   }
-
+  // Busca o formData que será exibido como valor anterior
   function loadPriorFormData(docdetails) {
     let currentVersion = docdetails.versions.filter(v => v.version == docdetails.currentVersion);
     let formDataComplete = {};
     if (currentVersion && currentVersion.length > 0) {
       formDataComplete = currentVersion[0].formData;
     }
-    let priorDataCards = cards.map((card) => {
+    let priorDataCards = allLoadedCards.map((card) => {
       // Para cada schema no card, vou montar o objeto de prior correspondente
       let priorData = {}
       if (card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')) {
@@ -524,6 +566,7 @@
   /*******************************************
    * Ações do Formulário
    *******************************************/
+  // Chamado sempre que o botão de próxima ou anterior for clicado
   async function handleClickEvent(cardId, formData, cardTargetIdx) {
     setIsReady2Submit(false);
     // setIsLoading(false);
@@ -582,19 +625,18 @@
        * pois ele renderizaria todos os cards novamente. Neste caso, 
        * quero apenas atualizar o meu formData para o card ativo
        */
-      let nextState = cards.map((card) => {
-        if (card.cardId !== cardId) return card
-        return {
-          ...card,
-          formData: formData
-        }
-      })
+      // let nextState = cards.map((card) => {
+      //   if (card.cardId !== cardId) return card
+      //   return {
+      //     ...card,
+      //     formData: formData
+      //   }
+      // })
+      let nextState = setSchema(allLoadedCards, cardId, formData)
       setCards(nextState)
       //setTmpVisor(JSON.stringify(cards))
-      // console.log(nextState)
       let moveLeft = Math.max(0, activeCard - 1);
       let moveRight = Math.min(cards.length - 1, activeCard + 1);
-      // console.log(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
       setActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
     }
 
@@ -606,23 +648,24 @@
      * para mudar a fase do card
      * 
     */
-    createSchemaObject(cardId, formData)
+    setSchemaObject(
+      {
+        "cardId": cardId,
+        "formData": formData
+      }
+    )
   }
-
+  // Chamado sempre que o formulário for alterado
   async function handleChangeEvent(cardId, formData, fieldId) {
     // Quando altero qualquer campo do meu form, eu quero
     // atualizar o formData do card correspondente
     let field = fieldId.replace('root_', '').replaceAll('_', '.');
-    let nextState = cards.map((card) => {
-      if (card.cardId !== cardId) return card
-      return {
-        ...card,
-        formData: formData
-      }
-    })
+    let nextState = setSchema(allLoadedCards, cardId, formData)
+    console.log('allLoadedCards', JSON.stringify(allLoadedCards))
+    console.log('nextState', JSON.stringify(nextState))
     setCards(nextState)
     // Vamos também verificar se o nosso botão tem que ser renderizado novamente
-    let load_card = cards.filter(cd => cd.cardId === cardId)[0];
+    let load_card = nextState.filter(cd => cd.cardId === cardId)[0];
     let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
 
     if (!isObjectEmpty(dmnStructure)) {
@@ -636,7 +679,7 @@
       }
     }
   }
-
+  // Chamado sempre que o formulário for enviado
   async function handleSubmit(event, justrender) {
     event.preventDefault()
     event.stopPropagation()
@@ -660,6 +703,15 @@
     return;
   }
 
+
+  /*******************************************
+   * Funções de apoio
+   * 
+   * Abaixo temos que funções que cumprem ações
+   * específicas do formulário
+   *******************************************/
+
+  // executa uma DMN
   async function runDMN(formData, dmnStructure, tenant) {
     // formData é a variável com o objeto de respostas atuais do formulário
     // dmnStrucutre é o atributo dmn do card (contém dmnID e map)
@@ -693,6 +745,7 @@
     }
   }
 
+  // renderiza um documento
   async function renderDocument() {
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
@@ -731,6 +784,7 @@
     }
   }
 
+  // executa a chamada que faz o salvamento de uma nova versão
   async function saveNewVersion(version, description) {
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
@@ -767,7 +821,7 @@
     // setTmpVisor(JSON.stringify(config))
     try {
       const res = await axios(config);
-      console.log(res.data.output)
+      // console.log(res.data.output)
       if (res.data && res.data.output) {
         // setTmpVisor(JSON.stringify(res.data.output))
         // Vamos atualizar o documentDetails relevante
@@ -784,6 +838,33 @@
     }
   }
 
+  // Roda a comparação da versão atual com uma versão anterior
+  async function compareVersions(baseversion, renderedVersion) {
+    // setTmpVisor(JSON.stringify(renderedVersion))
+    let data = {
+      command: "compareDocuments",
+      original: baseversion.document.path,
+      final: renderedVersion.resPresigned.data.info.docpath
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    // setTmpVisor2(JSON.stringify(config))
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao comparar versões **** ' + JSON.stringify(e.response.data))
+    }
+
+    return;
+  }
+
+  // Gera o preview do documento, renderizando o formulário atual (chamado quando se clica no botão "atualiza prévia")
   async function generatePreview() {
     setIsPreviewLoaded(false);
     let preview = await renderDocument();
@@ -796,6 +877,7 @@
     return;
   }
 
+  // Formata os erros recebidos na validação para exibição na tela
   function treatAJVErrors(errors = []) {
     let errorsmsg = "";
     if (errors && errors.length > 0) {
@@ -806,9 +888,11 @@
     return errorsmsg
   }
 
+  // Verifica a validade do formulário em relação ao schema fornecido  
   async function validateForm() {
     let mergedFormData = {}
     let mergedSchema = {};
+    let mergedSchemaDefs = {};
     let requiredFields = [];
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -817,26 +901,15 @@
       }
       mergedFormData = { ...mergedFormData, ...tcard.formData }
       mergedSchema = { ...mergedSchema, ...tcard.schema.properties }
-
-      // TODO: Analisar melhor como tratar em casos de definição com scope
-      // if (tcard.scope && tcard.scope !== '') {
-      //   mergedFormData[tcard.scope] = { ...tcard.formData }
-      //   mergedSchema[tcard.scope] = { ...tcard.schema.properties }
-      // } else {
-      //   mergedFormData = { ...mergedFormData, ...tcard.formData }
-      //   mergedSchema = { ...mergedSchema, ...tcard.schema.properties }
-      // }
+      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
     }
-    // Para cada campo obrigatório do schema, precisamos
-    // montar como required tb o campo "pai"
-    // TODO
-
     let data = {
       command: "validateForm",
       formData: mergedFormData,
       schema: {
         type: "object",
         properties: { ...mergedSchema },
+        definitions: { ...mergedSchemaDefs },
         required: requiredFields
       }
     };
@@ -856,17 +929,8 @@
     }
   }
 
-  const updateVersions = (versions) => {
-    let docdetails = documentdetails;
-    docdetails.versions = versions;
-    setDocumentDetails(docdetails);
-  }
-
-  const updateTmpVisor = (tmpVisor) => {
-    setTmpVisor(tmpVisor)
-  }
-
-  const alertModal = (title, icon, message, content) => {
+  // Exibe o modal em formato de alerta
+  function alertModal(title, icon, message, content) {
     let modal = {
       icon: icon,
       title: title,
@@ -878,6 +942,7 @@
     modalRef.current.showModal()
   }
 
+  // Exibe o modal para formato de salvar nova versão
   function submitNewVersion() {
     let modal = {
       title: "Nova versão",
@@ -920,180 +985,31 @@
     modalRef.current.showModal();
   }
 
-  return (
-    <div id='layout'>
-      <Head>
-        <title>{initialform.formTitle}</title>
-        <link rel="icon" type="image/x-icon" href="https://www.looplex.com.br/img/favicon.ico"></link>
-        <link
-          href='https://bootswatch.com/5/lumen/bootstrap.min.css'
-          rel='stylesheet'
-          type='text/css'
-        />
-        <link rel="stylesheet" type='text/css' href='https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/ant.css' />
-        <link rel='stylesheet' type='text/css' href='https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/daisy.css' />
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
-        <link
-          rel='stylesheet'
-          href='https://octaviosi.github.io/styles/css/carousel-looplex.css'
-        />
-
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-        <script src='https://code.jquery.com/jquery-3.6.3.slim.min.js'></script>
-        <script src='https://cdn.tailwindcss.com?plugins=typography'></script>
-        <script>{`tailwind.config = {prefix: 'd-' }`}</script>
-      </Head>
-
-      <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
-        <div className="d-modal-box w-11/12 max-w-5xl">
-          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
-        </div>
-        <form method="dialog" className="d-modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
-
-      <div className="looplex-header">
-        <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
-      </div>
-      <div className='container-form'>
-        <form method='POST' action='/' onSubmit={handleSubmit}>
-          <div className='card'>
-            <main>
-              <section class="deckofcards">
-                {tmpVisor}
-                {tmpVisor2}
-                {submitted}
-                <div ref={myCarouselRef} className='d-carousel d-w-full'>
-                  {
-                    (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
-                      <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                      : ''
-                  }
-                  {cards.map((card, index) => {
-                    const active = index === activeCard;
-                    return (
-                      <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                        <div className="d-w-full">
-                          <div className="d-w-full">
-                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-              <section className="navigation d-flex align-items-end flex-column">
-                {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
-                  <>
-                    <div className="d-flex d-space-x-4 align-items-center">
-                      <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
-                      <span class="glyphicon glyphicon-option-horizontal"></span>
-                      <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
-                    </div>
-                    <div className="mt-auto d-flex align-items-end d-space-x-4">
-                      {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
-                        <a href={documentRendered.documentUrl} download>
-                          <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
-                        </a>
-                      )}
-                      <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-                      <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
-                    </div>
-                  </>
-                )}
-              </section>
-            </main>
-            <aside>
-              <div className="card-navigation">
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
-                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
-              </div>
-              <div className="card-summary">
-                {
-                  (panelView == 'summary') &&
-                  (
-                    (documentDetails && documentDetails.currentVersion) ?
-                      (
-                        <>
-                          <Description description={{
-                            "version": documentDetails.currentVersion,
-                            "author": documentDetails.author,
-                            "created_at": documentDetails.created_at,
-                            "updated_at": documentDetails.updated_at,
-                            "description": documentDetails.description
-                          }} />
-                          <Resumo cards={cards} activeCard={activeCard} />
-                        </>
-                      )
-                      :
-                      (
-                        <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                      )
-                  )
-                }{
-                  (panelView == 'preview') &&
-                  (isPreviewLoaded ? (
-                    previewDocURL ? (
-                      <div className="previewWrapper">
-                        <iframe
-                          id='preview'
-                          name='preview'
-                          width='100%'
-                          height='100%'
-                          frameBorder='0'
-                          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                        ></iframe>
-                        <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                          <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                        </button>
-                      </div>
-                    ) :
-                      (
-                        <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
-                      )
-                  ) :
-                    (
-                      <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
-                    )
-                  )
-                }{
-                  (panelView == 'attachments') &&
-                  (
-                    <>
-                      <AttachmentsPanel docdetails={documentDetails} />
-                    </>
-                  )
-                }{
-                  (panelView == 'versions') &&
-                  (
-                    <>
-                      <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
-                    </>
-                  )
-                }
-              </div>
-            </aside>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
+  // Roda ações definidas no Modal
+  async function runAction(action, inputs) {
+    let render;
+    switch (action) {
+      case 'createNewDocumentVersion':
+        setIsModalSubmitting(true)
+        let version = inputs.formData?.version;
+        let description = inputs.formData?.description;
+        // console.log(inputs)
+        render = await saveNewVersion(version, description);
+        // setDocumentRendered(render)
+        setIsModalSubmitting(false)
+        modalRef.current.close()
+        break;
+      default:
+        return;
+    }
+  }
 
   /*******************************************************************
-   * Elementos do Sumário
+   * Elementos do Painel direito
    * 
    * As funções a seguir definem elementos que são utilizados no painel
-   * de sumário. A ideia é componentizar cada um dos elementos que são 
+   * direito, que contém o sumário, versões, anexos, etc. 
+   * A ideia é componentizar cada um dos elementos que são 
    * repetidos durante a implementação
    *******************************************************************/
 
@@ -1264,8 +1180,8 @@
       const [isComparingError, setIsComparingError] = useState(false)
       const [comparisonLink, setComparisonLink] = useState(false)
       async function triggerCompareVersions(version, docrendered, versionidx) {
-        console.log('docrendered', docrendered)
-        console.log('version', version)
+        // console.log('docrendered', docrendered)
+        // console.log('version', version)
         setIsComparing(true);
         setIsComparingError(false);
         try {
@@ -1387,24 +1303,6 @@
     )
   }
 
-  async function runAction(action, inputs) {
-    let render;
-    switch (action) {
-      case 'createNewDocumentVersion':
-        setIsModalSubmitting(true)
-        let version = inputs.formData?.version;
-        let description = inputs.formData?.description;
-        console.log(inputs)
-        render = await saveNewVersion(version, description);
-        // setDocumentRendered(render)
-        setIsModalSubmitting(false)
-        modalRef.current.close()
-        break;
-      default:
-        return;
-    }
-  }
-
   // Modal
   function Modal(props) {
     let title = props.title ? props.title : ""
@@ -1448,34 +1346,180 @@
     return modal
   }
 
-  /*********************************************************************
-   * Funções externas
-   */
+  /*******************************************************************
+   * Renderização da Tela
+   * 
+   * Abaixo temos a renderização dos elementos na tela, com a 
+   * aplicação dos elementos e funções definidos no restante do código
+   * 
+   *******************************************************************/
+  return (
+    <div id='layout'>
+      <Head>
+        <title>{initialform.formTitle}</title>
+        <link rel="icon" type="image/x-icon" href="https://www.looplex.com.br/img/favicon.ico"></link>
+        <link
+          href='https://bootswatch.com/5/lumen/bootstrap.min.css'
+          rel='stylesheet'
+          type='text/css'
+        />
+        <link rel="stylesheet" type='text/css' href='https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/ant.css' />
+        <link rel='stylesheet' type='text/css' href='https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/daisy.css' />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
+        <link
+          rel='stylesheet'
+          href='https://octaviosi.github.io/styles/css/carousel-looplex.css'
+        />
 
-  async function compareVersions(baseversion, renderedVersion) {
-    // setTmpVisor(JSON.stringify(renderedVersion))
-    let data = {
-      command: "compareDocuments",
-      original: baseversion.document.path,
-      final: renderedVersion.resPresigned.data.info.docpath
-    };
-    let config = {
-      method: 'post',
-      url: `/api/code/${props.codeId}`,
-      data
-    }
-    // setTmpVisor2(JSON.stringify(config))
-    try {
-      const res = await axios(config);
-      if (res.data && res.data.output) {
-        return res.data.output;
-      }
-    } catch (e) {
-      throw new Error('Falha ao comparar versões **** ' + JSON.stringify(e.response.data))
-    }
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    return;
-  }
 
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        <script src='https://code.jquery.com/jquery-3.6.3.slim.min.js'></script>
+        <script src='https://cdn.tailwindcss.com?plugins=typography'></script>
+        <script>{`tailwind.config = {prefix: 'd-' }`}</script>
+      </Head>
+
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
+        <div className="d-modal-box w-11/12 max-w-5xl">
+          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
+        </div>
+        <form method="dialog" className="d-modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+
+      <div className="looplex-header">
+        <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
+      </div>
+      <div className='container-form'>
+        <form method='POST' action='/' onSubmit={handleSubmit}>
+          <div className='card'>
+            <main>
+              <section class="deckofcards">
+                {tmpVisor}
+                {tmpVisor2}
+                {submitted}
+                <div ref={myCarouselRef} className='d-carousel d-w-full'>
+                  {
+                    (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
+                      <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                      : ''
+                  }
+                  {cards.map((card, index) => {
+                    const active = index === activeCard;
+                    return (
+                      <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
+                        <div className="d-w-full">
+                          <div className="d-w-full">
+                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+              <section className="navigation d-flex align-items-end flex-column">
+                {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
+                  <>
+                    <div className="d-flex d-space-x-4 align-items-center">
+                      <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                      <span class="glyphicon glyphicon-option-horizontal"></span>
+                      <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                    </div>
+                    <div className="mt-auto d-flex align-items-end d-space-x-4">
+                      {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
+                        <a href={documentRendered.documentUrl} download>
+                          <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
+                        </a>
+                      )}
+                      <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+                      <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                    </div>
+                  </>
+                )}
+              </section>
+            </main>
+            <aside>
+              <div className="card-navigation">
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>
+                <button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>
+              </div>
+              <div className="card-summary">
+                {
+                  (panelView == 'summary') &&
+                  (
+                    (documentDetails && documentDetails.currentVersion) ?
+                      (
+                        <>
+                          <Description description={{
+                            "version": documentDetails.currentVersion,
+                            "author": documentDetails.author,
+                            "created_at": documentDetails.created_at,
+                            "updated_at": documentDetails.updated_at,
+                            "description": documentDetails.description
+                          }} />
+                          <Resumo cards={cards} activeCard={activeCard} />
+                        </>
+                      )
+                      :
+                      (
+                        <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                      )
+                  )
+                }{
+                  (panelView == 'preview') &&
+                  (isPreviewLoaded ? (
+                    previewDocURL ? (
+                      <div className="previewWrapper">
+                        <iframe
+                          id='preview'
+                          name='preview'
+                          width='100%'
+                          height='100%'
+                          frameBorder='0'
+                          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                        ></iframe>
+                        <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                          <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                        </button>
+                      </div>
+                    ) :
+                      (
+                        <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                      )
+                  ) :
+                    (
+                      <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
+                    )
+                  )
+                }{
+                  (panelView == 'attachments') &&
+                  (
+                    <>
+                      <AttachmentsPanel docdetails={documentDetails} />
+                    </>
+                  )
+                }{
+                  (panelView == 'versions') &&
+                  (
+                    <>
+                      <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
+                    </>
+                  )
+                }
+              </div>
+            </aside>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
 
 })() // Temos que fechar a function aqui pois usamos funções do parent dentro dos componentes child

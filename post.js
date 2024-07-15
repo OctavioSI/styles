@@ -448,7 +448,7 @@ async function renderDocumentService(inputs) {
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error fetching form: ' + e.message)
+    throw new Error('Error rendering document: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
