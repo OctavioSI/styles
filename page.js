@@ -32,6 +32,11 @@
 *                   salvos em pastas definitivas e com o link disponibilizado
 *                   na guia de Anexos do painel lateral
 *
+* BUG FIXES
+*
+*   - Arrumado problema com dados de formData anteriores sumindo
+*   - Ajustado problema com troca de cards
+*
 * KNOWN ISSUES
 *
 *   - Aspose não funciona sempre para a comparação. Por vezes, 
@@ -88,12 +93,15 @@
   };
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
   const [panelView, setPanelView] = useState('summary')
-  const [schemaObject, setSchemaObject] = useState({ "cardId": "", "formData": {} });
   const [cards, setCards] = useState([])
   const [allLoadedCards, setAllLoadedCards] = useState([])
   const [modal, setModal] = useState({
     title: "Título",
     description: "Descrição do Modal"
+  })
+  const [alert, setAlert] = useState({
+    title: "Título",
+    description: "Descrição do Alerta"
   })
 
   const [isLoading, setIsLoading] = useState(false)
@@ -101,16 +109,20 @@
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRendering, setIsRendering] = useState(false)
   const [isModalSubmitting, setIsModalSubmitting] = useState(false)
+  const [isModalLogin, setIsModalLogin] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(true)
+  const [loginRequired, setLoginRequired] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
   const modalRef = useRef(null);
+  const alertRef = useRef(null);
 
   const [previewDocURL, setPreviewDocURL] = useState("")
   const [documentDetails, setDocumentDetails] = useState({});
+  const [documentDetailsVersionsLoaded, setDocumentDetailsVersionsLoaded] = useState(false);
   const [documentRendered, setDocumentRendered] = useState({});
 
   const [extraErrors, setExtraErrors] = useState({});
@@ -266,9 +278,15 @@
           }];
         }
         setIsLoading(false)
-        let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
-        setCards(newcards)
-        setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não
+        setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não        
+        // let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
+        // setCards(newcards) // definindo o deck de cards que são exibidos
+        // Comentadas o carregamento de cards pq estava com conflito ao abrir os documentDetails
+        // console.log('output', res.data.output)
+        if(res.data.output.loginRequired){ // Para acessar esse form é necessário um login antes
+          setLoginRequired(true)
+          loginModal()
+        }
         return true;
       }
     }
@@ -298,6 +316,7 @@
           documentdetails.versions[i].link = await downloadFile(documentdetails.versions[i].document.path);
         }
         setDocumentDetails(documentdetails);
+        setDocumentDetailsVersionsLoaded(true);
         setIsLoadingDocumentDetails(false);
         return true;
       }
@@ -366,12 +385,7 @@
       let newcards = setSchema(loadPriorFormData(documentDetails));
       setCards(newcards)
     }
-  }, [documentDetails])
-  // Atualiza os cards sempre que o schema for alterado
-  useEffect(() => {
-    let newSchema = setSchema(allLoadedCards, schemaObject.cardId, schemaObject.formData);
-    setCards(newSchema)
-  }, [schemaObject])
+  }, [documentDetailsVersionsLoaded])
   // Efeito aplicado quando alterar o card atual
   useEffect(() => {
     activeCardRef.current?.scrollIntoView({
@@ -379,7 +393,7 @@
       block: "start",
       inline: "nearest"
     });
-  }, [activeCardRef.current]);
+  }, [activeCard]);
 
   /*******************************************
    * Funções de manipulação de Cards e Card Deck
@@ -446,19 +460,22 @@
       /**  Se eu nao tiver "card_conditions" ou se as "card_conditions" 
        * forem vazias, vamos mostrar o card
       */
-      if (!cd.hasOwnProperty('card_conditions') || (cd.hasOwnProperty('card_conditions') && isObjectEmpty(cd.card_conditions))) cards2Show.push(cd);
-      // Se temos "card_conditions", vamos verificar se todas estão 
-      // em nosso parâmetro fornecido e se o valor é compatível
-      if (cd.hasOwnProperty('card_conditions') && !isObjectEmpty(cd.card_conditions)) {
-        let includeInDeck = true;
-        let formatted_card_conditions = assembleJSONObjectStructure(cd.card_conditions)
-        for (const card_condition in formatted_card_conditions) {
-          let searchObj = {};
-          searchObj[card_condition] = formatted_card_conditions[card_condition];
-          let exists = isValueInObject(searchObj, mergedFormData);
-          if (!exists) { includeInDeck = false; }// Entao nao incluimos no deck
+      if (!cd.hasOwnProperty('card_conditions') || cd.card_conditions == undefined || cd.card_conditions == 'undefined' || (cd.hasOwnProperty('card_conditions') && isObjectEmpty(cd.card_conditions))){
+        cards2Show.push(cd);
+      } else{
+        // Se temos "card_conditions", vamos verificar se todas estão 
+        // em nosso parâmetro fornecido e se o valor é compatível
+        if (cd.hasOwnProperty('card_conditions') && !isObjectEmpty(cd.card_conditions)) {
+          let includeInDeck = true;
+          let formatted_card_conditions = assembleJSONObjectStructure(cd.card_conditions)
+          for (const card_condition in formatted_card_conditions) {
+            let searchObj = {};
+            searchObj[card_condition] = formatted_card_conditions[card_condition];
+            let exists = isValueInObject(searchObj, mergedFormData);
+            if (!exists) { includeInDeck = false; }// Entao nao incluimos no deck
+          }
+          if (includeInDeck) cards2Show.push(cd)
         }
-        if (includeInDeck) cards2Show.push(cd)
       }
     })
     // Ao final, retornamos o array com cards que atendem as conditions
@@ -482,7 +499,8 @@
       if (res.data && res.data.output) {
         let newCard = {};
         let iSchema = {};
-        let tmpCards = cards;
+        // let tmpCards = cards;
+        let tmpCards = allLoadedCards;
 
         if (res.data.output.hasOwnProperty('cards') && Array.isArray(res.data.output.cards)) { // É um array, não um objeto
           let tmpcardsarray = res.data.output.cards;
@@ -515,10 +533,15 @@
           };
           tmpCards.push(newCard);
         }
-        let newcards = setSchema(tmpCards, cardId, formData)
+        setAllLoadedCards(tmpCards) // criando um local que tem todas as cards, exibidas ou não        
+        let newcards;
         // setTmpVisor(newcards)
+        if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
+          newcards = setSchema(loadPriorFormData(documentDetails, true), cardId, formData);
+        }else{
+          newcards = setSchema(tmpCards, cardId, formData)
+        }
         setCards(newcards)
-        setAllLoadedCards(tmpCards) // criando um local que tem todas as cards, exibidas ou não
       }
       setIsLoading(false)
     }
@@ -540,12 +563,13 @@
     }
   }
   // Busca o formData que será exibido como valor anterior
-  function loadPriorFormData(docdetails) {
+  function loadPriorFormData(docdetails, keepFormData = false) {
     let currentVersion = docdetails.versions.filter(v => v.version == docdetails.currentVersion);
     let formDataComplete = {};
     if (currentVersion && currentVersion.length > 0) {
       formDataComplete = currentVersion[0].formData;
     }
+    // console.log('formDataComplete', formDataComplete)
     let priorDataCards = allLoadedCards.map((card) => {
       // Para cada schema no card, vou montar o objeto de prior correspondente
       let priorData = {}
@@ -554,10 +578,16 @@
           priorData[property] = formDataComplete[property];
         }
       }
+      let loadedFormData = priorData
+      if(keepFormData){
+        let loadedcard = cards.filter(cd => cd.cardId === card.cardId);
+        if(loadedcard && loadedcard.length > 0)
+        loadedFormData = loadedcard[0].formData
+      }
       return {
         ...card,
         priorFormData: priorData,
-        formData: priorData
+        formData: loadedFormData
       }
     })
     return priorDataCards
@@ -612,57 +642,43 @@
       setIsReady2Submit(true);
     }
 
-    /** 
-     * Aqui temos que atualizar
-     * condicoes para um card ser exibido ou nao 
-     * 
-     * Essa função é acionada quando mudamos algum campo
-     * 
-    */
-    if (cards.length > 1) {
-      /**
-       * Se eu só tiver mais que 1 card eu não posso chamar o setSchema
-       * pois ele renderizaria todos os cards novamente. Neste caso, 
-       * quero apenas atualizar o meu formData para o card ativo
-       */
-      // let nextState = cards.map((card) => {
-      //   if (card.cardId !== cardId) return card
-      //   return {
-      //     ...card,
-      //     formData: formData
-      //   }
-      // })
-      let nextState = setSchema(allLoadedCards, cardId, formData)
-      setCards(nextState)
+    let nextState;
+    if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
+      let tmpNextState = loadPriorFormData(documentDetails, true);
+      nextState = setSchema(tmpNextState, cardId, formData);
+      console.log('nextState', nextState)
+    }else{
+      nextState = setSchema(allLoadedCards, cardId, formData)
+    }
+    setCards(nextState)
+    console.log('cards.length',cards.length)
+    if (cards.length > 1) {      
+      // console.log('cards', cards)      
       //setTmpVisor(JSON.stringify(cards))
+      console.log('activeCard ANTES',activeCard)
       let moveLeft = Math.max(0, activeCard - 1);
       let moveRight = Math.min(cards.length - 1, activeCard + 1);
-      setActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
-    }
+      console.log('cardTargetIdx',cardTargetIdx)
+      console.log('moveLeft',moveLeft)
+      console.log('moveRight',moveRight)
 
-    /** 
-     * Abaixo passamos todos os eventos que podem ser
-     * condicoes para um card ser exibido ou nao 
-     * 
-     * Essa função é acionada quando clicamos no botão
-     * para mudar a fase do card
-     * 
-    */
-    setSchemaObject(
-      {
-        "cardId": cardId,
-        "formData": formData
-      }
-    )
+      setActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
+      console.log('activeCard DEPOIS',activeCard)
+      // console.log('activeCardRef', activeCardRef)
+    }
   }
   // Chamado sempre que o formulário for alterado
   async function handleChangeEvent(cardId, formData, fieldId) {
     // Quando altero qualquer campo do meu form, eu quero
     // atualizar o formData do card correspondente
     let field = fieldId.replace('root_', '').replaceAll('_', '.');
-    let nextState = setSchema(allLoadedCards, cardId, formData)
-    console.log('allLoadedCards', JSON.stringify(allLoadedCards))
-    console.log('nextState', JSON.stringify(nextState))
+    let nextState;
+    if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
+      let tmpNextState = loadPriorFormData(documentDetails, true);
+      nextState = setSchema(tmpNextState, cardId, formData);
+    }else{
+      nextState = setSchema(allLoadedCards, cardId, formData)
+    }
     setCards(nextState)
     // Vamos também verificar se o nosso botão tem que ser renderizado novamente
     let load_card = nextState.filter(cd => cd.cardId === cardId)[0];
@@ -931,15 +947,15 @@
 
   // Exibe o modal em formato de alerta
   function alertModal(title, icon, message, content) {
-    let modal = {
+    let alert = {
       icon: icon,
       title: title,
       description: message,
       content: content,
       hasCloseButton: false
     };
-    setModal(modal)
-    modalRef.current.showModal()
+    setAlert(alert)
+    alertRef.current.showModal()
   }
 
   // Exibe o modal para formato de salvar nova versão
@@ -985,6 +1001,74 @@
     modalRef.current.showModal();
   }
 
+  // Exibe o modal para formato de salvar nova versão
+  function loginModal() {
+    let modal = {
+      title: "Login",
+      description: "É necessária a autenticação para acessar este formulário",
+      rjsf: {
+        "schema": {
+          "type": "object",
+          "required": [
+            "user",
+            "pwd",
+            "domain"
+          ],
+          "properties": {
+            "user": {
+              "type": "string",
+              "title": "Usuário"
+            },
+            "pwd": {
+              "type": "string",
+              "title": "Senha"
+            },
+            "domain": {
+              "type": "string",
+              "title": "Escritório"
+            }
+          }
+        },
+        "uiSchema": {
+          "ui:submitButtonOptions": {
+            "norender": false,
+            "submitText": "Enviar"
+          },
+          "pwd": {
+            "ui:widget": "password"
+          }
+        }
+      },
+      action: "loginCases",
+      hasCloseButton: false
+    }
+    setModal(modal);
+    modalRef.current.showModal();
+  }
+
+// executa a chamada que faz o salvamento de uma nova versão
+async function loginCases(username, password, domain) {
+  let data = {
+    command: "loginCases",
+    user: username,
+    pwd: password,
+    domain: domain
+  };
+  let config = {
+    method: 'post',
+    url: `/api/code/${props.codeId}`,
+    data
+  }
+  try {
+    const res = await axios(config);
+    if (res.data && res.data.output) {
+      return res.data.output;
+    }
+  } catch (e) {
+    throw new Error('Falha ao realizar o login **** ' + JSON.stringify(e.response.data))
+  }
+}
+
   // Roda ações definidas no Modal
   async function runAction(action, inputs) {
     let render;
@@ -998,6 +1082,16 @@
         // setDocumentRendered(render)
         setIsModalSubmitting(false)
         modalRef.current.close()
+        break;
+      case 'loginCases':
+        setIsModalLogin(true)
+        let username = inputs.formData?.user;
+        let password = inputs.formData?.pwd;
+        let domain = inputs.formData?.domain;
+        let login = await loginCases(username, password, domain);
+        console.log('login', login)
+        setIsModalLogin(false)
+        // modalRef.current.close()
         break;
       default:
         return;
@@ -1135,7 +1229,7 @@
   }
 
   // Montagem do sumário efetiva
-  function Resumo(props) {
+  function Summary(props) {
     function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
       let items = []
       for (let i = 0; i < Object.keys(schema.properties).length; i++) {
@@ -1387,6 +1481,12 @@
         <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
         </div>
+      </dialog>
+
+      <dialog id="optionsmodal" className="d-modal" ref={alertRef} >
+        <div className="d-modal-box w-11/12 max-w-5xl">
+          <Modal title={alert.title} description={alert.description} content={alert.content} rjsf={alert.rjsf} action={alert.action} hasCloseButton={alert.hasCloseButton} icon={alert.icon} />
+        </div>
         <form method="dialog" className="d-modal-backdrop">
           <button>close</button>
         </form>
@@ -1465,7 +1565,7 @@
                             "updated_at": documentDetails.updated_at,
                             "description": documentDetails.description
                           }} />
-                          <Resumo cards={cards} activeCard={activeCard} />
+                          <Summary cards={cards} activeCard={activeCard} />
                         </>
                       )
                       :

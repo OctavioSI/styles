@@ -16,7 +16,8 @@ var actions = {
   downloadDocument,
   compareDocuments,
   runDMN,
-  validateForm
+  validateForm,
+  loginCases
 }
 var services = {
   Actions: {
@@ -26,7 +27,8 @@ var services = {
     saveNewVersionService,
     downloadDocumentService,
     compareDocumentsService,
-    runDMNService
+    runDMNService,
+    loginCasesService
   }
 }
 
@@ -37,6 +39,7 @@ const CODEFLOW_ENDPOINT = '2BB47D4E-1DF8-4B4F-9A55-D0C68CE70411';
 const RENDER_ENDPOINT = '29C64FC0-2828-11EF-BA19-6DEDEC828F31';
 const S3_ENDPOINT = '2C21C26A-1E62-4D3E-940B-2973688BD120';
 const ASPOSE_ENDPOINT = '5B178600-2E7E-11EF-83D7-891BE967B89F';
+const CASES_ENDPOINT = "https://apim.looplex.com/cases/api";
 
 const REGIONS = {
   'looplex-ged': 'us-east-1',
@@ -377,6 +380,39 @@ async function validateForm(payload) {
   return true;
 }
 
+async function loginCases(payload) {
+  const schema = {
+    type: 'object',
+    properties: {
+      user: { type: 'string' },
+      pwd: { type: 'string' },
+      domain: { type: 'string' },
+      server: { type: 'string' }
+    },
+    required: [
+      'user',
+      'pwd',
+      'domain'
+    ],
+    additionalProperties: false
+  }
+  const valid = ajv.validate(schema, payload)
+  if (!valid) throw new Error(JSON.stringify(ajv.errors))
+
+  // services
+  const { Actions } = services
+
+  let inputs = {
+    user: payload.user,
+    pwd: payload.pwd,
+    domain: payload.domain,
+    server: payload.server ? payload.server : 'QA'
+  };
+
+  // execute
+  return await Actions.loginCasesService(inputs)
+}
+
 // --[ services ]--------------------------------------------------------------
 async function fetchSchemaService(inputs) {
   const { tenant, id } = inputs;
@@ -714,6 +750,35 @@ async function runDMNService(inputs) {
     return res.data.output;
   }catch(e){
     throw new Error('Error fetching form: '+e.message)
+  }
+};
+
+async function loginCasesService(inputs) {
+  const { user, pwd, domain, server } = inputs;
+  try{
+    let headers = {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let data = {
+      User: {
+        user: user,
+        pwd: pwd,
+        domain: domain,
+      }
+    };
+    let config = {
+      method: 'post',
+      url: `${CASES_ENDPOINT}/logon?env=${server}`,
+      headers,
+      data
+    }
+    // console.log('config', config)
+    const res = await axios(config);
+    return res.data.Profile;
+  }catch(e){
+    throw new Error('Error on Cases Login: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
