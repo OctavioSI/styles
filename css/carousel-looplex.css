@@ -69,6 +69,10 @@ body {
   border: var(--bs-card-border-width) solid rgb(0 0 0 / 0%);
   border-radius: 4px;
   background: linear-gradient(0deg, #f5f5f5 20%, #fff 0%);
+  display: grid;
+  grid-template-columns: 52% 48% ;
+  grid-template-rows: auto;
+  grid-template-areas: "main aside" ;
 }
 
 .card-main-aside{
