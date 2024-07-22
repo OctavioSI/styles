@@ -8,6 +8,12 @@
 * v. 1.1
 *   - Page:         Reorganização do documento e comentários adicionais para 
 *                   facilitar a leitura e entendimento
+*   - Login:        Autenticação utilizando o sistema de login do LawOffice. 
+*                   O acesso ao formulário é gerenciado pelo registro existente 
+*                   no CosmosDB (trabalho em progresso)
+*   - Tipo de Form: Agora é possível selecionar qual o tipo de formulário que 
+*                   estamos carregando e, com base nisso, exibir ou ocultar 
+*                   seções do formulário
 *
 * v. 1.0
 *   - Carousel:     Formulário pode ser usado com cards, sendo possível 
@@ -68,7 +74,7 @@
           "base_filename": 'file.docx', // base do documento que será renderizado
           "formTitle": "Form Looplex", // Título do formulario
           "template": "", // template do documento que será renderizado
-          author: props.embeddedData.author ? props.embeddedData.author : 'Looplex',
+          "author": props.embeddedData.author ? props.embeddedData.author : 'Looplex',
           "language": "pt_br" // idioma do formulário (en_us ou pt_br)
       },
       "privateKey": "A_PRIVATE_KEY_VAI_AQUI" // Private key para gerar o payload
@@ -103,7 +109,14 @@
     title: "Título",
     description: "Descrição do Alerta"
   })
-
+  const [pageLayout, setPageLayout] = useState({
+    form: true,
+    aside: true,
+    aside_summary: true,
+    aside_preview: true,
+    aside_attachments: true,
+    aside_versions: true
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -719,6 +732,10 @@
     return;
   }
 
+  function handleCancelDialog(event){
+    event.preventDefault()
+    console.log('closing')
+  }
 
   /*******************************************
    * Funções de apoio
@@ -1477,7 +1494,7 @@ async function loginCases(username, password, domain) {
         <script>{`tailwind.config = {prefix: 'd-' }`}</script>
       </Head>
 
-      <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog} >
         <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
         </div>
@@ -1497,7 +1514,7 @@ async function loginCases(username, password, domain) {
       </div>
       <div className='container-form'>
         <form method='POST' action='/' onSubmit={handleSubmit}>
-          <div className='card'>
+          <div className={`card ${(pageLayout.form && pageLayout.aside) ? 'card-main-aside' : (pageLayout.form ? 'card-main' : 'card-aside')}`}>
             <main>
               <section class="deckofcards">
                 {tmpVisor}

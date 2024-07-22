@@ -237,7 +237,7 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
         <link
           rel='stylesheet'
-          href='https://octaviosi.github.io/styles/css/carousel-looplex.css'
+          href='https://octaviosi.github.io/styles/css/dashboard-looplex.css'
         />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
