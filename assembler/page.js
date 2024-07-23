@@ -11,9 +11,8 @@
 *   - Login:        Autenticação utilizando o sistema de login do LawOffice. 
 *                   O acesso ao formulário é gerenciado pelo registro existente 
 *                   no CosmosDB (trabalho em progresso)
-*   - Tipo de Form: Agora é possível selecionar qual o tipo de formulário que 
-*                   estamos carregando e, com base nisso, exibir ou ocultar 
-*                   seções do formulário
+*   - formLayout:   Agora é possível selecionar no registro do CosmosDB quais as 
+*                   telas estão disponíveis para esta visualização. 
 *
 * v. 1.0
 *   - Carousel:     Formulário pode ser usado com cards, sendo possível 
@@ -70,6 +69,7 @@
           "initialformId": "newuid-first", // schema inicial que está no Workflows/rjsf-schemas
           "initialformTenant": "looplex.com.br", // tenando do schema inicial
           "initialformDocument": "teste001", // documento com configurações básicas e onde será salvo o doc, em Workflows/assembler
+          "onSubmitAction": 'saveAsNewVersion', // O que fazer quando clicar em Submit? Ver Opções Abaixo: ***
           "formTitle": "Assembler 3.0: Contrato de Fornecimento", // Título do formulário
           "base_filename": 'file.docx', // base do documento que será renderizado
           "formTitle": "Form Looplex", // Título do formulario
@@ -79,18 +79,43 @@
       },
       "privateKey": "A_PRIVATE_KEY_VAI_AQUI" // Private key para gerar o payload
     }
+
+    NOTAS:
+    *** onSubmitAction: 
+      - 'saveAsNewVersion': Abre um modal para definir número da versão, título e descrição
+      - 'saveAsNewDocument': Cria um novo registro de documento no Workflows/assembler
+      - 'justRender': Apenas renderiza o documento na página com base nas respostas do formulário
+
    * Após gerar acima, passamos no formulário como parâmetro payload, dessa forma:
 
     https://actions.looplex.com/code/AC5701D0-2433-11EF-BDC7-77DDAE33E94A?payload=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbml0aWFsZm9ybUlkIjoibmV3dWlkLWZpcnN0IiwiaW5pdGlhbGZvcm1UZW5hbnQiOiJsb29wbGV4LmNvbS5iciIsImluaXRpYWxmb3JtRG9jdW1lbnQiOiJ0ZXN0ZTAwMSIsImZvcm1UaXRsZSI6IkFzc2VtYmxlciAzLjA6IENvbnRyYXRvIGRlIEZvcm5lY2ltZW50byIsImxhbmd1YWdlIjoicHRfYnIiLCJpYXQiOjE3MjAwNDU4NjV9.dTOLln85VWfRyRe1Me5KhO8p4UBP-9IBKse83CygPhnay_0x9gqoM-du_Mg0SFMgsWOZUzj9TsLbtnTWF5XaKDnOOwJeQLExXjlI3x73uLYKzlw-slFNAFrLjxjFOpj7MCug_fq8bw-E_wzpUKxftbdFH_NNBXB504aC089BP67MiCtuqsvHoT0kUDUotghQ9-uulPd8K0UDCgHPdd1CJYXpkNyv12HKZsLLQ7xZApLJ7jweRMF3fR2P_q-kA4TYsLddKEkoQpp3RWKfmMpcpASPAGGTLCz4mt2ebEWmPE55sVNGSamkkxBpoaGvGsreyFcBH10UHPv3He8ZXj2m1a9_3BgLKhky7wdl9WklI2Ckvvi211DvB38ZCa6X6rIUbScvNViiZXIp-F3elQZme_t0ynSsQDOGZa4o-3Pq7xPbR1wZTkLCkdMzU1UAEpT2fZ_3FcDn3xFIUfkAIUr8h-6zQe2orDCOU_kdIeA61QlQ_h99nD1ss9xUZshTkmvEqCm0Oth7_wZ6_Uwe8-qHLxzwdlYaMlyn7jJNvUmjYlHaVJTYIbBsZwrtYoex0rU2Ve3gt_NuWJl1V8LKWYgSfC6-PAnRDIH7hGRT5UgHkdjAH0PcmuHMRJl3drnWoPV6K5-_EOPjLZoS444ZcOSx_yCS2hObvX2_kfBt1gkgXVI
 
    * 
+
+    ## formLayout
+
+    No registro do cosmosDB que contém o schema indicado no initialformId acima, é possível incluir
+    uma propriedade formLayout, que indica quais as seções que estarão disponíveis ou não
+    ao carregar o formulário nesta página. O formato é o seguinte:
+
+    "formLayout": {
+        "main": true,
+        "aside": true,
+        "aside_summary": true,
+        "aside_preview": false,
+        "aside_attachments": false,
+        "aside_versions": true
+    }
+
+
    *
    ********************************************************************/
 
   const initialform = {
     id: props.embeddedData.initialformId,
     tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br',
-    document: props.embeddedData.initialformDocument ? props.embeddedData.initialformDocument : 'teste001',
+    document: props.embeddedData.initialformDocument ? props.embeddedData.initialformDocument : '',
+    onSubmitAction: props.embeddedData.onSubmitAction ? props.embeddedData.onSubmitAction : 'saveAsNewVersion',
     base_filename: props.embeddedData.base_filename ? props.embeddedData.base_filename : 'file.docx',
     formTitle: props.embeddedData.formTitle ? props.embeddedData.formTitle : "Form Looplex",
     template: props.embeddedData.template,
@@ -111,11 +136,11 @@
   })
   const [pageLayout, setPageLayout] = useState({
     main: true,
-    aside: true,
-    aside_summary: true,
-    aside_preview: true,
-    aside_attachments: true,
-    aside_versions: true
+    aside: false,
+    aside_summary: false,
+    aside_preview: false,
+    aside_attachments: false,
+    aside_versions: false
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
@@ -232,6 +257,19 @@
     return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear() + " " + ("0" + (new Date(utc).getHours())).slice(-2) + ":" + ("0" + (new Date(utc).getMinutes())).slice(-2) + ":" + ("0" + (new Date(utc).getSeconds())).slice(-2)
   }
 
+  // Cria um ID aleatório com o numero de caracteres informado
+  function makeid(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return result;
+  }   
+
   /*******************************************
    * Hooks
    *******************************************/
@@ -255,8 +293,6 @@
         data
       }
       const res = await axios(config);
-      // setTmpVisor(JSON.stringify(res.data.output))
-      // setTmpVisor2(JSON.stringify(config))
       if (res.data && res.data.output) {
         let initialSchema = [];
         let iSchema = {};
@@ -289,6 +325,11 @@
             formData: {},
             tagName: 'div'
           }];
+        }
+        // setTmpVisor(JSON.stringify(res.data.output))
+        if(res.data.output.hasOwnProperty('formLayout') && !isObjectEmpty(res.data.output.formLayout)){
+          // console.log('res.data.output.formLayout', res.data.output.formLayout)
+          setPageLayout(res.data.output.formLayout)
         }
         setIsLoading(false)
         setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não        
@@ -371,6 +412,7 @@
 
     if (!initialform.document) {
       setInitialDocumentDetails()
+      console.log('No initial document defined')
       return
     };
 
@@ -659,24 +701,24 @@
     if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
       let tmpNextState = loadPriorFormData(documentDetails, true);
       nextState = setSchema(tmpNextState, cardId, formData);
-      console.log('nextState', nextState)
+      // console.log('nextState', nextState)
     }else{
       nextState = setSchema(allLoadedCards, cardId, formData)
     }
     setCards(nextState)
-    console.log('cards.length',cards.length)
+    // console.log('cards.length',cards.length)
     if (cards.length > 1) {      
       // console.log('cards', cards)      
       //setTmpVisor(JSON.stringify(cards))
-      console.log('activeCard ANTES',activeCard)
+      // console.log('activeCard ANTES',activeCard)
       let moveLeft = Math.max(0, activeCard - 1);
       let moveRight = Math.min(cards.length - 1, activeCard + 1);
-      console.log('cardTargetIdx',cardTargetIdx)
-      console.log('moveLeft',moveLeft)
-      console.log('moveRight',moveRight)
+      // console.log('cardTargetIdx',cardTargetIdx)
+      // console.log('moveLeft',moveLeft)
+      // console.log('moveRight',moveRight)
 
       setActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
-      console.log('activeCard DEPOIS',activeCard)
+      // console.log('activeCard DEPOIS',activeCard)
       // console.log('activeCardRef', activeCardRef)
     }
   }
@@ -726,7 +768,23 @@
         setDocumentRendered(render);
         setIsRendering(false);
       } else {
-        submitNewVersion()
+        switch(initialform.onSubmitAction){
+          case 'saveAsNewDocument':
+            setIsSubmitting(true)
+            await saveNewVersion(makeid(5), "Versão Inicial");
+            setIsSubmitting(false)
+            break;
+          case 'justRender':
+            setIsRendering(true)
+            let render = await renderDocument();
+            setPreviewDocURL(render.documentUrl);
+            setDocumentRendered(render);
+            setIsRendering(false);
+            break;
+          default:
+            submitNewVersion()
+            break;
+        }
       }
     }
     return;
@@ -841,8 +899,10 @@
       title: documentDetails.title,
       version,
       description,
-      id: initialform.document ? initialform.document : crypto.randomUUID(),
+      id: initialform.document ? initialform.document : '',
+      tenant: initialform.tenant ? initialform.tenant : 'looplex.com.br',
       author: initialform.author,
+      savenew: (initialform.onSubmitAction === 'saveAsNewDocument'),
       datacontent
     };
     let config = {
@@ -1094,9 +1154,7 @@ async function loginCases(username, password, domain) {
         setIsModalSubmitting(true)
         let version = inputs.formData?.version;
         let description = inputs.formData?.description;
-        // console.log(inputs)
         render = await saveNewVersion(version, description);
-        // setDocumentRendered(render)
         setIsModalSubmitting(false)
         modalRef.current.close()
         break;
@@ -1517,7 +1575,7 @@ async function loginCases(username, password, domain) {
           <div className={`card ${(pageLayout.main && pageLayout.aside) ? 'card-main-aside' : (pageLayout.main ? 'card-main' : 'card-aside')}`}>
             { pageLayout.main &&
               (
-                <main>
+                <main style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
                   <section class="deckofcards">
                     {tmpVisor}
                     {tmpVisor2}

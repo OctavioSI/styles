@@ -108,7 +108,7 @@ async function getBufferFromFile(bucket = 'looplex-ged', file) {
   }
 }
 
-async function uploadFilepondFile(file2save, path2save){
+async function uploadFilepondFile(file2save, path2save) {
   console.log(file2save)
   console.log(path2save)
   let document = await getBufferFromFile('looplex-ged', file2save)
@@ -118,31 +118,31 @@ async function uploadFilepondFile(file2save, path2save){
 
 // Recebe o formData, identifica arquivos do Filepond e os transfere
 // para o caminho permanente (path)
-async function treatFilepondFiles(formData, base_path, path = ''){
+async function treatFilepondFiles(formData, base_path, path = '') {
   let retorno = [];
   for (const property in formData) {
-    if(typeof formData[property] === 'object' && !Array.isArray(formData[property]) && formData[property] !== null){ // checando se é um objeto
-      let uploaded = await treatFilepondFiles(formData[property], base_path, path+'/'+property)
-      if(typeof uploaded === 'object' && !Array.isArray(uploaded) && uploaded !== null){
+    if (typeof formData[property] === 'object' && !Array.isArray(formData[property]) && formData[property] !== null) { // checando se é um objeto
+      let uploaded = await treatFilepondFiles(formData[property], base_path, path + '/' + property)
+      if (typeof uploaded === 'object' && !Array.isArray(uploaded) && uploaded !== null) {
         retorno.push(uploaded)
       }
-    }else if(Array.isArray(formData[property])){ // Temos uma Array
-      for(let i = 0; i < formData[property].length; i++){
+    } else if (Array.isArray(formData[property])) { // Temos uma Array
+      for (let i = 0; i < formData[property].length; i++) {
         let objectarr = {}
         objectarr[i] = formData[property][i]
-        let uploaded = await treatFilepondFiles(objectarr, base_path, path+'/'+property+'/'+i)
-        if(typeof uploaded === 'object' && !Array.isArray(uploaded) && uploaded !== null){
+        let uploaded = await treatFilepondFiles(objectarr, base_path, path + '/' + property + '/' + i)
+        if (typeof uploaded === 'object' && !Array.isArray(uploaded) && uploaded !== null) {
           retorno.push(uploaded)
         }
       }
-    }else{ // Não é um objeto nem uma array
-      if ((typeof formData[property] === 'string' || formData[property] instanceof String) && (formData[property].substring(0,5) === 'Temp/')){
+    } else { // Não é um objeto nem uma array
+      if ((typeof formData[property] === 'string' || formData[property] instanceof String) && (formData[property].substring(0, 5) === 'Temp/')) {
         // Temos aqui um caminho do Filepond
         let filename = formData[property].split('/').pop();
-        let uploaded = await uploadFilepondFile(formData[property], base_path+'/'+(path && path !== '' ? path+'/': '')+filename);
-        if(path && path !== ''){ // Estou na recursão
+        let uploaded = await uploadFilepondFile(formData[property], base_path + '/' + (path && path !== '' ? path + '/' : '') + filename);
+        if (path && path !== '') { // Estou na recursão
           return uploaded;
-        }else{ // Estou na prop raiz
+        } else { // Estou na prop raiz
           retorno.push(uploaded)
         }
       }
@@ -236,11 +236,12 @@ async function saveNewVersion(payload) {
     type: 'object',
     properties: {
       tenant: { type: 'string' },
-      id: { type:'string' },
-      author: { type:'string' },
+      id: { type: 'string' },
+      author: { type: 'string' },
       title: { type: 'string' },
-      version: { type: 'string'},
+      version: { type: 'string' },
       description: { type: 'string' },
+      savenew: { type: 'boolean' },
       datacontent: { type: 'object' }
     },
     required: [
@@ -262,6 +263,7 @@ async function saveNewVersion(payload) {
     title: payload.title,
     version: payload.version,
     description: payload.description ? payload.description : 'Sem descrição',
+    savenew: payload.savenew ? payload.savenew : false,
     datacontent: payload.datacontent
   };
 
@@ -354,7 +356,7 @@ async function runDMN(payload) {
 
 async function validateForm(payload) {
   // Adicionando validacoes que nao existem por padrao no AJV puro
-  ajv.addFormat('date', function(dateTimeString) {
+  ajv.addFormat('date', function (dateTimeString) {
     return !isNaN(Date.parse(dateTimeString));  // any test that returns true/false 
   });
 
@@ -370,7 +372,7 @@ async function validateForm(payload) {
     ],
     additionalProperties: false
   }
-  
+
   const valid = ajv.validate(schema, payload)
   if (!valid) throw new Error(JSON.stringify(ajv.errors))
 
@@ -416,7 +418,7 @@ async function loginCases(payload) {
 // --[ services ]--------------------------------------------------------------
 async function fetchSchemaService(inputs) {
   const { tenant, id } = inputs;
-  try{
+  try {
     let headers = {
       'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
     }
@@ -434,24 +436,24 @@ async function fetchSchemaService(inputs) {
     // console.log('config', config)
     const res = await axios(config);
     return res.data.output;
-  }catch(e){
-    throw new Error('Error fetching form: '+e.message)
+  } catch (e) {
+    throw new Error('Error fetching form: ' + e.message)
   }
 };
 
 async function fetchDocumentDetailsService(inputs) {
   const { tenant, id } = inputs;
-  try{
+  try {
     let headers = {
       'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
     }
     let data = {
       "command": "read",
       "config": {
-          "database": "Workflows",
-          "container": "assembler",
-          "partitionKey": tenant,
-          "id": id
+        "database": "Workflows",
+        "container": "assembler",
+        "partitionKey": tenant,
+        "id": id
       }
     };
     let config = {
@@ -463,8 +465,8 @@ async function fetchDocumentDetailsService(inputs) {
     // console.log('config', config)
     const res = await axios(config);
     return res.data.output;
-  }catch(e){
-    throw new Error('Error fetching form: '+e.message)
+  } catch (e) {
+    throw new Error('Error fetching form: ' + e.message)
   }
 };
 
@@ -489,7 +491,7 @@ async function renderDocumentService(inputs) {
 };
 
 async function saveNewVersionService(inputs) {
-  const { title, version, description, tenant, id, author, datacontent } = inputs;
+  const { title, version, description, tenant, id, author, savenew, datacontent } = inputs;
   try {
     // Primeiro renderizamos a nova versão
     let headers = {
@@ -503,28 +505,28 @@ async function saveNewVersionService(inputs) {
     }
     // console.log('config', config)
     const render = await axios(config);
-    if(render.data && render.data.output){
+    if (render.data && render.data.output) {
       // Aqui, com o documento gerado, vamos criar o registro da nova versão no Cosmos
 
       // Mas antes, vamos gravar quaisquer arquivos do filepond que temos no formData 
       // recebido em um caminho permanente (já que ele grava em pasta temporária)
-      
+
       // Tratamento para filepond: apesar de não ser o ideal, 
       // vamos considerar que valores de string que tiverem o 
       // começo "Temp/" são arquivos salvos pelo filepond
       // Isso simplifica a lógica para identificar os arquivos 
       // que foram encaminhados
-      let uploaded = await treatFilepondFiles(datacontent.datasource, 'looplex.com.br','')
+      let uploaded = await treatFilepondFiles(datacontent.datasource, 'looplex.com.br', '')
       // Vamos limpar registros vazios
       let uploadedfiles = []
       uploaded.forEach(up => {
-        if(typeof up === 'object' && !Array.isArray(up) && up !== null){
+        if (typeof up === 'object' && !Array.isArray(up) && up !== null) {
           uploadedfiles.push(up)
         }
       })
       // Aqui já fiz o upload dos arquivos que subi no form. Vamos montar o registro de anexos.
       let attachments = [];
-      for(let i = 0; i < uploadedfiles.length; i++){
+      for (let i = 0; i < uploadedfiles.length; i++) {
         let file = uploadedfiles[i].docpath
         let filenametmp = (file.split('/').pop()).split('.')
         let extension = filenametmp.pop()
@@ -534,34 +536,34 @@ async function saveNewVersionService(inputs) {
           "description": filename,
           "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
           "document": {
-              "path": file,
-              "filename": filename,
-              "type": extension
+            "path": file,
+            "filename": filename,
+            "type": extension
           },
           "link": uploadedfiles[i].presigned
-        }  
+        }
         attachments.push(att)
       }
-      
+
 
       let data = {};
       let content = {};
       let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
-      if(!id || id == ''){
+      if (!id || id == '' || savenew) {
         // Não tenho ID, então preciso gravar um novo registro na DB
         id = crypto.randomUUID() // gerando um novo ID
         content = {
           "versions": [
-              {
-                  "version": version,
-                  "author": author,
-                  "date": updateddate,
-                  "description": description,
-                  "document": {
-                      "path": render.data.output.resPresigned.data.info.docpath
-                  },
-                  "formData": datacontent.datasource
-              }
+            {
+              "version": version,
+              "author": author,
+              "date": updateddate,
+              "description": description,
+              "document": {
+                "path": render.data.output.resPresigned.data.info.docpath
+              },
+              "formData": datacontent.datasource
+            }
           ],
           "attachments": attachments,
           "currentVersion": version,
@@ -576,14 +578,14 @@ async function saveNewVersionService(inputs) {
         data = {
           "command": "write",
           "config": {
-              "database": "Workflows",
-              "container": "assembler",
-              "partitionKey": tenant,
-              "id": id
+            "database": "Workflows",
+            "container": "assembler",
+            "partitionKey": tenant,
+            "id": id
           },
           "content": content
         };
-      }else{
+      } else {
         // Já tenho um ID, então apenas preciso atualizar o campo correspondente
         content = {
           "version": version,
@@ -591,7 +593,7 @@ async function saveNewVersionService(inputs) {
           "date": updateddate,
           "description": description,
           "document": {
-              "path": render.data.output.resPresigned.data.info.docpath
+            "path": render.data.output.resPresigned.data.info.docpath
           },
           "formData": datacontent.datasource
         }
@@ -608,15 +610,15 @@ async function saveNewVersionService(inputs) {
         data = {
           "command": "partialUpdate",
           "config": {
-              "database": "Workflows",
-              "container": "assembler",
-              "partitionKey": tenant,
-              "id": id
+            "database": "Workflows",
+            "container": "assembler",
+            "partitionKey": tenant,
+            "id": id
           },
           "operations": operations
         }
       }
-      
+
       let config = {
         method: 'post',
         url: `${APIM_URL}${COSMOSDB_ENDPOINT}`,
@@ -625,7 +627,7 @@ async function saveNewVersionService(inputs) {
       }
       // console.log('config', config)
       const res = await axios(config);
-      if(res.data && res.data.output){
+      if (res.data && res.data.output) {
         return {
           "newversion": {
             "version": version,
@@ -634,7 +636,7 @@ async function saveNewVersionService(inputs) {
             "description": description,
             "link": render.data.output.documentUrl,
             "document": {
-                "path": render.data.output.resPresigned.data.info.docpath
+              "path": render.data.output.resPresigned.data.info.docpath
             }
           },
           "newattachments": attachments,
@@ -729,7 +731,7 @@ async function compareDocumentsService(inputs) {
 
 async function runDMNService(inputs) {
   const { tenant, id, variables } = inputs;
-  try{
+  try {
     let headers = {
       'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
     }
@@ -748,14 +750,14 @@ async function runDMNService(inputs) {
     // console.log('config', config)
     const res = await axios(config);
     return res.data.output;
-  }catch(e){
-    throw new Error('Error fetching form: '+e.message)
+  } catch (e) {
+    throw new Error('Error fetching form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
 async function loginCasesService(inputs) {
   const { user, pwd, domain, server } = inputs;
-  try{
+  try {
     let headers = {
       "Accept": "application/json",
       "Content-Type": "application/json",
@@ -776,8 +778,8 @@ async function loginCasesService(inputs) {
     }
     // console.log('config', config)
     const res = await axios(config);
-    return res.data.Profile;
-  }catch(e){
+    return res.data;
+  } catch (e) {
     throw new Error('Error on Cases Login: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
