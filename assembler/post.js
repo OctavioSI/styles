@@ -433,11 +433,11 @@ async function fetchSchemaService(inputs) {
       headers,
       data
     }
-    // console.log('config', config)
+    // return config
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error fetching form: ' + e.message)
+    throw new Error('Error fetching form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
@@ -551,7 +551,7 @@ async function saveNewVersionService(inputs) {
       let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
       if (!id || id == '' || savenew) {
         // Não tenho ID, então preciso gravar um novo registro na DB
-        id = crypto.randomUUID() // gerando um novo ID
+        let newid = crypto.randomUUID() // gerando um novo ID
         content = {
           "versions": [
             {
@@ -581,7 +581,8 @@ async function saveNewVersionService(inputs) {
             "database": "Workflows",
             "container": "assembler",
             "partitionKey": tenant,
-            "id": id
+            "id": newid,
+            "saveInRoot": true
           },
           "content": content
         };

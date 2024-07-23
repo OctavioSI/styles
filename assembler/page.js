@@ -13,6 +13,10 @@
 *                   no CosmosDB (trabalho em progresso)
 *   - formLayout:   Agora é possível selecionar no registro do CosmosDB quais as 
 *                   telas estão disponíveis para esta visualização. 
+*   - saveAsNewDoc: Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
+*                   utilizado para criar um novo documento (por exemplo, quando usamos
+*                   um WorkRequest que é uma nova solicitação e não tem versões 
+*                   anteriores) ou para criar uma nova versão de um documento existente
 *
 * v. 1.0
 *   - Carousel:     Formulário pode ser usado com cards, sendo possível 
@@ -41,6 +45,7 @@
 *
 *   - Arrumado problema com dados de formData anteriores sumindo
 *   - Ajustado problema com troca de cards
+*   - Ajustado problema com carregamento de form quando não tem document
 *
 * KNOWN ISSUES
 *
@@ -70,10 +75,10 @@
           "initialformTenant": "looplex.com.br", // tenando do schema inicial
           "initialformDocument": "teste001", // documento com configurações básicas e onde será salvo o doc, em Workflows/assembler
           "onSubmitAction": 'saveAsNewVersion', // O que fazer quando clicar em Submit? Ver Opções Abaixo: ***
+          "template": "", // template do documento que será renderizado -- obrigatório se não houver um document (se eu usar o saveAsNewDocument por exemplo)
           "formTitle": "Assembler 3.0: Contrato de Fornecimento", // Título do formulário
           "base_filename": 'file.docx', // base do documento que será renderizado
           "formTitle": "Form Looplex", // Título do formulario
-          "template": "", // template do documento que será renderizado
           "author": props.embeddedData.author ? props.embeddedData.author : 'Looplex',
           "language": "pt_br" // idioma do formulário (en_us ou pt_br)
       },
@@ -187,7 +192,7 @@
       // slip the property value based on `.`
       var prop = k.split('.');
       let is_single_prop = false;
-      if(prop.length === 1){
+      if (prop.length === 1) {
         is_single_prop = true;
       }
       // get the last value from array
@@ -201,7 +206,7 @@
         // and set the property value
       }, obj)[last] = obj[k];
       // delete the original property from object
-      if(!is_single_prop)
+      if (!is_single_prop)
         delete obj[k];
     });
     return obj
@@ -268,7 +273,7 @@
       counter += 1;
     }
     return result;
-  }   
+  }
 
   /*******************************************
    * Hooks
@@ -327,17 +332,19 @@
           }];
         }
         // setTmpVisor(JSON.stringify(res.data.output))
-        if(res.data.output.hasOwnProperty('formLayout') && !isObjectEmpty(res.data.output.formLayout)){
+        if (res.data.output.hasOwnProperty('formLayout') && !isObjectEmpty(res.data.output.formLayout)) {
           // console.log('res.data.output.formLayout', res.data.output.formLayout)
           setPageLayout(res.data.output.formLayout)
         }
         setIsLoading(false)
         setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não        
-        // let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
-        // setCards(newcards) // definindo o deck de cards que são exibidos
+        if (!initialform.document || initialform.document == '') { // Nao tenho o document, então posso já carregar o form sem esperar os detalhes do document
+          let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
+          setCards(newcards) // definindo o deck de cards que são exibidos
+        }
         // Comentadas o carregamento de cards pq estava com conflito ao abrir os documentDetails
         // console.log('output', res.data.output)
-        if(res.data.output.loginRequired){ // Para acessar esse form é necessário um login antes
+        if (res.data.output.loginRequired) { // Para acessar esse form é necessário um login antes
           setLoginRequired(true)
           loginModal()
         }
@@ -399,6 +406,7 @@
       fetchInitialForm()
         .then(res => {
           countAttempts = maxAttempts;
+          console.log('Form loaded successfully')
           setIsLoading(false);
         })
         .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
@@ -410,26 +418,26 @@
         });
     }
 
-    if (!initialform.document) {
+    if (!initialform.document || initialform.document == '') {
       setInitialDocumentDetails()
       console.log('No initial document defined')
       return
-    };
-
-    for (let countAttemptsDoc = 0; countAttemptsDoc < maxAttempts; countAttemptsDoc++) {
-      setIsLoadingDocumentDetails(true)
-      fetchDocumentDetails()
-        .then(res => {
-          countAttemptsDoc = maxAttempts;
-          setIsLoadingDocumentDetails(false);
-        })
-        .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
-          setIsLoadingDocumentDetails(false);
-          if (countAttemptsDoc >= maxAttempts) {
-            setTmpVisor('Erro ao carregar as versões anteriores: ' + err.message)
-          }
-          sleep(500);
-        });
+    } else {
+      for (let countAttemptsDoc = 0; countAttemptsDoc < maxAttempts; countAttemptsDoc++) {
+        setIsLoadingDocumentDetails(true)
+        fetchDocumentDetails()
+          .then(res => {
+            countAttemptsDoc = maxAttempts;
+            setIsLoadingDocumentDetails(false);
+          })
+          .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
+            setIsLoadingDocumentDetails(false);
+            if (countAttemptsDoc >= maxAttempts) {
+              setTmpVisor('Erro ao carregar as versões anteriores: ' + err.message)
+            }
+            sleep(500);
+          });
+      }
     }
 
   }, []);
@@ -441,6 +449,7 @@
       setCards(newcards)
     }
   }, [documentDetailsVersionsLoaded])
+
   // Efeito aplicado quando alterar o card atual
   useEffect(() => {
     activeCardRef.current?.scrollIntoView({
@@ -515,9 +524,9 @@
       /**  Se eu nao tiver "card_conditions" ou se as "card_conditions" 
        * forem vazias, vamos mostrar o card
       */
-      if (!cd.hasOwnProperty('card_conditions') || cd.card_conditions == undefined || cd.card_conditions == 'undefined' || (cd.hasOwnProperty('card_conditions') && isObjectEmpty(cd.card_conditions))){
+      if (!cd.hasOwnProperty('card_conditions') || cd.card_conditions == undefined || cd.card_conditions == 'undefined' || (cd.hasOwnProperty('card_conditions') && isObjectEmpty(cd.card_conditions))) {
         cards2Show.push(cd);
-      } else{
+      } else {
         // Se temos "card_conditions", vamos verificar se todas estão 
         // em nosso parâmetro fornecido e se o valor é compatível
         if (cd.hasOwnProperty('card_conditions') && !isObjectEmpty(cd.card_conditions)) {
@@ -593,7 +602,7 @@
         // setTmpVisor(newcards)
         if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
           newcards = setSchema(loadPriorFormData(documentDetails, true), cardId, formData);
-        }else{
+        } else {
           newcards = setSchema(tmpCards, cardId, formData)
         }
         setCards(newcards)
@@ -634,10 +643,10 @@
         }
       }
       let loadedFormData = priorData
-      if(keepFormData){
+      if (keepFormData) {
         let loadedcard = cards.filter(cd => cd.cardId === card.cardId);
-        if(loadedcard && loadedcard.length > 0)
-        loadedFormData = loadedcard[0].formData
+        if (loadedcard && loadedcard.length > 0)
+          loadedFormData = loadedcard[0].formData
       }
       return {
         ...card,
@@ -702,12 +711,12 @@
       let tmpNextState = loadPriorFormData(documentDetails, true);
       nextState = setSchema(tmpNextState, cardId, formData);
       // console.log('nextState', nextState)
-    }else{
+    } else {
       nextState = setSchema(allLoadedCards, cardId, formData)
     }
     setCards(nextState)
     // console.log('cards.length',cards.length)
-    if (cards.length > 1) {      
+    if (cards.length > 1) {
       // console.log('cards', cards)      
       //setTmpVisor(JSON.stringify(cards))
       // console.log('activeCard ANTES',activeCard)
@@ -731,7 +740,7 @@
     if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
       let tmpNextState = loadPriorFormData(documentDetails, true);
       nextState = setSchema(tmpNextState, cardId, formData);
-    }else{
+    } else {
       nextState = setSchema(allLoadedCards, cardId, formData)
     }
     setCards(nextState)
@@ -768,7 +777,7 @@
         setDocumentRendered(render);
         setIsRendering(false);
       } else {
-        switch(initialform.onSubmitAction){
+        switch (initialform.onSubmitAction) {
           case 'saveAsNewDocument':
             setIsSubmitting(true)
             await saveNewVersion(makeid(5), "Versão Inicial");
@@ -790,7 +799,7 @@
     return;
   }
 
-  function handleCancelDialog(event){
+  function handleCancelDialog(event) {
     event.preventDefault()
     console.log('closing')
   }
@@ -921,6 +930,10 @@
         let docdetails = documentDetails;
         docdetails.versions.push(res.data.output.newversion)
         docdetails.attachments = docdetails.attachments.concat(res.data.output.newattachments)
+        docdetails.currentVersion = version;
+        docdetails.description = description;
+        docdetails.created_at = docdetails.created_at ? docdetails.created_at : res.data.output.newversion.date;
+        docdetails.updated_at = res.data.output.newversion.date;
         setDocumentDetails(docdetails)
         setDocumentRendered(res.data.output.docrendered)
         setPreviewDocURL(res.data.output.docrendered.documentUrl);
@@ -1123,28 +1136,28 @@
     modalRef.current.showModal();
   }
 
-// executa a chamada que faz o salvamento de uma nova versão
-async function loginCases(username, password, domain) {
-  let data = {
-    command: "loginCases",
-    user: username,
-    pwd: password,
-    domain: domain
-  };
-  let config = {
-    method: 'post',
-    url: `/api/code/${props.codeId}`,
-    data
-  }
-  try {
-    const res = await axios(config);
-    if (res.data && res.data.output) {
-      return res.data.output;
+  // executa a chamada que faz o salvamento de uma nova versão
+  async function loginCases(username, password, domain) {
+    let data = {
+      command: "loginCases",
+      user: username,
+      pwd: password,
+      domain: domain
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
     }
-  } catch (e) {
-    throw new Error('Falha ao realizar o login **** ' + JSON.stringify(e.response.data))
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao realizar o login **** ' + JSON.stringify(e.response.data))
+    }
   }
-}
 
   // Roda ações definidas no Modal
   async function runAction(action, inputs) {
@@ -1214,7 +1227,7 @@ async function loginCases(username, password, domain) {
                   Data de criação
                 </td>
                 <td>
-                  {formatUTCDate(description.created_at)}
+                  {(description.created_at && description.created_at !== '') ? (formatUTCDate(description.created_at)) : ''}
                 </td>
               </tr>
               <tr>
@@ -1222,7 +1235,7 @@ async function loginCases(username, password, domain) {
                   Última Atualização
                 </td>
                 <td>
-                  {formatUTCDate(description.updated_at)}
+                  {(description.updated_at && description.updated_at !== '') ? (formatUTCDate(description.updated_at)) : ''}
                 </td>
               </tr>
               <tr>
@@ -1573,7 +1586,7 @@ async function loginCases(username, password, domain) {
       <div className='container-form'>
         <form method='POST' action='/' onSubmit={handleSubmit}>
           <div className={`card ${(pageLayout.main && pageLayout.aside) ? 'card-main-aside' : (pageLayout.main ? 'card-main' : 'card-aside')}`}>
-            { pageLayout.main &&
+            {pageLayout.main &&
               (
                 <main style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
                   <section class="deckofcards">
@@ -1623,81 +1636,81 @@ async function loginCases(username, password, domain) {
                 </main>
               )}
 
-            { pageLayout.aside &&
-            (
-              <aside>
-                <div className="card-navigation">
-                  {pageLayout.aside_summary && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}
-                  {pageLayout.aside_preview && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
-                  {pageLayout.aside_attachments && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
-                  {pageLayout.aside_versions && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>)}
-                </div>
-                <div className="card-summary">
-                  {
-                    (panelView == 'summary') &&
-                    (
-                      (documentDetails && documentDetails.currentVersion) ?
-                        (
-                          <>
-                            <Description description={{
-                              "version": documentDetails.currentVersion,
-                              "author": documentDetails.author,
-                              "created_at": documentDetails.created_at,
-                              "updated_at": documentDetails.updated_at,
-                              "description": documentDetails.description
-                            }} />
-                            <Summary cards={cards} activeCard={activeCard} />
-                          </>
-                        )
-                        :
-                        (
-                          <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                        )
-                    )
-                  }{
-                    (panelView == 'preview') &&
-                    (isPreviewLoaded ? (
-                      previewDocURL ? (
-                        <div className="previewWrapper">
-                          <iframe
-                            id='preview'
-                            name='preview'
-                            width='100%'
-                            height='100%'
-                            frameBorder='0'
-                            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                          ></iframe>
-                          <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                            <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                          </button>
-                        </div>
+            {pageLayout.aside &&
+              (
+                <aside>
+                  <div className="card-navigation">
+                    {pageLayout.aside_summary && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}
+                    {pageLayout.aside_preview && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
+                    {pageLayout.aside_attachments && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
+                    {pageLayout.aside_versions && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>)}
+                  </div>
+                  <div className="card-summary">
+                    {
+                      (panelView == 'summary') &&
+                      (
+                        (documentDetails && documentDetails.currentVersion) ?
+                          (
+                            <>
+                              <Description description={{
+                                "version": documentDetails.currentVersion,
+                                "author": documentDetails.author,
+                                "created_at": documentDetails.created_at,
+                                "updated_at": documentDetails.updated_at,
+                                "description": documentDetails.description
+                              }} />
+                              <Summary cards={cards} activeCard={activeCard} />
+                            </>
+                          )
+                          :
+                          (
+                            <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                          )
+                      )
+                    }{
+                      (panelView == 'preview') &&
+                      (isPreviewLoaded ? (
+                        previewDocURL ? (
+                          <div className="previewWrapper">
+                            <iframe
+                              id='preview'
+                              name='preview'
+                              width='100%'
+                              height='100%'
+                              frameBorder='0'
+                              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                            ></iframe>
+                            <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                              <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                            </button>
+                          </div>
+                        ) :
+                          (
+                            <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                          )
                       ) :
                         (
-                          <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                          <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                         )
-                    ) :
-                      (
-                        <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                       )
-                    )
-                  }{
-                    (panelView == 'attachments') &&
-                    (
-                      <>
-                        <AttachmentsPanel docdetails={documentDetails} />
-                      </>
-                    )
-                  }{
-                    (panelView == 'versions') &&
-                    (
-                      <>
-                        <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
-                      </>
-                    )
-                  }
-                </div>
-              </aside>
-            )}
+                    }{
+                      (panelView == 'attachments') &&
+                      (
+                        <>
+                          <AttachmentsPanel docdetails={documentDetails} />
+                        </>
+                      )
+                    }{
+                      (panelView == 'versions') &&
+                      (
+                        <>
+                          <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
+                        </>
+                      )
+                    }
+                  </div>
+                </aside>
+              )}
           </div>
         </form>
       </div>
