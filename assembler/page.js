@@ -17,6 +17,10 @@
 *                   utilizado para criar um novo documento (por exemplo, quando usamos
 *                   um WorkRequest que é uma nova solicitação e não tem versões 
 *                   anteriores) ou para criar uma nova versão de um documento existente
+*   - send2Code:    Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
+*                   utilizado para disparar um outro Code. Para isso, você deve passar
+*                   no payload também um parâmetro codeDestination com o ID do code que
+*                   será chamado
 *
 * v. 1.0
 *   - Carousel:     Formulário pode ser usado com cards, sendo possível 
@@ -74,6 +78,7 @@
           "initialformId": "newuid-first", // schema inicial que está no Workflows/rjsf-schemas
           "initialformTenant": "looplex.com.br", // tenando do schema inicial
           "initialformDocument": "teste001", // documento com configurações básicas e onde será salvo o doc, em Workflows/assembler
+          "codeDestination": "", // ID do Code de destino, caso a opção onSubmitAction seja send2Code
           "onSubmitAction": 'saveAsNewVersion', // O que fazer quando clicar em Submit? Ver Opções Abaixo: ***
           "template": "", // template do documento que será renderizado -- obrigatório se não houver um document (se eu usar o saveAsNewDocument por exemplo)
           "formTitle": "Assembler 3.0: Contrato de Fornecimento", // Título do formulário
@@ -89,6 +94,7 @@
     *** onSubmitAction: 
       - 'saveAsNewVersion': Abre um modal para definir número da versão, título e descrição
       - 'saveAsNewDocument': Cria um novo registro de documento no Workflows/assembler
+      - 'send2Code': Pega o formData e envia tudo em um payload para um code determinado
       - 'justRender': Apenas renderiza o documento na página com base nas respostas do formulário
 
    * Após gerar acima, passamos no formulário como parâmetro payload, dessa forma:
@@ -121,6 +127,7 @@
     tenant: props.embeddedData.initialformTenant ? props.embeddedData.initialformTenant : 'looplex.com.br',
     document: props.embeddedData.initialformDocument ? props.embeddedData.initialformDocument : '',
     onSubmitAction: props.embeddedData.onSubmitAction ? props.embeddedData.onSubmitAction : 'saveAsNewVersion',
+    codeDestination: props.embeddedData.codeDestination ? props.embeddedData.codeDestination : '',
     base_filename: props.embeddedData.base_filename ? props.embeddedData.base_filename : 'file.docx',
     formTitle: props.embeddedData.formTitle ? props.embeddedData.formTitle : "Form Looplex",
     template: props.embeddedData.template,
@@ -782,6 +789,13 @@
             setIsSubmitting(true)
             await saveNewVersion(makeid(5), "Versão Inicial");
             setIsSubmitting(false)
+            alertModal("Obrigado!", "glyphicon-ok", "O formulário foi enviado com sucesso.", "")
+            break;
+          case 'send2Code':
+            setIsSubmitting(true)
+            await send2Code();
+            setIsSubmitting(false)
+            alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
             break;
           case 'justRender':
             setIsRendering(true)
@@ -941,6 +955,46 @@
       }
     } catch (e) {
       throw new Error('Falha ao salvar nova versão **** ' + JSON.stringify(e.response.data))
+    }
+  }
+
+  // executa a chamada que faz o salvamento de uma nova versão
+  async function send2Code() {
+    if(!initialform.codeDestination || initialform.codeDestination === '') return
+    let merged = {}
+    for (let i = 0; i < cards.length; i++) {
+      let tcard = cards[i];
+      if (tcard.scope && tcard.scope !== '') {
+        merged[tcard.scope] = { ...tcard.formData }
+      } else {
+        merged = { ...merged, ...tcard.formData }
+      }
+    }
+
+    let data = {
+      command: "send2Code",
+      codeId: initialform.codeDestination,
+      formId: initialform.id,
+      documentId: initialform.document ? initialform.document : '',
+      tenant: initialform.tenant ? initialform.tenant : 'looplex.com.br',
+      formData: merged
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    // console.log('config', config)
+    // setTmpVisor(JSON.stringify(config))
+    try {
+      const res = await axios(config);
+      // console.log(res.data.output)
+      if (res.data && res.data.output) {
+        // setTmpVisor(JSON.stringify(res.data.output))
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao enviar para o Code '+initialform.codeDestination+' **** ' + JSON.stringify(e.response.data))
     }
   }
 

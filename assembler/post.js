@@ -13,6 +13,7 @@ var actions = {
   fetchDocumentDetails,
   renderDocument,
   saveNewVersion,
+  send2Code,
   downloadDocument,
   compareDocuments,
   runDMN,
@@ -25,6 +26,7 @@ var services = {
     fetchDocumentDetailsService,
     renderDocumentService,
     saveNewVersionService,
+    send2CodeService,
     downloadDocumentService,
     compareDocumentsService,
     runDMNService,
@@ -271,6 +273,41 @@ async function saveNewVersion(payload) {
   return await Actions.saveNewVersionService(inputs)
 }
 
+async function send2Code(payload) {
+  const schema = {
+    type: 'object',
+    properties: {
+      codeId: { type: 'string' },
+      formId: { type: 'string' },
+      documentId: { type: 'string' },
+      tenant: { type: 'string' },
+      formData: { type: 'object' }
+    },
+    required: [
+      'codeId',
+      'formId',
+      'formData'
+    ],
+    additionalProperties: false
+  }
+  const valid = ajv.validate(schema, payload)
+  if (!valid) throw new Error(JSON.stringify(ajv.errors))
+
+  // services
+  const { Actions } = services
+
+  let inputs = {
+    codeId: payload.codeId,
+    formId: payload.formId,
+    documentId: payload.documentId ? payload.documentId : '',
+    tenant: payload.tenant ? payload.tenant : 'looplex.com.br',
+    formData: payload.datacontent
+  };
+
+  // execute
+  return await Actions.send2CodeService(inputs)
+}
+
 async function downloadDocument(payload) {
   const schema = {
     type: 'object',
@@ -466,7 +503,7 @@ async function fetchDocumentDetailsService(inputs) {
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error fetching form: ' + e.message)
+    throw new Error('Error fetching form: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
@@ -648,7 +685,36 @@ async function saveNewVersionService(inputs) {
 
     }
   } catch (e) {
-    throw new Error('Error saving new version: ' + e.message)
+    throw new Error('Error saving new version: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
+  }
+};
+
+async function send2CodeService(inputs) {
+  const { codeId, formId, documentId, tenant, formData } = inputs;
+  try {
+    // Primeiro renderizamos a nova versão
+    let headers = {
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let data = {
+      formData,
+      formId,
+      documentId,
+      tenant
+    }
+    let config = {
+      method: 'post',
+      url: `${APIM_URL}${codeId}`,
+      headers,
+      data
+    }
+    // console.log('config', config)
+    const res = await axios(config);
+    if (res.data && res.data.output) {
+      return res.data.output;
+    }
+  } catch (e) {
+    throw new Error('Error sending to Code: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
@@ -675,7 +741,7 @@ async function downloadDocumentService(inputs) {
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error fetching form: ' + e.message)
+    throw new Error('Error fetching form: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
