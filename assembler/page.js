@@ -147,6 +147,10 @@
     title: "Título",
     description: "Descrição do Alerta"
   })
+  const [loginUser, setLoginUser] = useState({
+    user: "",
+    domain: ""
+  })
   const [pageLayout, setPageLayout] = useState({
     main: true,
     aside: false,
@@ -165,6 +169,7 @@
   const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(true)
   const [loginRequired, setLoginRequired] = useState(false)
+  const [loginAccessRules, setLoginAccessRules] = useState({})
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
@@ -199,7 +204,6 @@
   const isLoadingInitialForm = useRef(false); 
   const isLoadingInitialDocument = useRef(false); 
   const isLoadingRemoteSchema = useRef(false); 
-  const isLoadingMounting = useRef(false);
   
   /*******************************************
    * Helper Functions
@@ -379,6 +383,9 @@
         if (res.data.output.loginRequired) { // Para acessar esse form é necessário um login antes
           setLoginRequired(true)
           loginModal()
+          if(res.data.output.loginAccess && !isObjectEmpty(res.data.output.loginAccess)){
+            setLoginAccessRules(res.data.output.loginAccess)
+          }
         }
         return true;
       }
@@ -1158,7 +1165,7 @@
   }
 
   // Exibe o modal em formato de alerta
-  function alertModal(title, icon, message, content) {
+  function alertModal(title, icon, message, content, timeout = 0) {
     let alert = {
       icon: icon,
       title: title,
@@ -1168,6 +1175,11 @@
     };
     setAlert(alert)
     alertRef.current.showModal()
+    if(timeout > 0){
+      setTimeout(()=> {
+        alertRef.current.close()
+      }, timeout)
+    }
   }
 
   // Exibe o modal para formato de salvar nova versão
@@ -1274,13 +1286,26 @@
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
+        setLoginUser(
+          {
+            user: username,
+            domain: domain
+          }
+        )
         return res.data.output;
       }
     } catch (e) {
-      let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto.</div>";
+      let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
       alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content)
       throw new Error('Falha ao realizar o login **** ' + JSON.stringify(e.response.data))
     }
+  }
+
+  function checkCanLogin(username, domain){
+    if(isObjectEmpty(loginAccessRules)) return true;
+    // Temos regras a observar
+    if(!loginAccessRules.hasOwnProperty(domain)) return false; // Não tem o domain necessario
+    return loginAccessRules[domain].includes(username) || loginAccessRules[domain].includes('all') // se eu tenho 'all', então todo user desse domain pode usar
   }
 
   // Roda ações definidas no Modal
@@ -1296,14 +1321,26 @@
         modalRef.current.close()
         break;
       case 'loginCases':
-        setIsModalLogin(true)
+        setIsModalLogin(true) // TODO: vincular esse state ao processamento do botão enviar
         let username = inputs.formData?.user;
         let password = inputs.formData?.pwd;
         let domain = inputs.formData?.domain;
-        let login = await loginCases(username, password, domain);
-        console.log('login', login)
-        setIsModalLogin(false)
-        // modalRef.current.close()
+        // primeiro vamos checar se esse usuario pode se logar no domain fornecido
+        let canLogin = await checkCanLogin(username, domain);
+        if(!canLogin){
+          let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
+          alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content, 3000)
+          modalRef.current.close()
+        }else{
+          let login = await loginCases(username, password, domain);
+          console.log('login', login)
+          if(login && login.hasOwnProperty('Profile')){ // Login bem sucedido
+            setIsAuthenticated(true)
+          }
+          alertModal("Login efetuado", "", "Login efetuado com sucesso", "")
+          setIsModalLogin(false)
+          modalRef.current.close()
+        }
         break;
       default:
         return;
