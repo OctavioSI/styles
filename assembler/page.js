@@ -21,6 +21,8 @@
 *                   utilizado para disparar um outro Code. Para isso, você deve passar
 *                   no payload também um parâmetro codeDestination com o ID do code que
 *                   será chamado
+*   - preloaded:    Agora é possível pré-carregar cards remotos logo na inicialização
+*                   do formulário
 *
 * v. 1.0
 *   - Carousel:     Formulário pode ser usado com cards, sendo possível 
@@ -118,6 +120,20 @@
         "aside_versions": true
     }
 
+
+    ## preloaded:
+
+    No registro do cosmosDB que contém o schema indicado no initialformId acima, é possível incluir
+    uma propriedade preloaded_cards, que indica quais os cards deverão ser pré-carregados
+    no início do formulário nesta página. O formato é o seguinte:
+
+    "preloaded_cards": [
+        {
+            "cardID": "terceiro",
+            "scope": "",
+            "card_conditions": ""
+        }
+    ]
 
    *
    ********************************************************************/
