@@ -377,3 +377,7 @@ legend#root__title::before{
 .d-modal-box{
   background-color: white;
 }
+
+.login-spacer{
+  margin-bottom: 12px;
+}

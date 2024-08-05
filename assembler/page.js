@@ -138,6 +138,7 @@
   const [panelView, setPanelView] = useState('summary')
   const [cards, setCards] = useState([])
   const [allLoadedCards, setAllLoadedCards] = useState([])
+  const [preloadCards, setPreloadCards] = useState([])
   const [modal, setModal] = useState({
     title: "Título",
     description: "Descrição do Modal"
@@ -164,6 +165,7 @@
   const [isModalReady2Submit, setIsModalReady2Submit] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(true)
   const [loginRequired, setLoginRequired] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
@@ -180,6 +182,25 @@
   const [tmpVisor2, setTmpVisor2] = useState('')
   const [submitted, setSubmitted] = useState('')
 
+  // Esse useRef serve para evitar que o useEffect seja chamado 
+  // multiplas vezes durante a renderização.
+  //
+  /** Por exemplo, se tivermos:
+      const isLoadingInitialForm = useRef(false); 
+   
+   * Então no useEffect podemos checar por:
+      if (isMounted.current) {
+          console.log('mounted'); // Chamado após cada chamada do useEffect
+      } else {
+          console.log('mounting'); // Chamado apenas uma vez, enquanto ainda não foi chamado
+          isMounted.current = true;
+      }
+  */
+  const isLoadingInitialForm = useRef(false); 
+  const isLoadingInitialDocument = useRef(false); 
+  const isLoadingRemoteSchema = useRef(false); 
+  const isLoadingMounting = useRef(false);
+  
   /*******************************************
    * Helper Functions
    *******************************************/
@@ -308,6 +329,7 @@
       if (res.data && res.data.output) {
         let initialSchema = [];
         let iSchema = {};
+        let preloaded_cards = res.data.output.preloaded_cards ? res.data.output.preloaded_cards : [];        
         if (res.data.output.hasOwnProperty('cards') && Array.isArray(res.data.output.cards)) { // É um array, não um objeto
           let tmpcards = res.data.output.cards;
           let tmpcard = {};
@@ -343,12 +365,15 @@
           // console.log('res.data.output.formLayout', res.data.output.formLayout)
           setPageLayout(res.data.output.formLayout)
         }
-        setIsLoading(false)
+
         setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não        
         if (!initialform.document || initialform.document == '') { // Nao tenho o document, então posso já carregar o form sem esperar os detalhes do document
           let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
           setCards(newcards) // definindo o deck de cards que são exibidos
         }
+        setIsLoading(false)
+        console.log('trigger Preloaded_cards')
+        setPreloadCards(preloaded_cards)
         // Comentadas o carregamento de cards pq estava com conflito ao abrir os documentDetails
         // console.log('output', res.data.output)
         if (res.data.output.loginRequired) { // Para acessar esse form é necessário um login antes
@@ -409,20 +434,27 @@
     }
 
     for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
-      setIsLoading(true)
-      fetchInitialForm()
-        .then(res => {
-          countAttempts = maxAttempts;
-          console.log('Form loaded successfully')
-          setIsLoading(false);
-        })
-        .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
-          setIsLoading(false);
-          if (countAttempts >= maxAttempts) {
-            setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
-          }
-          sleep(500);
-        });
+      if (isLoadingInitialForm.current) {
+        console.log('mounted');
+      } else {
+          console.log('mounting');
+          isLoadingInitialForm.current = true;
+          setIsLoading(true)
+          fetchInitialForm()
+            .then(res => {
+              countAttempts = maxAttempts;
+              console.log('Form loaded successfully. Attempt: '+countAttempts)
+              setIsLoading(false);
+            })
+            .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
+              setIsLoading(false);
+              if (countAttempts >= maxAttempts) {
+                setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
+              }
+              sleep(500);
+            });          
+      }
+        if(countAttempts == maxAttempts) break;
     }
 
     if (!initialform.document || initialform.document == '') {
@@ -431,19 +463,26 @@
       return
     } else {
       for (let countAttemptsDoc = 0; countAttemptsDoc < maxAttempts; countAttemptsDoc++) {
-        setIsLoadingDocumentDetails(true)
-        fetchDocumentDetails()
-          .then(res => {
-            countAttemptsDoc = maxAttempts;
-            setIsLoadingDocumentDetails(false);
-          })
-          .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
-            setIsLoadingDocumentDetails(false);
-            if (countAttemptsDoc >= maxAttempts) {
-              setTmpVisor('Erro ao carregar as versões anteriores: ' + err.message)
-            }
-            sleep(500);
-          });
+        if (isLoadingInitialDocument.current) {
+          console.log('mounted');
+        } else {
+          console.log('mounting');
+          isLoadingInitialDocument.current = true;
+          setIsLoadingDocumentDetails(true)
+          fetchDocumentDetails()
+            .then(res => {
+              countAttemptsDoc = maxAttempts;
+              setIsLoadingDocumentDetails(false);
+            })
+            .catch(err => { // Se houver erro em carregar versoes anteriores, vamos tentar novamente
+              setIsLoadingDocumentDetails(false);
+              if (countAttemptsDoc >= maxAttempts) {
+                setTmpVisor('Erro ao carregar as versões anteriores: ' + err.message)
+              }
+              sleep(500);
+            });
+          }
+          if(countAttemptsDoc == maxAttempts) break;
       }
     }
 
@@ -456,6 +495,24 @@
       setCards(newcards)
     }
   }, [documentDetailsVersionsLoaded])
+
+  // Vamos carregar também quaisquer cards que estejam marcados na propriedade preloaded_cards (ou seja, cards que devem ser carregados sem aguardar a DMN)
+  useEffect(() => {
+    if(preloadCards && preloadCards.length > 0){ // Tenho preloaded cards
+      for(let j=0; j < preloadCards.length; j++){ // Vamos pré-carregar cada card desse array se ele já não existir
+        let current_ID = preloadCards[j].cardID;
+        let scope = preloadCards[j].scope;
+        let card_conditions = (preloadCards[j].card_conditions && preloadCards[j].card_conditions !== '') ? JSON.parse(preloadCards[j].card_conditions) : {};
+        let card_loaded = allLoadedCards.filter(cd => cd.cardId === current_ID);
+        if (!card_loaded || card_loaded.length === 0) {
+          loadRemoteSchema(current_ID, cards[0].cardId, cards[0].formData, scope, card_conditions).then(res => {
+            console.log('loadRemoteSchema', cards)
+            isLoadingRemoteSchema.current = false;
+          })
+        }
+      }
+    }
+  }, [preloadCards])
 
   // Efeito aplicado quando alterar o card atual
   useEffect(() => {
@@ -570,6 +627,7 @@
       if (res.data && res.data.output) {
         let newCard = {};
         let iSchema = {};
+        let preloaded_cards = res.data.output.preloaded_cards ? res.data.output.preloaded_cards : [];
         // let tmpCards = cards;
         let tmpCards = allLoadedCards;
 
@@ -618,19 +676,27 @@
     }
     let maxAttempts = 3;
     for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
-      setIsLoading(true);
-      fetchRemoteSchema()
-        .then(res => {
-          countAttempts = maxAttempts;
-          setIsLoading(false);
-        })
-        .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
-          setIsLoading(false);
-          if (countAttempts >= maxAttempts) {
-            setTmpVisor('Erro ao carregar o formulário remoto: ' + err.message)
-          }
-          sleep(500);
-        });
+      if (isLoadingRemoteSchema.current) {
+        console.log('mounted');
+      } else {
+        console.log('mounting');
+        isLoadingRemoteSchema.current = true;
+        setIsLoading(true);
+        fetchRemoteSchema()
+          .then(res => {
+            countAttempts = maxAttempts;
+            console.log('Remote Schema loaded successfully. Attempt: '+countAttempts)
+            setIsLoading(false);
+          })
+          .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
+            setIsLoading(false);
+            if (countAttempts >= maxAttempts) {
+              setTmpVisor('Erro ao carregar o formulário remoto: ' + err.message)
+            }
+            sleep(500);
+          });
+      }
+        if(countAttempts == maxAttempts) break;
     }
   }
   // Busca o formData que será exibido como valor anterior
@@ -700,6 +766,7 @@
           let card_loaded = cards.filter(cd => cd.cardId === current_ID);
           if (!card_loaded || card_loaded.length === 0) {
             await loadRemoteSchema(current_ID, cardId, formData, scope, card_conditions)
+            isLoadingRemoteSchema.current = false;
           }
           setIsLoading(false)
           setIsReady2Submit(true);
@@ -814,8 +881,9 @@
   }
 
   function handleCancelDialog(event) {
-    event.preventDefault()
-    console.log('closing')
+    event.preventDefault();
+    console.log('closed', event)
+    return false
   }
 
   /*******************************************
@@ -1619,7 +1687,7 @@
         <script>{`tailwind.config = {prefix: 'd-' }`}</script>
       </Head>
 
-      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog} >
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog}>
         <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
         </div>
@@ -1638,135 +1706,153 @@
         <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
       </div>
       <div className='container-form'>
-        <form method='POST' action='/' onSubmit={handleSubmit}>
-          <div className={`card ${(pageLayout.main && pageLayout.aside) ? 'card-main-aside' : (pageLayout.main ? 'card-main' : 'card-aside')}`}>
-            {pageLayout.main &&
-              (
-                <main style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
-                  <section class="deckofcards">
-                    {tmpVisor}
-                    {tmpVisor2}
-                    {submitted}
-                    <div ref={myCarouselRef} className='d-carousel d-w-full'>
-                      {
-                        (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
-                          <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                          : ''
-                      }
-                      {cards.map((card, index) => {
-                        const active = index === activeCard;
-                        return (
-                          <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                            <div className="d-w-full">
+        {(!isAuthenticated && loginRequired) ?
+        (
+          <div className={`card card-main`}>
+            <main>
+            <section className="navigation d-flex align-items-center flex-column">
+              <div className="mt-auto d-flex align-items-center flex-column login-spacer">
+                <h1 className="login-spacer">Login necessário</h1>
+                <p>Esta página tem acesso restrito.</p>
+                <p>Clique no botão abaixo para realizar o login.</p>
+              </div>
+              <div className="mt-auto d-flex align-items-center">
+                <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); modalRef.current.showModal();}}>Login</button>
+              </div>
+              </section>
+            </main>
+          </div>
+        ):(
+          <form method='POST' action='/' onSubmit={handleSubmit}>
+            <div className={`card ${(pageLayout.main && pageLayout.aside) ? 'card-main-aside' : (pageLayout.main ? 'card-main' : 'card-aside')}`}>
+              {pageLayout.main &&
+                (
+                  <main style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
+                    <section class="deckofcards">
+                      {tmpVisor}
+                      {tmpVisor2}
+                      {submitted}
+                      <div ref={myCarouselRef} className='d-carousel d-w-full'>
+                        {
+                          (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
+                            <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                            : ''
+                        }
+                        {cards.map((card, index) => {
+                          const active = index === activeCard;
+                          return (
+                            <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                               <div className="d-w-full">
-                                <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                <div className="d-w-full">
+                                  <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                </div>
                               </div>
                             </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                    <section className="navigation d-flex align-items-end flex-column">
+                      {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
+                        <>
+                          <div className="d-flex d-space-x-4 align-items-center">
+                            <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                            <span class="glyphicon glyphicon-option-horizontal"></span>
+                            <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                  <section className="navigation d-flex align-items-end flex-column">
-                    {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
-                      <>
-                        <div className="d-flex d-space-x-4 align-items-center">
-                          <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
-                          <span class="glyphicon glyphicon-option-horizontal"></span>
-                          <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
-                        </div>
-                        <div className="mt-auto d-flex align-items-end d-space-x-4">
-                          {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
-                            <a href={documentRendered.documentUrl} download>
-                              <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
-                            </a>
-                          )}
-                          <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-                          <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
-                        </div>
-                      </>
-                    )}
-                  </section>
-                </main>
-              )}
+                          <div className="mt-auto d-flex align-items-end d-space-x-4">
+                            {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
+                              <a href={documentRendered.documentUrl} download>
+                                <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
+                              </a>
+                            )}
+                            <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+                            <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                          </div>
+                        </>
+                      )}
+                    </section>
+                  </main>
+                )}
 
-            {pageLayout.aside &&
-              (
-                <aside>
-                  <div className="card-navigation">
-                    {pageLayout.aside_summary && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}
-                    {pageLayout.aside_preview && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
-                    {pageLayout.aside_attachments && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
-                    {pageLayout.aside_versions && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>)}
-                  </div>
-                  <div className="card-summary">
-                    {
-                      (panelView == 'summary') &&
-                      (
-                        (documentDetails && documentDetails.currentVersion) ?
-                          (
-                            <>
-                              <Description description={{
-                                "version": documentDetails.currentVersion,
-                                "author": documentDetails.author,
-                                "created_at": documentDetails.created_at,
-                                "updated_at": documentDetails.updated_at,
-                                "description": documentDetails.description
-                              }} />
-                              <Summary cards={cards} activeCard={activeCard} />
-                            </>
-                          )
-                          :
-                          (
-                            <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                          )
-                      )
-                    }{
-                      (panelView == 'preview') &&
-                      (isPreviewLoaded ? (
-                        previewDocURL ? (
-                          <div className="previewWrapper">
-                            <iframe
-                              id='preview'
-                              name='preview'
-                              width='100%'
-                              height='100%'
-                              frameBorder='0'
-                              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                            ></iframe>
-                            <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                              <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                            </button>
-                          </div>
+              {pageLayout.aside &&
+                (
+                  <aside>
+                    <div className="card-navigation">
+                      {pageLayout.aside_summary && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}
+                      {pageLayout.aside_preview && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
+                      {pageLayout.aside_attachments && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
+                      {pageLayout.aside_versions && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>)}
+                    </div>
+                    <div className="card-summary">
+                      {
+                        (panelView == 'summary') &&
+                        (
+                          (documentDetails && documentDetails.currentVersion) ?
+                            (
+                              <>
+                                <Description description={{
+                                  "version": documentDetails.currentVersion,
+                                  "author": documentDetails.author,
+                                  "created_at": documentDetails.created_at,
+                                  "updated_at": documentDetails.updated_at,
+                                  "description": documentDetails.description
+                                }} />
+                                <Summary cards={cards} activeCard={activeCard} />
+                              </>
+                            )
+                            :
+                            (
+                              <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                            )
+                        )
+                      }{
+                        (panelView == 'preview') &&
+                        (isPreviewLoaded ? (
+                          previewDocURL ? (
+                            <div className="previewWrapper">
+                              <iframe
+                                id='preview'
+                                name='preview'
+                                width='100%'
+                                height='100%'
+                                frameBorder='0'
+                                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                              ></iframe>
+                              <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                                <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                              </button>
+                            </div>
+                          ) :
+                            (
+                              <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                            )
                         ) :
                           (
-                            <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                            <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                           )
-                      ) :
-                        (
-                          <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                         )
-                      )
-                    }{
-                      (panelView == 'attachments') &&
-                      (
-                        <>
-                          <AttachmentsPanel docdetails={documentDetails} />
-                        </>
-                      )
-                    }{
-                      (panelView == 'versions') &&
-                      (
-                        <>
-                          <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
-                        </>
-                      )
-                    }
-                  </div>
-                </aside>
-              )}
-          </div>
-        </form>
+                      }{
+                        (panelView == 'attachments') &&
+                        (
+                          <>
+                            <AttachmentsPanel docdetails={documentDetails} />
+                          </>
+                        )
+                      }{
+                        (panelView == 'versions') &&
+                        (
+                          <>
+                            <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
+                          </>
+                        )
+                      }
+                    </div>
+                  </aside>
+                )}
+            </div>
+          </form>
+        )}      
       </div>
     </div>
   )
