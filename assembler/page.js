@@ -1165,7 +1165,7 @@
   }
 
   // Exibe o modal em formato de alerta
-  function alertModal(title, icon, message, content, timeout = 0) {
+  function alertModal(title, icon, message, content) {
     let alert = {
       icon: icon,
       title: title,
@@ -1175,11 +1175,6 @@
     };
     setAlert(alert)
     alertRef.current.showModal()
-    if(timeout > 0){
-      setTimeout(()=> {
-        alertRef.current.close()
-      }, timeout)
-    }
   }
 
   // Exibe o modal para formato de salvar nova versão
@@ -1329,15 +1324,19 @@
         let canLogin = await checkCanLogin(username, domain);
         if(!canLogin){
           let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
-          alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content, 3000)
+          alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content)
           modalRef.current.close()
         }else{
           let login = await loginCases(username, password, domain);
           console.log('login', login)
-          if(login && login.hasOwnProperty('Profile')){ // Login bem sucedido
+          if(login && login.hasOwnProperty('Profile') && login['Profile'] != '' && login['Profile'] != "Login_Failed"){ // Login bem sucedido
             setIsAuthenticated(true)
+            alertModal("Login efetuado", "", "Login efetuado com sucesso", "")
+          }else{
+            let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
+            alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content)
+            modalRef.current.close()
           }
-          alertModal("Login efetuado", "", "Login efetuado com sucesso", "")
           setIsModalLogin(false)
           modalRef.current.close()
         }
