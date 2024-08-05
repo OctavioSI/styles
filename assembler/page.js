@@ -1277,6 +1277,8 @@
         return res.data.output;
       }
     } catch (e) {
+      let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto.</div>";
+      alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content)
       throw new Error('Falha ao realizar o login **** ' + JSON.stringify(e.response.data))
     }
   }

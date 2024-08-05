@@ -370,6 +370,13 @@ legend#root__title::before{
   background-color: #FAFAFA;
 }
 
+.errormsg{
+  border: 1px solid #efefef;
+  padding: 12px;
+  background-color: #FAFAFA;
+  color: #AC0000;
+}
+
 .disabled{
   cursor: not-allowed;
 }
