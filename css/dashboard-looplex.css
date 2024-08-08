@@ -55,8 +55,7 @@ body {
   margin: auto;
 }
 
-.card,
-.card-doc {
+.card-wrapper {
   margin: 0;
   position: absolute;
   top: 50%;

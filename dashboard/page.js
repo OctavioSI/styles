@@ -1,10 +1,43 @@
 (function () {
 
+  /******************************************************************
+   * 
+   * Elementos do Dashboard
+   * 
+   *  */
+
+  function Dashboard() {
+    let dashboard =
+      <>
+        <MiniCardView />
+        <MiniCardView />
+        <MiniCardView />
+        <MiniCardView />
+        <TableView />
+        <TableView />
+      </>
+    return dashboard
+  }
+
+  function MiniCardView(){
+    let card = 
+    <>
+      <div className="card overflow-x-auto col-xs-3">
+        <div className="card-body">
+          <h5 className="card-title">Card title</h5>
+          <p className="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+          <a href="#" className="btn btn-primary">Go somewhere</a>
+        </div>
+      </div>
+    </>
+    return card
+  }
+
   function TableView() {
     let tableview =
       <>
-        <div className="overflow-x-auto">
-          <table className="table table-xs">
+        <div className="overflow-x-auto col-xs-6">
+          <table className="table table-xs table-hover">
             <thead>
               <tr>
                 <th></th>
@@ -255,9 +288,9 @@
         <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" />
       </div>
       <div className='container-form'>
-        <div className='card'>
+        <div className='card-wrapper'>
           <div className='main'>
-          <TableView />
+            <Dashboard />
           </div>
         </div>
       </div>
