@@ -9,12 +9,14 @@
   function Dashboard() {
     let dashboard =
       <>
-        <MiniCardView />
-        <MiniCardView />
-        <MiniCardView />
-        <MiniCardView />
-        <TableView />
-        <TableView />
+        <div className="grid gap-3">
+          <MiniCardView />
+          <MiniCardView />
+          <MiniCardView />
+          <MiniCardView />
+          <TableView />
+          <TableView />
+        </div>
       </>
     return dashboard
   }

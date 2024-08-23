@@ -1,7 +1,7 @@
 /*******************************************************************
 * Carousel Padrão Flows
 * 
-* STATUS: Em desenvolvimento -- não usar
+* STATUS: Estável
 * 
 * CHANGELOG
 *
@@ -52,6 +52,7 @@
 *   - Arrumado problema com dados de formData anteriores sumindo
 *   - Ajustado problema com troca de cards
 *   - Ajustado problema com carregamento de form quando não tem document
+*   - Ajustado carregamento do css correto, posto que looplex-ged tornou-se bucket privado (colocamos os arquivos em looplex-workflows)
 *
 * KNOWN ISSUES
 *
@@ -217,10 +218,10 @@
           isMounted.current = true;
       }
   */
-  const isLoadingInitialForm = useRef(false); 
-  const isLoadingInitialDocument = useRef(false); 
-  const isLoadingRemoteSchema = useRef(false); 
-  
+  const isLoadingInitialForm = useRef(false);
+  const isLoadingInitialDocument = useRef(false);
+  const isLoadingRemoteSchema = useRef(false);
+
   /*******************************************
    * Helper Functions
    *******************************************/
@@ -349,7 +350,7 @@
       if (res.data && res.data.output) {
         let initialSchema = [];
         let iSchema = {};
-        let preloaded_cards = res.data.output.preloaded_cards ? res.data.output.preloaded_cards : [];        
+        let preloaded_cards = res.data.output.preloaded_cards ? res.data.output.preloaded_cards : [];
         if (res.data.output.hasOwnProperty('cards') && Array.isArray(res.data.output.cards)) { // É um array, não um objeto
           let tmpcards = res.data.output.cards;
           let tmpcard = {};
@@ -399,7 +400,7 @@
         if (res.data.output.loginRequired) { // Para acessar esse form é necessário um login antes
           setLoginRequired(true)
           loginModal()
-          if(res.data.output.loginAccess && !isObjectEmpty(res.data.output.loginAccess)){
+          if (res.data.output.loginAccess && !isObjectEmpty(res.data.output.loginAccess)) {
             setLoginAccessRules(res.data.output.loginAccess)
           }
         }
@@ -460,24 +461,24 @@
       if (isLoadingInitialForm.current) {
         console.log('mounted');
       } else {
-          console.log('mounting');
-          isLoadingInitialForm.current = true;
-          setIsLoading(true)
-          fetchInitialForm()
-            .then(res => {
-              countAttempts = maxAttempts;
-              console.log('Form loaded successfully. Attempt: '+countAttempts)
-              setIsLoading(false);
-            })
-            .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
-              setIsLoading(false);
-              if (countAttempts >= maxAttempts) {
-                setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
-              }
-              sleep(500);
-            });          
+        console.log('mounting');
+        isLoadingInitialForm.current = true;
+        setIsLoading(true)
+        fetchInitialForm()
+          .then(res => {
+            countAttempts = maxAttempts;
+            console.log('Form loaded successfully. Attempt: ' + countAttempts)
+            setIsLoading(false);
+          })
+          .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
+            setIsLoading(false);
+            if (countAttempts >= maxAttempts) {
+              setTmpVisor('Erro ao carregar o formulário inicial: ' + err.message)
+            }
+            sleep(500);
+          });
       }
-        if(countAttempts == maxAttempts) break;
+      if (countAttempts == maxAttempts) break;
     }
 
     if (!initialform.document || initialform.document == '') {
@@ -504,8 +505,8 @@
               }
               sleep(500);
             });
-          }
-          if(countAttemptsDoc == maxAttempts) break;
+        }
+        if (countAttemptsDoc == maxAttempts) break;
       }
     }
 
@@ -521,8 +522,8 @@
 
   // Vamos carregar também quaisquer cards que estejam marcados na propriedade preloaded_cards (ou seja, cards que devem ser carregados sem aguardar a DMN)
   useEffect(() => {
-    if(preloadCards && preloadCards.length > 0){ // Tenho preloaded cards
-      for(let j=0; j < preloadCards.length; j++){ // Vamos pré-carregar cada card desse array se ele já não existir
+    if (preloadCards && preloadCards.length > 0) { // Tenho preloaded cards
+      for (let j = 0; j < preloadCards.length; j++) { // Vamos pré-carregar cada card desse array se ele já não existir
         let current_ID = preloadCards[j].cardID;
         let scope = preloadCards[j].scope;
         let card_conditions = (preloadCards[j].card_conditions && preloadCards[j].card_conditions !== '') ? JSON.parse(preloadCards[j].card_conditions) : {};
@@ -708,7 +709,7 @@
         fetchRemoteSchema()
           .then(res => {
             countAttempts = maxAttempts;
-            console.log('Remote Schema loaded successfully. Attempt: '+countAttempts)
+            console.log('Remote Schema loaded successfully. Attempt: ' + countAttempts)
             setIsLoading(false);
           })
           .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
@@ -719,7 +720,7 @@
             sleep(500);
           });
       }
-        if(countAttempts == maxAttempts) break;
+      if (countAttempts == maxAttempts) break;
     }
   }
   // Busca o formData que será exibido como valor anterior
@@ -1051,7 +1052,7 @@
 
   // executa a chamada que faz o salvamento de uma nova versão
   async function send2Code() {
-    if(!initialform.codeDestination || initialform.codeDestination === '') return
+    if (!initialform.codeDestination || initialform.codeDestination === '') return
     let merged = {}
     for (let i = 0; i < cards.length; i++) {
       let tcard = cards[i];
@@ -1085,7 +1086,7 @@
         return res.data.output;
       }
     } catch (e) {
-      throw new Error('Falha ao enviar para o Code '+initialform.codeDestination+' **** ' + JSON.stringify(e.response.data))
+      throw new Error('Falha ao enviar para o Code ' + initialform.codeDestination + ' **** ' + JSON.stringify(e.response.data))
     }
   }
 
@@ -1312,10 +1313,10 @@
     }
   }
 
-  function checkCanLogin(username, domain){
-    if(isObjectEmpty(loginAccessRules)) return true;
+  function checkCanLogin(username, domain) {
+    if (isObjectEmpty(loginAccessRules)) return true;
     // Temos regras a observar
-    if(!loginAccessRules.hasOwnProperty(domain)) return false; // Não tem o domain necessario
+    if (!loginAccessRules.hasOwnProperty(domain)) return false; // Não tem o domain necessario
     return loginAccessRules[domain].includes(username) || loginAccessRules[domain].includes('all') // se eu tenho 'all', então todo user desse domain pode usar
   }
 
@@ -1338,17 +1339,17 @@
         let domain = inputs.formData?.domain;
         // primeiro vamos checar se esse usuario pode se logar no domain fornecido
         let canLogin = await checkCanLogin(username, domain);
-        if(!canLogin){
+        if (!canLogin) {
           let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
           alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content)
           modalRef.current.close()
-        }else{
+        } else {
           let login = await loginCases(username, password, domain);
           console.log('login', login)
-          if(login && login.hasOwnProperty('Profile') && login['Profile'] != '' && login['Profile'] != "Login_Failed"){ // Login bem sucedido
+          if (login && login.hasOwnProperty('Profile') && login['Profile'] != '' && login['Profile'] != "Login_Failed") { // Login bem sucedido
             setIsAuthenticated(true)
             alertModal("Login efetuado", "", "Login efetuado com sucesso", "")
-          }else{
+          } else {
             let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
             alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content)
             modalRef.current.close()
@@ -1721,8 +1722,8 @@
           rel='stylesheet'
           type='text/css'
         />
-        <link rel="stylesheet" type='text/css' href='https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/ant.css' />
-        <link rel='stylesheet' type='text/css' href='https://looplex-ged.s3.us-east-1.amazonaws.com/looplex.com.br/shared/daisy.css' />
+        <link rel="stylesheet" type='text/css' href='https://looplex-workflows.s3.us-east-1.amazonaws.com/css-form-padrao/ant.css' />
+        <link rel='stylesheet' type='text/css' href='https://looplex-workflows.s3.sa-east-1.amazonaws.com/css-form-padrao/daisy.css' />
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
         <link
           rel='stylesheet'
@@ -1761,152 +1762,152 @@
       </div>
       <div className='container-form'>
         {(!isAuthenticated && loginRequired) ?
-        (
-          <div className={`card card-main`}>
-            <main>
-            <section className="navigation d-flex align-items-center flex-column">
-              <div className="mt-auto d-flex align-items-center flex-column login-spacer">
-                <h1 className="login-spacer">Login necessário</h1>
-                <p>Esta página tem acesso restrito.</p>
-                <p>Clique no botão abaixo para realizar o login.</p>
-              </div>
-              <div className="mt-auto d-flex align-items-center">
-                <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); modalRef.current.showModal();}}>Login</button>
-              </div>
-              </section>
-            </main>
-          </div>
-        ):(
-          <form method='POST' action='/' onSubmit={handleSubmit}>
-            <div className={`card ${(pageLayout.main && pageLayout.aside) ? 'card-main-aside' : (pageLayout.main ? 'card-main' : 'card-aside')}`}>
-              {pageLayout.main &&
-                (
-                  <main style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
-                    <section class="deckofcards">
-                      {tmpVisor}
-                      {tmpVisor2}
-                      {submitted}
-                      <div ref={myCarouselRef} className='d-carousel d-w-full'>
-                        {
-                          (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
-                            <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                            : ''
-                        }
-                        {cards.map((card, index) => {
-                          const active = index === activeCard;
-                          return (
-                            <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                              <div className="d-w-full">
+          (
+            <div className={`card card-main`}>
+              <main>
+                <section className="navigation d-flex align-items-center flex-column">
+                  <div className="mt-auto d-flex align-items-center flex-column login-spacer">
+                    <h1 className="login-spacer">Login necessário</h1>
+                    <p>Esta página tem acesso restrito.</p>
+                    <p>Clique no botão abaixo para realizar o login.</p>
+                  </div>
+                  <div className="mt-auto d-flex align-items-center">
+                    <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); modalRef.current.showModal(); }}>Login</button>
+                  </div>
+                </section>
+              </main>
+            </div>
+          ) : (
+            <form method='POST' action='/' onSubmit={handleSubmit}>
+              <div className={`card ${(pageLayout.main && pageLayout.aside) ? 'card-main-aside' : (pageLayout.main ? 'card-main' : 'card-aside')}`}>
+                {pageLayout.main &&
+                  (
+                    <main style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
+                      <section class="deckofcards">
+                        {tmpVisor}
+                        {tmpVisor2}
+                        {submitted}
+                        <div ref={myCarouselRef} className='d-carousel d-w-full'>
+                          {
+                            (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
+                              <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                              : ''
+                          }
+                          {cards.map((card, index) => {
+                            const active = index === activeCard;
+                            return (
+                              <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                                 <div className="d-w-full">
-                                  <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                  <div className="d-w-full">
+                                    <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                  </div>
                                 </div>
                               </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                      <section className="navigation d-flex align-items-end flex-column">
+                        {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
+                          <>
+                            <div className="d-flex d-space-x-4 align-items-center">
+                              <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                              <span class="glyphicon glyphicon-option-horizontal"></span>
+                              <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                    <section className="navigation d-flex align-items-end flex-column">
-                      {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
-                        <>
-                          <div className="d-flex d-space-x-4 align-items-center">
-                            <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
-                            <span class="glyphicon glyphicon-option-horizontal"></span>
-                            <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
-                          </div>
-                          <div className="mt-auto d-flex align-items-end d-space-x-4">
-                            {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
-                              <a href={documentRendered.documentUrl} download>
-                                <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
-                              </a>
-                            )}
-                            <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-                            <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
-                          </div>
-                        </>
-                      )}
-                    </section>
-                  </main>
-                )}
+                            <div className="mt-auto d-flex align-items-end d-space-x-4">
+                              {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
+                                <a href={documentRendered.documentUrl} download>
+                                  <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
+                                </a>
+                              )}
+                              <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+                              <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                            </div>
+                          </>
+                        )}
+                      </section>
+                    </main>
+                  )}
 
-              {pageLayout.aside &&
-                (
-                  <aside>
-                    <div className="card-navigation">
-                      {pageLayout.aside_summary && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}
-                      {pageLayout.aside_preview && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
-                      {pageLayout.aside_attachments && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
-                      {pageLayout.aside_versions && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>)}
-                    </div>
-                    <div className="card-summary">
-                      {
-                        (panelView == 'summary') &&
-                        (
-                          (documentDetails && documentDetails.currentVersion) ?
-                            (
-                              <>
-                                <Description description={{
-                                  "version": documentDetails.currentVersion,
-                                  "author": documentDetails.author,
-                                  "created_at": documentDetails.created_at,
-                                  "updated_at": documentDetails.updated_at,
-                                  "description": documentDetails.description
-                                }} />
-                                <Summary cards={cards} activeCard={activeCard} />
-                              </>
-                            )
-                            :
-                            (
-                              <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                            )
-                        )
-                      }{
-                        (panelView == 'preview') &&
-                        (isPreviewLoaded ? (
-                          previewDocURL ? (
-                            <div className="previewWrapper">
-                              <iframe
-                                id='preview'
-                                name='preview'
-                                width='100%'
-                                height='100%'
-                                frameBorder='0'
-                                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
-                              ></iframe>
-                              <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
-                                <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                              </button>
-                            </div>
+                {pageLayout.aside &&
+                  (
+                    <aside>
+                      <div className="card-navigation">
+                        {pageLayout.aside_summary && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); setPanelView('summary') }}>{(initialform.language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}
+                        {pageLayout.aside_preview && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'} ${(previewDocURL == '') && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('preview') }}>{(initialform.language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
+                        {pageLayout.aside_attachments && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('attachments') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
+                        {pageLayout.aside_versions && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'versions' && 'active'} ${(isLoadingDocumentDetails) && 'disabled'}`} onClick={(e) => { e.preventDefault(); setPanelView('versions') }}>{(isLoadingDocumentDetails) && (<span class="spinner-border right-margin-5px"></span>)} {(initialform.language === 'en_us') ? 'Previous versions' : 'Versões anteriores'}</button>)}
+                      </div>
+                      <div className="card-summary">
+                        {
+                          (panelView == 'summary') &&
+                          (
+                            (documentDetails && documentDetails.currentVersion) ?
+                              (
+                                <>
+                                  <Description description={{
+                                    "version": documentDetails.currentVersion,
+                                    "author": documentDetails.author,
+                                    "created_at": documentDetails.created_at,
+                                    "updated_at": documentDetails.updated_at,
+                                    "description": documentDetails.description
+                                  }} />
+                                  <Summary cards={cards} activeCard={activeCard} />
+                                </>
+                              )
+                              :
+                              (
+                                <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+                              )
+                          )
+                        }{
+                          (panelView == 'preview') &&
+                          (isPreviewLoaded ? (
+                            previewDocURL ? (
+                              <div className="previewWrapper">
+                                <iframe
+                                  id='preview'
+                                  name='preview'
+                                  width='100%'
+                                  height='100%'
+                                  frameBorder='0'
+                                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDocURL)}`}
+                                ></iframe>
+                                <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); generatePreview() }}>
+                                  <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                                </button>
+                              </div>
+                            ) :
+                              (
+                                <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                              )
                           ) :
                             (
-                              <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Prévia não disponível</div>
+                              <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                             )
-                        ) :
-                          (
-                            <div className="d-flex align-items-center preview-warning d-p-4"><span class="spinner-border right-margin-5px"></span>Gerando prévia...</div>
                           )
-                        )
-                      }{
-                        (panelView == 'attachments') &&
-                        (
-                          <>
-                            <AttachmentsPanel docdetails={documentDetails} />
-                          </>
-                        )
-                      }{
-                        (panelView == 'versions') &&
-                        (
-                          <>
-                            <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
-                          </>
-                        )
-                      }
-                    </div>
-                  </aside>
-                )}
-            </div>
-          </form>
-        )}      
+                        }{
+                          (panelView == 'attachments') &&
+                          (
+                            <>
+                              <AttachmentsPanel docdetails={documentDetails} />
+                            </>
+                          )
+                        }{
+                          (panelView == 'versions') &&
+                          (
+                            <>
+                              <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
+                            </>
+                          )
+                        }
+                      </div>
+                    </aside>
+                  )}
+              </div>
+            </form>
+          )}
       </div>
     </div>
   )
