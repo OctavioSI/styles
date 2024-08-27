@@ -48,6 +48,15 @@ body {
   top: 15px;
 }
 
+.looplex-header span {
+  padding-left: 60px;
+  position: absolute;
+  font-size: 21px;
+  color: #FFF;
+  font-weight: bold;
+  margin-top: -7px;
+}
+
 .container-form {
   position: relative;
   height: calc(100vh - 65px);

@@ -301,7 +301,7 @@ async function send2Code(payload) {
     formId: payload.formId,
     documentId: payload.documentId ? payload.documentId : '',
     tenant: payload.tenant ? payload.tenant : 'looplex.com.br',
-    formData: payload.datacontent
+    formData: payload.formData
   };
 
   // execute
@@ -503,7 +503,7 @@ async function fetchDocumentDetailsService(inputs) {
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error fetching form: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
+    throw new Error('Error fetching form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
@@ -685,7 +685,7 @@ async function saveNewVersionService(inputs) {
 
     }
   } catch (e) {
-    throw new Error('Error saving new version: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
+    throw new Error('Error saving new version: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
@@ -714,7 +714,7 @@ async function send2CodeService(inputs) {
       return res.data.output;
     }
   } catch (e) {
-    throw new Error('Error sending to Code: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
+    throw new Error('Error sending to Code: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
@@ -741,7 +741,7 @@ async function downloadDocumentService(inputs) {
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
-    throw new Error('Error fetching form: ' + e.message  + '  *****  ' + JSON.stringify(e.response.data))
+    throw new Error('Error fetching form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
