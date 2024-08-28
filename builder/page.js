@@ -40,7 +40,6 @@
           "template": "", // template do documento que será renderizado -- obrigatório se não houver um document (se eu usar o saveAsNewDocument por exemplo)
           "formTitle": "Assembler 3.0: Contrato de Fornecimento", // Título do formulário
           "base_filename": 'file.docx', // base do documento que será renderizado
-          "formTitle": "Form Looplex", // Título do formulario
           "author": props.embeddedData.author ? props.embeddedData.author : 'Looplex',
           "language": "pt_br" // idioma do formulário (en_us ou pt_br)
       },
@@ -1637,6 +1636,10 @@
         <link
           rel='stylesheet'
           href='https://octaviosi.github.io/styles/css/carousel-looplex.v1.1.css'
+        />
+        <link
+          rel='stylesheet'
+          href='https://octaviosi.github.io/styles/css/builder.css'
         />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />

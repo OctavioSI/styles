@@ -7,22 +7,129 @@
         "title": "Configurações Gerais",
         "description": "Nesta seção você deve definir as configurações gerais do formulário que será criado.",
         "properties": {
-          "form_title": {
-            "type": "string",
-            "title": "Título do Formulário"
+          "formInfo": {
+            "type": "object",
+            "title": "Informações do Formulário",
+            "properties": {
+              "formID": {
+                "type": "string",
+                "title": "ID do Formulário"
+              },
+              "tenant": {
+                "type": "string",
+                "title": "Tenant",
+                "default": "looplex.com.br"
+              },
+              "form_title": {
+                "type": "string",
+                "title": "Título do Formulário"
+              },
+              "form_description": {
+                "type": "string",
+                "title": "Descrição do Formulário"
+              }
+            }
           },
-          "form_description": {
-            "type": "string",
-            "title": "Descrição do Formulário"
+          "formProps": {
+            "type": "object",
+            "title": "Propriedades do Formulário",
+            "properties": {
+              "formPreset": {
+                "type": "string",
+                "title": "Pré-definição",
+                "enum": [
+                  "Assembler",
+                  "Work Request"
+                ]
+              },
+              "showAside": {
+                "type": "string",
+                "title": "Exibir Painel Lateral?",
+                "enum": [
+                  "Sim",
+                  "Não"
+                ],
+                "default": "Sim"
+              }
+            },
+            "dependencies": {
+              "showAside": {
+                "oneOf": [
+                  {
+                    "properties": {
+                      "showAside": {
+                        "enum": [
+                          "Não"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "showAside": {
+                        "enum": [
+                          "Sim"
+                        ]
+                      },
+                      "asidePanel": {
+                        "type": "object",
+                        "title": "Seções do Painel Lateral",
+                        "properties": {
+                          "showSummary": {
+                            "type": "boolean",
+                            "title": "Sumário"
+                          },
+                          "showPreview": {
+                            "type": "boolean",
+                            "title": "Pré-visualização"
+                          },
+                          "showAttachments": {
+                            "type": "boolean",
+                            "title": "Anexos"
+                          },
+                          "showVersions": {
+                            "type": "boolean",
+                            "title": "Versões Anteriores"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
           }
         }
       },
       "uiSchema": {
-        "form_description": {
-          "ui:widget": "textarea"
-        },
         "ui:submitButtonOptions": {
           "norender": true
+        },
+        "formInfo": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "formID": {
+                "classNames": "col-md-6"
+              },
+              "tenant": {
+                "classNames": "col-md-6"
+              }
+            },
+            {
+              "form_title": {
+                "classNames": "col-md-12"
+              }
+            },
+            {
+              "form_description": {
+                "classNames": "col-md-12"
+              }
+            }
+          ],
+          "form_description": {
+            "ui:widget": "textarea"
+          }
         }
       },
       "formData": {}
