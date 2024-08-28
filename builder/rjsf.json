@@ -1,0 +1,31 @@
+{
+  "cards": [
+    {
+      "cardId": "generalinfo",
+      "schema": {
+        "type": "object",
+        "title": "Configurações Gerais",
+        "description": "Nesta seção você deve definir as configurações gerais do formulário que será criado.",
+        "properties": {
+          "form_title": {
+            "type": "string",
+            "title": "Título do Formulário"
+          },
+          "form_description": {
+            "type": "string",
+            "title": "Descrição do Formulário"
+          }
+        }
+      },
+      "uiSchema": {
+        "form_description": {
+          "ui:widget": "textarea"
+        },
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "formData": {}
+    }
+  ]
+}

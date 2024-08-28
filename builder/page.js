@@ -100,7 +100,7 @@
     onSubmitAction: props.embeddedData.onSubmitAction ? props.embeddedData.onSubmitAction : 'saveAsNewVersion',
     codeDestination: props.embeddedData.codeDestination ? props.embeddedData.codeDestination : '',
     base_filename: props.embeddedData.base_filename ? props.embeddedData.base_filename : 'file.docx',
-    formTitle: props.embeddedData.formTitle ? props.embeddedData.formTitle : "Form Looplex",
+    formTitle: props.embeddedData.formTitle ? props.embeddedData.formTitle : "No-code RJSF Builder",
     template: props.embeddedData.template,
     author: props.embeddedData.author ? props.embeddedData.author : 'Looplex',
     language: props.embeddedData.language ? props.embeddedData.language : 'pt_br'
@@ -286,7 +286,8 @@
   // Rodando apenas uma vez no início do form
   useEffect(() => {
     if (!initialform.id) {
-      setSchema()
+      let originalcards = setSchema()
+      setCards(originalcards)
       return
     };
     const maxAttempts = 3; // maximo de retries nas requests
@@ -1723,14 +1724,14 @@
                               <span class="glyphicon glyphicon-option-horizontal"></span>
                               <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                             </div>
-                            <div className="mt-auto d-flex align-items-end d-space-x-4">
-                              {(documentRendered && documentRendered.hasOwnProperty('documentUrl')) && (
-                                <a href={documentRendered.documentUrl} download>
-                                  <button type="button" className={"btn btn-outline-secondary"} >Baixar</button>
-                                </a>
-                              )}
-                              <button type="button" className={`btn btn-outline-primary ${(!isReady2Submit || isRendering || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, true) }}>{(isRendering || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((initialform.language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-                              <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                            <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                              <div className="mt-auto d-flex align-items-start d-space-x-4">
+                                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'New Card' : 'Novo Card'))}</button>
+                              </div>
+                              <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+                              <div className="mt-auto d-flex align-items-end d-space-x-4">
+                                <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                              </div>
                             </div>
                           </>
                         )}
@@ -1751,7 +1752,7 @@
                         {
                           (panelView == 'schema') &&
                           (
-                              <span>Schema Aqui</span>
+                            <span>Schema Aqui</span>
                           )
                         }{
                           (panelView == 'preview') &&
@@ -1776,7 +1777,7 @@
                                   );
                                 })}
                               </div>
-                          </section>
+                            </section>
                           )
                         }{
                           (panelView == 'versions') &&
