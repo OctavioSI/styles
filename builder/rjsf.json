@@ -11,14 +11,19 @@
             "type": "object",
             "title": "Informações do Formulário",
             "properties": {
-              "formID": {
-                "type": "string",
-                "title": "ID do Formulário"
-              },
               "tenant": {
                 "type": "string",
                 "title": "Tenant",
                 "default": "looplex.com.br"
+              },
+              "form_language": {
+                "type": "string",
+                "title": "Idioma",
+                "enum": [
+                  "Português",
+                  "Inglês"
+                ],
+                "default": "Português"
               },
               "form_title": {
                 "type": "string",
@@ -40,7 +45,12 @@
                 "enum": [
                   "Assembler",
                   "Work Request"
-                ]
+                ],
+                "default": "Assembler"
+              },
+              "template": {
+                "type": "string",
+                "title": "Docx do modelo a ser renderizado"
               },
               "showAside": {
                 "type": "string",
@@ -98,6 +108,75 @@
                 ]
               }
             }
+          },
+          "formAction": {
+            "type": "object",
+            "title": "Ações do Formulário",
+            "properties": {
+              "calledAction": {
+                "type": "string",
+                "title": "Ação a ser executada",
+                "description": "O que devemos fazer quando o usuário submeter o Formulário?",
+                "enum": [
+                  "Salvar como Nova Versão",
+                  "Criar um Novo Documento",
+                  "Executar um Code",
+                  "Apenas Renderizar o Documento"
+                ]
+              }
+            },
+            "dependencies": {
+              "calledAction": {
+                "oneOf": [
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Salvar como Nova Versão"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Criar um Novo Documento"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Executar um Code"
+                        ]
+                      },
+                      "calledActionDefinitions": {
+                        "type": "object",
+                        "title": "Definições da Execução da Ação",
+                        "properties": {
+                          "targetCode": {
+                            "type": "string",
+                            "title": "ID do Code a ser executado"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Apenas Renderizar o Documento"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
           }
         }
       },
@@ -109,10 +188,10 @@
           "ui:ObjectFieldTemplate": "layout",
           "ui:layout": [
             {
-              "formID": {
+              "tenant": {
                 "classNames": "col-md-6"
               },
-              "tenant": {
+              "form_language": {
                 "classNames": "col-md-6"
               }
             },
@@ -129,6 +208,11 @@
           ],
           "form_description": {
             "ui:widget": "textarea"
+          }
+        },
+        "formProps": {
+          "template": {
+            "ui:widget": "filepond"
           }
         }
       },

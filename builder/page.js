@@ -1238,6 +1238,34 @@
     modalRef.current.showModal();
   }
 
+  async function addNewCard2Deck() {
+    let tmpCards = cards;
+    let newCardBasicSchema = {
+      "title": "Novo Card",
+      "type": "object",
+      "description": "Insira as seções, conteúdo e definições que serão renderizadas no card correspondente no Formulário"
+    };
+    newCard = {
+      cardId: 'teste',
+      card_conditions: {},
+      scope: '',
+      dmnStructure: {},
+      schema: newCardBasicSchema,
+      uiSchema: {
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      formData: {},
+      tagName: 'div'
+    };
+    tmpCards.push(newCard);
+    setAllLoadedCards(tmpCards);
+    let newCards = setSchema(tmpCards)
+    setCards(newCards)
+    console.log(cards, JSON.stringify(cards))
+  }
+
   // executa a chamada que faz o salvamento de uma nova versão
   async function loginCases(username, password, domain) {
     let data = {
@@ -1729,7 +1757,7 @@
                             </div>
                             <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
                               <div className="mt-auto d-flex align-items-start d-space-x-4">
-                                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((initialform.language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((initialform.language === 'en_us') ? 'New Card' : 'Novo Card'))}</button>
+                                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); addNewCard2Deck();}}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((initialform.language === 'en_us') ? 'New Card' : 'Novo Card')}</button>
                               </div>
                               <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
                               <div className="mt-auto d-flex align-items-end d-space-x-4">
