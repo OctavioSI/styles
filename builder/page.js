@@ -1248,6 +1248,7 @@
     newCard = {
       cardId: 'teste',
       card_conditions: {},
+      cardType: 'formCard',
       scope: '',
       dmnStructure: {},
       schema: newCardBasicSchema,
@@ -1263,6 +1264,7 @@
     setAllLoadedCards(tmpCards);
     let newCards = setSchema(tmpCards)
     setCards(newCards)
+    alertModal("Novo Card", "", "Um novo card foi adicionado ao deck!", "")
     console.log(cards, JSON.stringify(cards))
   }
 
@@ -1641,6 +1643,76 @@
     return modal
   }
 
+  function FormCard(props){
+    let card = props.card
+    let formcard;
+    let sections = [1,2,3];
+    let sectionSchema = {
+      "schema": {
+        "title": "Seção de Formulário",
+        "type": "object",
+        "properties": {
+          "section":{
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "title": "ID da Seção",
+                "default": ""
+              },
+              "display": {
+                "type": "string",
+                "title": "Nome de exibição da Seção",
+                "default": ""
+              },
+              "description": {
+                "type": "string",
+                "title": "Descrição da Seção",
+                "default": ""
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "section": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "id": {
+                "classNames": "col-md-6"
+              },
+              "display": {
+                "classNames": "col-md-6"
+              }
+            },
+            {
+              "description": {
+                "classNames": "col-md-12"
+              }
+            }
+          ]
+        }
+      }
+    }
+    if(card.hasOwnProperty('cardType') && card.cardType === 'formCard'){
+      formcard =  <div className="section-card">
+                    {
+                      sections.map(section => (
+                        <Form {...sectionSchema} liveValidate/>
+                      ))
+                    }
+                  </div>
+    }else{
+      formcard = <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+    }
+
+    return formcard
+  }
+
   /*******************************************************************
    * Renderização da Tela
    * 
@@ -1738,9 +1810,7 @@
                             return (
                               <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                                 <div className="d-w-full">
-                                  <div className="d-w-full">
-                                    <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
-                                  </div>
+                                  <FormCard card={card}></FormCard>
                                 </div>
                               </div>
                             );
