@@ -1245,10 +1245,18 @@
       "type": "object",
       "description": "Insira as seções, conteúdo e definições que serão renderizadas no card correspondente no Formulário"
     };
+    let sections = [
+      {
+        "id": makeid(5),
+        "name": "Nova Seção",
+        "description": "Nova Seção do Formulário"
+      }
+    ];
     newCard = {
-      cardId: 'teste',
+      cardId: makeid(3),
       card_conditions: {},
       cardType: 'formCard',
+      cardSections: sections,
       scope: '',
       dmnStructure: {},
       schema: newCardBasicSchema,
@@ -1643,32 +1651,31 @@
     return modal
   }
 
-  function FormCard(props){
-    let card = props.card
-    let formcard;
-    let sections = [1,2,3];
+  function SectionContent(props){
+    let section = props.section
     let sectionSchema = {
       "schema": {
-        "title": "Seção de Formulário",
+        "title": section.name ? section.name : "Nova Seção",
         "type": "object",
         "properties": {
           "section":{
+            "title": "Dados da Seção",
             "type": "object",
             "properties": {
               "id": {
                 "type": "string",
                 "title": "ID da Seção",
-                "default": ""
+                "default": section.id ? section.id : ""
               },
               "display": {
                 "type": "string",
                 "title": "Nome de exibição da Seção",
-                "default": ""
+                "default": section.name ? section.name : ""
               },
               "description": {
                 "type": "string",
                 "title": "Descrição da Seção",
-                "default": ""
+                "default": section.description ? section.description : ""
               }
             }
           }
@@ -1698,11 +1705,22 @@
         }
       }
     }
+    return <Form {...sectionSchema} liveValidate/>
+  }
+
+  function FormCard(props){
+    let card = props.card
+    let formcard;
+    
     if(card.hasOwnProperty('cardType') && card.cardType === 'formCard'){
+      let sections = card.hasOwnProperty('cardSections') && card.cardSections.length > 0 ? card.cardSections : []
       formcard =  <div className="section-card">
+                    <div className="section-card-title">
+                      Card {card.cardId}
+                    </div>
                     {
                       sections.map(section => (
-                        <Form {...sectionSchema} liveValidate/>
+                        <SectionContent section={section}></SectionContent>
                       ))
                     }
                   </div>
