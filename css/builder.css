@@ -7,7 +7,7 @@ legend#root__title::before{
 section.navigation {
   border-top: 3px solid #FAFAFA;
 }
-.section-card form {
+.section-card-content {
   border: 1px solid #CCCCCC;
   padding: 12px;
   margin-bottom: 24px;

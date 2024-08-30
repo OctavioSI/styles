@@ -1276,6 +1276,27 @@
     console.log(cards, JSON.stringify(cards))
   }
 
+  async function addNewSection2Card(card) {
+    let tmpCards = cards;
+    let newCardSection = {
+      "id": makeid(5),
+      "name": "Nova Seção",
+      "description": "Nova Seção do Formulário"
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, newCardSections;
+    if(findCard && findCard.length > 0){
+      findCardIdx = tmpCards.indexOf(findCard[0]);      
+      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+        findCard[0].cardSections.push(newCardSection)
+      }
+      tmpCards[findCardIdx] = findCard[0];
+    }
+    setAllLoadedCards(tmpCards);
+    let newCards = setSchema(tmpCards)
+    setCards(newCards)
+  }
+
   // executa a chamada que faz o salvamento de uma nova versão
   async function loginCases(username, password, domain) {
     let data = {
@@ -1720,9 +1741,13 @@
                     </div>
                     {
                       sections.map(section => (
-                        <SectionContent section={section}></SectionContent>
+                        <div className="section-card-content">
+                          <SectionContent section={section}></SectionContent>
+                          <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewElement2Section(card, section); }}>Novo Elemento</button>
+                        </div>
                       ))
                     }
+                    <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewSection2Card(card); }}>Nova Seção</button>
                   </div>
     }else{
       formcard = <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
