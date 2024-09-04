@@ -19,3 +19,17 @@ section.navigation {
   font-size: 1.5em;
   margin-bottom: 12px;
 }
+.section-content-row {
+  border: 1px solid #CCC;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  background-color: #FFF;
+}
+.section-content-row-field {
+  border: 1px solid #CCC;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  background-color: #FAFAFA;
+}

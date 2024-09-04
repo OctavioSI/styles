@@ -1249,7 +1249,15 @@
       {
         "id": makeid(5),
         "name": "Nova Seção",
-        "description": "Nova Seção do Formulário"
+        "description": "Nova Seção do Formulário",
+        "rows": [
+          {
+            "id": makeid(5),
+            "name": "Nova Linha",
+            "description": "Nova Linha do Formulário",
+            "fields": []
+          }
+        ]
       }
     ];
     newCard = {
@@ -1281,20 +1289,103 @@
     let newCardSection = {
       "id": makeid(5),
       "name": "Nova Seção",
-      "description": "Nova Seção do Formulário"
+      "description": "Nova Seção do Formulário",
+      "rows": [
+        {
+          "id": makeid(5),
+          "name": "Nova Linha",
+          "description": "Nova Linha do Formulário",
+          "fields": []
+        }
+      ]
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
-    let findCardIdx, newCardSections;
+    let findCardIdx;
     if(findCard && findCard.length > 0){
       findCardIdx = tmpCards.indexOf(findCard[0]);      
-      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
-        findCard[0].cardSections.push(newCardSection)
-      }
+      findCard[0].cardSections.push(newCardSection);
       tmpCards[findCardIdx] = findCard[0];
     }
     setAllLoadedCards(tmpCards);
     let newCards = setSchema(tmpCards)
     setCards(newCards)
+  }
+
+  async function addNewRow2Section(card, section) {
+    console.log("Adding new row...Card...", card)
+    console.log("Adding new row...section...", section)
+    let tmpCards = cards;
+    let newSectionRow = {
+      "id": makeid(5),
+      "name": "Nova Linha",
+      "description": "Nova Linha do Formulário",
+      "fields": []
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if(findCard && findCard.length > 0){
+      findCardIdx = tmpCards.indexOf(findCard[0]);      
+      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+        let cardSections = findCard[0].cardSections;
+        // Vamos encontrar a section que estou incluindo nova linha agora
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if(findSection && findSection.length > 0){
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          findSection[0].rows.push(newSectionRow)
+          tmpCards[findCardIdx].cardSections[findSectionIdx] = findSection[0];
+          setAllLoadedCards(tmpCards);
+          let newCards = setSchema(tmpCards)
+          setCards(newCards)
+        }
+      }
+    }
+  }
+
+  async function addNewField2Row(card, section, row) {
+    console.log('New Field to card...', card)
+    console.log('New Field to section...', section)
+    console.log('New Field to Row...', row)
+    let tmpCards = cards;
+    let newFieldElement = {
+      "id": makeid(5),
+      "name": "Novo Campo",
+      "description": "Novo Campo da Linha",
+      "columns": 12,      
+      "type": "string"
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if(findCard && findCard.length > 0){
+      findCardIdx = tmpCards.indexOf(findCard[0]);      
+      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+        let cardSections = findCard[0].cardSections;
+        // Vamos encontrar a section que estou incluindo nova linha agora
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if(findSection && findSection.length > 0){
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          if(findSection[0].rows && findSection[0].rows.length > 0){
+            let sectionRows = findSection[0].rows;
+            console.log('aqui 001')
+            let findRow = sectionRows.filter(r => r.id === row.id);
+            console.log('aqui 002')
+            if(findRow && findRow.length > 0){
+              console.log('aqui 003')
+              let findRowIdx = sectionRows.indexOf(findRow[0]);
+              console.log('aqui 004')
+              if(!findRow[0].hasOwnProperty('fields')) findRow[0].fields = [];
+              console.log('aqui 005')
+              findRow[0].fields.push(newFieldElement);
+              console.log('aqui 006')
+              tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields;
+              console.log('tmpCards', JSON.stringify(tmpCards))
+              setAllLoadedCards(tmpCards);
+              let newCards = setSchema(tmpCards)
+              setCards(newCards)
+            }
+          } 
+        }
+      }
+    }
   }
 
   // executa a chamada que faz o salvamento de uma nova versão
@@ -1673,6 +1764,7 @@
   }
 
   function SectionContent(props){
+    let card = props.card
     let section = props.section
     let sectionSchema = {
       "schema": {
@@ -1726,7 +1818,127 @@
         }
       }
     }
-    return <Form {...sectionSchema} liveValidate/>
+
+    let sectioncontent = <Form {...sectionSchema} liveValidate/>
+
+    if(section.hasOwnProperty('rows') && section.rows.length >0){
+      let rows = section.rows;
+      sectioncontent = <div className="section-content-wrapper">
+                          <Form {...sectionSchema} liveValidate/>
+                          <div className="section-content-rows-wrapper">
+                          {
+                            rows.map(row => (
+                              <div className="section-content-row">
+                                <SectionRow card={card} section={section} row={row}></SectionRow>
+                              </div>
+                            ))
+                          }
+                          </div>
+                      </div>
+    }
+
+    return sectioncontent
+  }
+
+  function SectionRow(props){
+    let card = props.card
+    let section = props.section
+    let row = props.row
+    let fields = row.fields ? row.fields : []
+    let rowcontent = <div>
+                          {row.name}
+                          {
+                            fields.map(field => (
+                              <div className="section-content-row-field">
+                                <SectionRowField field={field}></SectionRowField>
+                              </div>
+                            ))
+                          }
+                          <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewField2Row(card, section, row); }}>Novo Campo</button>
+                     </div>
+    return rowcontent
+  }
+
+  function SectionRowField(props){
+    let field = props.field
+    let fieldSchema = {
+      "schema": {
+        "title": field.name ? field.name : "Novo Campo",
+        "type": "object",
+        "properties": {
+          "section":{
+            "title": "Dados do Campo",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "title": "ID do Campo",
+                "default": field.id ? field.id : ""
+              },
+              "display": {
+                "type": "string",
+                "title": "Nome de exibição do Campo",
+                "default": field.name ? field.name : ""
+              },
+              "description": {
+                "type": "string",
+                "title": "Descrição do Campo",
+                "default": field.description ? field.description : ""
+              },
+              "type": {
+                "type": "string",
+                "title": "Tipo do Campo",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "string"
+                    ],
+                    "title": "String"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "boolean"
+                    ],
+                    "title": "Booleano"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "section": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "id": {
+                "classNames": "col-md-6"
+              },
+              "display": {
+                "classNames": "col-md-6"
+              }
+            },
+            {
+              "description": {
+                "classNames": "col-md-6"
+              },
+              "type": {
+                "classNames": "col-md-6"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+    let fieldcontent = <Form {...fieldSchema} liveValidate/>
+    return fieldcontent
   }
 
   function FormCard(props){
@@ -1742,8 +1954,8 @@
                     {
                       sections.map(section => (
                         <div className="section-card-content">
-                          <SectionContent section={section}></SectionContent>
-                          <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewElement2Section(card, section); }}>Novo Elemento</button>
+                          <SectionContent card={card} section={section}></SectionContent>
+                          <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Nova Linha</button>
                         </div>
                       ))
                     }
