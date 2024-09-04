@@ -1248,13 +1248,13 @@
     let sections = [
       {
         "id": makeid(5),
-        "name": "Nova Seção",
-        "description": "Nova Seção do Formulário",
+        "name": "Seção",
+        "description": "Seção do Formulário",
         "rows": [
           {
             "id": makeid(5),
-            "name": "Nova Linha",
-            "description": "Nova Linha do Formulário",
+            "name": "Linha do Formulário",
+            "description": "Linha do Formulário",
             "fields": []
           }
         ]
@@ -1288,13 +1288,13 @@
     let tmpCards = cards;
     let newCardSection = {
       "id": makeid(5),
-      "name": "Nova Seção",
-      "description": "Nova Seção do Formulário",
+      "name": "Seção",
+      "description": "Seção do Formulário",
       "rows": [
         {
           "id": makeid(5),
-          "name": "Nova Linha",
-          "description": "Nova Linha do Formulário",
+          "name": "Linha do Formulário",
+          "description": "Linha do Formulário",
           "fields": []
         }
       ]
@@ -1317,8 +1317,8 @@
     let tmpCards = cards;
     let newSectionRow = {
       "id": makeid(5),
-      "name": "Nova Linha",
-      "description": "Nova Linha do Formulário",
+      "name": "Linha do Formulário",
+      "description": "Linha do Formulário",
       "fields": []
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
@@ -1348,8 +1348,8 @@
     let tmpCards = cards;
     let newFieldElement = {
       "id": makeid(5),
-      "name": "Novo Campo",
-      "description": "Novo Campo da Linha",
+      "name": "Campo do Formulário",
+      "description": "Campo do Formulário",
       "columns": 12,      
       "type": "string"
     };
@@ -1365,19 +1365,12 @@
           findSectionIdx = cardSections.indexOf(findSection[0]);
           if(findSection[0].rows && findSection[0].rows.length > 0){
             let sectionRows = findSection[0].rows;
-            console.log('aqui 001')
             let findRow = sectionRows.filter(r => r.id === row.id);
-            console.log('aqui 002')
             if(findRow && findRow.length > 0){
-              console.log('aqui 003')
               let findRowIdx = sectionRows.indexOf(findRow[0]);
-              console.log('aqui 004')
               if(!findRow[0].hasOwnProperty('fields')) findRow[0].fields = [];
-              console.log('aqui 005')
               findRow[0].fields.push(newFieldElement);
-              console.log('aqui 006')
               tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields;
-              console.log('tmpCards', JSON.stringify(tmpCards))
               setAllLoadedCards(tmpCards);
               let newCards = setSchema(tmpCards)
               setCards(newCards)
@@ -1846,7 +1839,7 @@
     let row = props.row
     let fields = row.fields ? row.fields : []
     let rowcontent = <div>
-                          {row.name}
+                          <div className="section-content-row-title">{row.name}</div>
                           {
                             fields.map(field => (
                               <div className="section-content-row-field">
@@ -1863,7 +1856,7 @@
     let field = props.field
     let fieldSchema = {
       "schema": {
-        "title": field.name ? field.name : "Novo Campo",
+        "title": field.name ? field.name : "Campo de Formulário",
         "type": "object",
         "properties": {
           "section":{
@@ -1955,11 +1948,11 @@
                       sections.map(section => (
                         <div className="section-card-content">
                           <SectionContent card={card} section={section}></SectionContent>
-                          <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Nova Linha</button>
+                          <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Adicionar Linha</button>
                         </div>
                       ))
                     }
-                    <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewSection2Card(card); }}>Nova Seção</button>
+                    <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewSection2Card(card); }}>Adicionar Seção</button>
                   </div>
     }else{
       formcard = <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />

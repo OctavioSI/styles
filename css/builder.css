@@ -26,6 +26,11 @@ section.navigation {
   margin-bottom: 12px;
   background-color: #FFF;
 }
+.section-content-row-title{
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-bottom: 12px;
+}
 .section-content-row-field {
   border: 1px solid #CCC;
   padding: 12px;
