@@ -1878,6 +1878,48 @@
                 "title": "Descrição do Campo",
                 "default": field.description ? field.description : ""
               },
+              "colsize": {
+                "type": "string",
+                "title": "Tamanho do Campo (n/12)",
+                "default": field.colsize ? field.colsize : "12",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "12"
+                    ],
+                    "title": "Form inteiro (12/12)"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "6"
+                    ],
+                    "title": "Metade do Form (6/12)"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "4"
+                    ],
+                    "title": "Um terço do Form (4/12)"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "3"
+                    ],
+                    "title": "Um quarto do Form (3/12)"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "2"
+                    ],
+                    "title": "Um sexto do Form (2/12)"
+                  },
+                ]
+              },
               "type": {
                 "type": "string",
                 "title": "Tipo do Campo",
@@ -1897,6 +1939,10 @@
                     "title": "Booleano"
                   }
                 ]
+              },
+              "defaultvalue": {
+                "type": "string",
+                "title": "Valor Padrão"
               }
             }
           }
@@ -1921,11 +1967,22 @@
               "description": {
                 "classNames": "col-md-6"
               },
+              "colsize": {
+                "classNames": "col-md-6"
+              }
+            },
+            {
               "type": {
+                "classNames": "col-md-6"
+              },
+              "defaultvalue": {
                 "classNames": "col-md-6"
               }
             }
-          ]
+          ],
+          "colsize": {
+            'ui:help': 'A soma das larguras dos campos deve sempre ser 12 por linha'
+          }
         }
       }
     }
