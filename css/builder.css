@@ -13,6 +13,7 @@ section.navigation {
   margin-bottom: 24px;
   border-radius: 6px;
   background-color: #FAFAFA;
+  position:relative;
 }
 .section-card-title {
   font-weight: bold;
@@ -38,6 +39,7 @@ section.navigation {
   border-radius: 6px;
   margin-bottom: 12px;
   background-color: #FAFAFA;
+  position:relative;
 }
 .help-block {
   font-size: .8em;

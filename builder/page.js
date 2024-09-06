@@ -1905,7 +1905,7 @@
                           (conditions.length > 0) && 
                             conditions.map(condition => (
                               <div className="section-content-row">
-                                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); addNewCondition2Card(card); }}><span className="glyphicon glyphicon-trash"></span></button>
+                                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeCardCondition(card, condition); }}><span className="glyphicon glyphicon-trash"></span></button>
                                 <CardConditions condition={condition}></CardConditions>
                               </div>
                             ))
@@ -2038,6 +2038,7 @@
                           {
                             rows.map(row => (
                               <div className="section-content-row">
+                                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRow(card, row); }}><span className="glyphicon glyphicon-trash"></span></button>
                                 <SectionRow card={card} section={section} row={row}></SectionRow>
                               </div>
                             ))
@@ -2069,6 +2070,7 @@
                         {
                           fields.map(field => (
                             <div className="section-content-row-field">
+                              <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRowField(card, row, field); }}><span className="glyphicon glyphicon-trash"></span></button>
                               <SectionRowField field={field}></SectionRowField>
                             </div>
                           ))
@@ -2291,6 +2293,7 @@
                     {
                       sections.map(section => (
                         <div className="section-card-content">
+                          <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeCardSection(card, section); }}><span className="glyphicon glyphicon-trash"></span></button>
                           <SectionContent card={card} section={section}></SectionContent>
                           <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
                           <div className="mt-auto d-flex align-items-end d-space-x-4">
