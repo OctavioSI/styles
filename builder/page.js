@@ -2061,6 +2061,7 @@
     rowcontent = <div>
                     <div className="section-content-row-title">{row.name}</div>
                     <div className="section-content-row-field">
+                        <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRowField(card, row, field); }}><span className="glyphicon glyphicon-trash"></span></button>
                         <SectionDefinition row={row}></SectionDefinition>
                     </div>
                 </div>
