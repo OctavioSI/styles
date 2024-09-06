@@ -860,10 +860,12 @@
     return;
   }
 
-  function handleCancelDialog(event) {
+  function handleCancelDialog(event, cancancel = false) {
     event.preventDefault();
     console.log('closed', event)
-    return false
+    if(!cancancel){
+      return false
+    }
   }
 
   /*******************************************
@@ -1238,6 +1240,54 @@
     modalRef.current.showModal();
   }
 
+  // Exibe o modal para formato de salvar nova versão
+  function createNewDefinitionModal() {
+    let modal = {
+      title: "Nova definição",
+      description: "Deseja criar uma nova definição com base nesta seção?",
+      rjsf: {
+        "schema": {
+          "type": "object",
+          "required": [
+            "version",
+            "description"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "ID da definição"
+            },
+            "tenant": {
+              "type": "string",
+              "title": "Tenant"
+            },
+            "description": {
+              "type": "string",
+              "title": "Descrição"
+            }
+          }
+        },
+        "uiSchema": {
+          "ui:submitButtonOptions": {
+            "norender": false,
+            "submitText": "Enviar"
+          },
+          "description": {
+            "ui:widget": "textarea",
+            "ui:placeholder": "Forneça uma breve descrição para esta definição",
+            "ui:options": {
+              "rows": 5
+            }
+          }
+        }
+      },
+      action: "createNewDefinition",
+      canCancel: true
+    }
+    setModal(modal);
+    modalRef.current.showModal();
+  }
+
   async function addNewCard2Deck() {
     let tmpCards = cards;
     let newCardBasicSchema = {
@@ -1250,19 +1300,13 @@
         "id": makeid(5),
         "name": "Seção",
         "description": "Seção do Formulário",
-        "rows": [
-          {
-            "id": makeid(5),
-            "name": "Linha do Formulário",
-            "description": "Linha do Formulário",
-            "fields": []
-          }
-        ]
+        "rows": []
       }
     ];
     newCard = {
       cardId: makeid(3),
       card_conditions: {},
+      cardConditionsRules: [],
       cardType: 'formCard',
       cardSections: sections,
       scope: '',
@@ -1290,14 +1334,7 @@
       "id": makeid(5),
       "name": "Seção",
       "description": "Seção do Formulário",
-      "rows": [
-        {
-          "id": makeid(5),
-          "name": "Linha do Formulário",
-          "description": "Linha do Formulário",
-          "fields": []
-        }
-      ]
+      "rows": []
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx;
@@ -1312,13 +1349,12 @@
   }
 
   async function addNewRow2Section(card, section) {
-    console.log("Adding new row...Card...", card)
-    console.log("Adding new row...section...", section)
     let tmpCards = cards;
     let newSectionRow = {
       "id": makeid(5),
       "name": "Linha do Formulário",
       "description": "Linha do Formulário",
+      "type": "row",
       "fields": []
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
@@ -1341,10 +1377,39 @@
     }
   }
 
+  async function addNewDefinition2Section(card, section) {
+    let tmpCards = cards;
+    let newSectionDef = {
+      "id": makeid(5),
+      "name": "Definição na Seção do Formulário",
+      "description": "Uma definição de seção",
+      "type": "definition"
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if(findCard && findCard.length > 0){
+      findCardIdx = tmpCards.indexOf(findCard[0]);      
+      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+        let cardSections = findCard[0].cardSections;
+        // Vamos encontrar a section que estou incluindo nova linha agora
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if(findSection && findSection.length > 0){
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          findSection[0].rows.push(newSectionDef)
+          tmpCards[findCardIdx].cardSections[findSectionIdx] = findSection[0];
+          setAllLoadedCards(tmpCards);
+          let newCards = setSchema(tmpCards)
+          setCards(newCards)
+        }
+      }
+    }
+  }
+
+  async function createNewDefinition(card, section){
+    createNewDefinitionModal()
+  }
+
   async function addNewField2Row(card, section, row) {
-    console.log('New Field to card...', card)
-    console.log('New Field to section...', section)
-    console.log('New Field to Row...', row)
     let tmpCards = cards;
     let newFieldElement = {
       "id": makeid(5),
@@ -1378,6 +1443,27 @@
           } 
         }
       }
+    }
+  }
+
+  async function addNewCondition2Card(card) {
+    let tmpCards = cards;
+    let newConditionElement = {
+      "variable": "",
+      "value": ""
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx;
+    if(findCard && findCard.length > 0){
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if(!findCard[0].hasOwnProperty('cardConditionsRules')){
+         findCard[0].cardConditionsRules = []
+      }
+      findCard[0].cardConditionsRules.push(newConditionElement);
+      tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules;
+      setAllLoadedCards(tmpCards);
+      let newCards = setSchema(tmpCards)
+      setCards(newCards)
     }
   }
 
@@ -1756,6 +1842,136 @@
     return modal
   }
 
+  function CardInfo(props){
+    let card = props.card
+    let cardSchema = {
+      "schema": {
+        "title": "Configurações do Card",
+        "type": "object",
+        "properties": {
+          "card":{
+            "title": "Informações do Card",
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "title": "ID do Card",
+                "default": card.cardId ? card.cardId : ""
+              },
+              "display": {
+                "type": "string",
+                "title": "Nome de exibição do Card",
+                "default": card.title ? card.title : ""
+              },
+              "description": {
+                "type": "string",
+                "title": "Descrição do Card",
+                "default": card.description ? card.description : ""
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "card": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "id": {
+                "classNames": "col-md-6"
+              },
+              "display": {
+                "classNames": "col-md-6"
+              }
+            },
+            {
+              "description": {
+                "classNames": "col-md-12"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+    let conditions = card.cardConditionsRules;
+    let cardcontent = <div className="section-content-wrapper">
+                        <Form {...cardSchema} liveValidate/>
+                        <div className="section-content-rows-wrapper">
+                        {
+                          (conditions.length > 0) && 
+                            conditions.map(condition => (
+                              <div className="section-content-row">
+                                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); addNewCondition2Card(card); }}><span className="glyphicon glyphicon-trash"></span></button>
+                                <CardConditions condition={condition}></CardConditions>
+                              </div>
+                            ))
+                        }
+                        </div>
+                        <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+                          <div className="mt-auto d-flex align-items-end d-space-x-4">
+                            <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewCondition2Card(card); }}>Nova Condição</button>
+                          </div>
+                        </div>
+                      </div>
+
+    return cardcontent
+  }
+
+  function CardConditions(props){
+    let condition = props.condition
+    let conditionSchema = {
+      "schema": {
+        "title": "Condição de Card",
+        "description": "Para que este card apareça, todas as condições devem ser verdadeiras",
+        "type": "object",
+        "properties": {
+          "condition":{
+            "title": "Condição",
+            "type": "object",
+            "properties": {
+              "conditionvar":{
+                "title": "Variável",
+                "type": "string",
+                "default": condition.variable ? condition.variable : ""
+              },
+              "conditionvalue": {
+                "title": "Valor",
+                "type": "string",
+                "default": condition.value ? condition.value : ""
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "condition": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "conditionvar": {
+                "classNames": "col-md-6"
+              },
+              "conditionvalue": {
+                "classNames": "col-md-6"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+    let conditioncontent = <Form {...conditionSchema} liveValidate/>
+    return conditioncontent
+  }
+
   function SectionContent(props){
     let card = props.card
     let section = props.section
@@ -1838,18 +2054,86 @@
     let section = props.section
     let row = props.row
     let fields = row.fields ? row.fields : []
-    let rowcontent = <div>
-                          <div className="section-content-row-title">{row.name}</div>
-                          {
-                            fields.map(field => (
-                              <div className="section-content-row-field">
-                                <SectionRowField field={field}></SectionRowField>
-                              </div>
-                            ))
-                          }
-                          <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewField2Row(card, section, row); }}>Novo Campo</button>
-                     </div>
+    let rowcontent;
+
+    if(row.type == 'definition'){
+    rowcontent = <div>
+                    <div className="section-content-row-title">{row.name}</div>
+                    <div className="section-content-row-field">
+                        <SectionDefinition row={row}></SectionDefinition>
+                    </div>
+                </div>
+    }else{ // Nova linha
+      rowcontent = <div>
+                        <div className="section-content-row-title">{row.name}</div>
+                        {
+                          fields.map(field => (
+                            <div className="section-content-row-field">
+                              <SectionRowField field={field}></SectionRowField>
+                            </div>
+                          ))
+                        }
+                        <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+                          <div className="mt-auto d-flex align-items-end d-space-x-4">
+                            <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewField2Row(card, section, row); }}>Novo Campo</button>
+                          </div>
+                        </div>
+                  </div>
+    }
     return rowcontent
+  }
+
+  function SectionDefinition(props){
+    let row = props.row
+    let loadedDefs = [
+      {
+        "type": "string",
+        "enum": [
+          "string"
+        ],
+        "title": "String"
+      },
+      {
+        "type": "string",
+        "enum": [
+          "boolean"
+        ],
+        "title": "Booleano"
+      }
+    ];
+    let definitionSchema = {
+      "schema": {
+        "title": "Definição",
+        "description": "Você deve escolher uma definição do banco de dados no campo abaixo, que fará parte do seu formulário",
+        "type": "object",
+        "properties": {
+          "definition":{
+            "title": "Escolha da Definição",
+            "type": "string",
+            "anyOf": loadedDefs
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "definition": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "definition": {
+                "classNames": "col-md-12"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+    let defcontent = <Form {...definitionSchema} liveValidate/>
+    return defcontent
   }
 
   function SectionRowField(props){
@@ -2001,11 +2285,23 @@
                     <div className="section-card-title">
                       Card {card.cardId}
                     </div>
+                    <div className="section-card-content">
+                      <CardInfo card={card}></CardInfo>
+                    </div>
                     {
                       sections.map(section => (
                         <div className="section-card-content">
                           <SectionContent card={card} section={section}></SectionContent>
-                          <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Adicionar Linha</button>
+                          <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                          <div className="mt-auto d-flex align-items-end d-space-x-4">
+                              <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); createNewDefinition(card, section); }}>Criar Definição</button>
+                            </div>
+                            <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+                            <div className="mt-auto d-flex align-items-end d-space-x-4">
+                              <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewDefinition2Section(card, section); }}>Adicionar Definição</button>
+                              <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Adicionar Linha</button>
+                            </div>
+                          </div>
                         </div>
                       ))
                     }
@@ -2059,10 +2355,16 @@
         <script>{`tailwind.config = {prefix: 'd-' }`}</script>
       </Head>
 
-      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog}>
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={(e) => { handleCancelDialog(e, modal.canCancel) }}>
         <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} />
         </div>
+        {
+          (modal.canCancel) &&
+            <form method="dialog" className="d-modal-backdrop">
+              <button>close</button>
+            </form>  
+        }
       </dialog>
 
       <dialog id="optionsmodal" className="d-modal" ref={alertRef} >

@@ -25,6 +25,7 @@ section.navigation {
   border-radius: 6px;
   margin-bottom: 12px;
   background-color: #FFF;
+  position:relative;
 }
 .section-content-row-title{
   font-weight: bold;
@@ -40,4 +41,9 @@ section.navigation {
 }
 .help-block {
   font-size: .8em;
+}
+.remove-icon{
+  position:absolute;
+  top: 12px;
+  right: 12px;
 }
