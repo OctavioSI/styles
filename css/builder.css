@@ -49,3 +49,7 @@ section.navigation {
   top: 12px;
   right: 12px;
 }
+.preview-form {
+  border: 2px dashed #CCCCCC;
+  height: 100%;
+}

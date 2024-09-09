@@ -107,7 +107,120 @@
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
   const [panelView, setPanelView] = useState('preview')
   const [cards, setCards] = useState([])
-  const [noCodeCards, setNoCodeCards] = useState([])
+  const [noCodeCards, setNoCodeCards] = useState([
+    {
+      "cardId": "newui-primeiro",
+      "card_conditions": {},
+      "schema": {
+        "title": "Partes",
+        "type": "object",
+        "properties": {
+          "strContratada": {
+            "required": [
+              "nome",
+              "cnpj"
+            ],
+            "title": "Contratada",
+            "type": "object",
+            "properties": {
+              "nome": {
+                "type": "string",
+                "title": "Nome"
+              },
+              "cnpj": {
+                "type": "string",
+                "title": "CNPJ"
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "looplex.com.br",
+      "formData": {
+        "strContratada": {
+          "nome": "Octavio Ietsugu",
+          "cnpj": "01.002.122/0001-16"
+        }
+      },
+      "priorFormData": {
+        "strContratada": {
+          "nome": "Octavio Ietsugu",
+          "cnpj": "01.002.122/0001-16"
+        }
+      },
+      "tagName": "div"
+    },
+    {
+      "cardId": "newui-segundo",
+      "card_conditions": {},
+      "dmnStructure": {},
+      "schema": {
+        "title": "Contratação",
+        "type": "object",
+        "properties": {
+          "strContrato": {
+            "title": "Prazo para aviso",
+            "type": "object",
+            "required": [
+              "prazoAvisoVolume"
+            ],
+            "properties": {
+              "prazoAvisoVolume": {
+                "type": "number",
+                "title": "Prazo para aviso do volume"
+              },
+              "inicioVigencia": {
+                "type": "string",
+                "title": "Início da Vigência"
+              },
+              "fimVigencia": {
+                "type": "string",
+                "title": "Final da Vigência"
+              },
+              "prazoPagamento": {
+                "type": "number",
+                "title": "Prazo para Pagamento"
+              },
+              "dataExp": {
+                "type": "string",
+                "title": "Data de Assinatura"
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "looplex.com.br",
+      "formData": {
+        "strContrato": {
+          "prazoAvisoVolume": 5,
+          "inicioVigencia": "01/12/2024",
+          "fimVigencia": "31/12/2024",
+          "prazoPagamento": 7,
+          "dataExp": "02 de julho de 2024"
+        }
+      },
+      "priorFormData": {
+        "strContrato": {
+          "prazoAvisoVolume": 5,
+          "inicioVigencia": "01/12/2024",
+          "fimVigencia": "31/12/2024",
+          "prazoPagamento": 7,
+          "dataExp": "02 de julho de 2024"
+        }
+      },
+      "tagName": "div"
+    }
+  ])
   const [allLoadedCards, setAllLoadedCards] = useState([])
   const [preloadCards, setPreloadCards] = useState([])
   const [modal, setModal] = useState({
@@ -863,7 +976,7 @@
   function handleCancelDialog(event, cancancel = false) {
     event.preventDefault();
     console.log('closed', event)
-    if(!cancancel){
+    if (!cancancel) {
       return false
     }
   }
@@ -1338,14 +1451,27 @@
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx;
-    if(findCard && findCard.length > 0){
-      findCardIdx = tmpCards.indexOf(findCard[0]);      
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
       findCard[0].cardSections.push(newCardSection);
       tmpCards[findCardIdx] = findCard[0];
     }
     setAllLoadedCards(tmpCards);
     let newCards = setSchema(tmpCards)
     setCards(newCards)
+  }
+
+  async function removeCardSection(card, section) {
+    let tmpCards = cards;
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      tmpCards[findCardIdx].cardSections = findCard[0].cardSections.filter(cd => cd.id !== section.id)
+      setAllLoadedCards(tmpCards);
+      let newCards = setSchema(tmpCards)
+      setCards(newCards)
+    }
   }
 
   async function addNewRow2Section(card, section) {
@@ -1359,16 +1485,37 @@
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx, findSectionIdx;
-    if(findCard && findCard.length > 0){
-      findCardIdx = tmpCards.indexOf(findCard[0]);      
-      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
         let cardSections = findCard[0].cardSections;
         // Vamos encontrar a section que estou incluindo nova linha agora
         let findSection = cardSections.filter(sec => sec.id === section.id);
-        if(findSection && findSection.length > 0){
+        if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
           findSection[0].rows.push(newSectionRow)
-          tmpCards[findCardIdx].cardSections[findSectionIdx] = findSection[0];
+          tmpCards[findCardIdx].cardSections[findSectionIdx].rows = findSection[0].rows;
+          setAllLoadedCards(tmpCards);
+          let newCards = setSchema(tmpCards)
+          setCards(newCards)
+        }
+      }
+    }
+  }
+
+  async function removeSectionRow(card, section, row) {
+    let tmpCards = cards;
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
+        let cardSections = findCard[0].cardSections;
+        // Vamos encontrar a section que estou incluindo nova linha agora
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if (findSection && findSection.length > 0) {
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          tmpCards[findCardIdx].cardSections[findSectionIdx].rows = findSection[0].rows.filter(r => r.id !== row.id);
           setAllLoadedCards(tmpCards);
           let newCards = setSchema(tmpCards)
           setCards(newCards)
@@ -1387,13 +1534,13 @@
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx, findSectionIdx;
-    if(findCard && findCard.length > 0){
-      findCardIdx = tmpCards.indexOf(findCard[0]);      
-      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
         let cardSections = findCard[0].cardSections;
         // Vamos encontrar a section que estou incluindo nova linha agora
         let findSection = cardSections.filter(sec => sec.id === section.id);
-        if(findSection && findSection.length > 0){
+        if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
           findSection[0].rows.push(newSectionDef)
           tmpCards[findCardIdx].cardSections[findSectionIdx] = findSection[0];
@@ -1405,7 +1552,7 @@
     }
   }
 
-  async function createNewDefinition(card, section){
+  async function createNewDefinition(card, section) {
     createNewDefinitionModal()
   }
 
@@ -1415,32 +1562,60 @@
       "id": makeid(5),
       "name": "Campo do Formulário",
       "description": "Campo do Formulário",
-      "columns": 12,      
+      "columns": 12,
       "type": "string"
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx, findSectionIdx;
-    if(findCard && findCard.length > 0){
-      findCardIdx = tmpCards.indexOf(findCard[0]);      
-      if(findCard[0].cardSections && findCard[0].cardSections.length > 0 ){
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
         let cardSections = findCard[0].cardSections;
         // Vamos encontrar a section que estou incluindo nova linha agora
         let findSection = cardSections.filter(sec => sec.id === section.id);
-        if(findSection && findSection.length > 0){
+        if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
-          if(findSection[0].rows && findSection[0].rows.length > 0){
+          if (findSection[0].rows && findSection[0].rows.length > 0) {
             let sectionRows = findSection[0].rows;
             let findRow = sectionRows.filter(r => r.id === row.id);
-            if(findRow && findRow.length > 0){
+            if (findRow && findRow.length > 0) {
               let findRowIdx = sectionRows.indexOf(findRow[0]);
-              if(!findRow[0].hasOwnProperty('fields')) findRow[0].fields = [];
+              if (!findRow[0].hasOwnProperty('fields')) findRow[0].fields = [];
               findRow[0].fields.push(newFieldElement);
               tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields;
               setAllLoadedCards(tmpCards);
               let newCards = setSchema(tmpCards)
               setCards(newCards)
             }
-          } 
+          }
+        }
+      }
+    }
+  }
+
+  async function removeSectionRowField(card, section, row, field) {
+    let tmpCards = cards;
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
+        let cardSections = findCard[0].cardSections;
+        // Vamos encontrar a section que estou incluindo nova linha agora
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if (findSection && findSection.length > 0) {
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          if (findSection[0].rows && findSection[0].rows.length > 0) {
+            let sectionRows = findSection[0].rows;
+            let findRow = sectionRows.filter(r => r.id === row.id);
+            if (findRow && findRow.length > 0) {
+              let findRowIdx = sectionRows.indexOf(findRow[0]);
+              tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields.filter(fd => fd.id !== field.id);
+              setAllLoadedCards(tmpCards);
+              let newCards = setSchema(tmpCards)
+              setCards(newCards)
+            }
+          }
         }
       }
     }
@@ -1449,18 +1624,32 @@
   async function addNewCondition2Card(card) {
     let tmpCards = cards;
     let newConditionElement = {
+      "id": makeid(5),
       "variable": "",
       "value": ""
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx;
-    if(findCard && findCard.length > 0){
+    if (findCard && findCard.length > 0) {
       findCardIdx = tmpCards.indexOf(findCard[0]);
-      if(!findCard[0].hasOwnProperty('cardConditionsRules')){
-         findCard[0].cardConditionsRules = []
+      if (!findCard[0].hasOwnProperty('cardConditionsRules')) {
+        findCard[0].cardConditionsRules = []
       }
       findCard[0].cardConditionsRules.push(newConditionElement);
       tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules;
+      setAllLoadedCards(tmpCards);
+      let newCards = setSchema(tmpCards)
+      setCards(newCards)
+    }
+  }
+
+  async function removeCardCondition(card, condition) {
+    let tmpCards = cards;
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules.filter(cd => cd.id !== condition.id)
       setAllLoadedCards(tmpCards);
       let newCards = setSchema(tmpCards)
       setCards(newCards)
@@ -1842,14 +2031,14 @@
     return modal
   }
 
-  function CardInfo(props){
+  function CardInfo(props) {
     let card = props.card
     let cardSchema = {
       "schema": {
         "title": "Configurações do Card",
         "type": "object",
         "properties": {
-          "card":{
+          "card": {
             "title": "Informações do Card",
             "type": "object",
             "properties": {
@@ -1899,30 +2088,30 @@
 
     let conditions = card.cardConditionsRules;
     let cardcontent = <div className="section-content-wrapper">
-                        <Form {...cardSchema} liveValidate/>
-                        <div className="section-content-rows-wrapper">
-                        {
-                          (conditions.length > 0) && 
-                            conditions.map(condition => (
-                              <div className="section-content-row">
-                                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeCardCondition(card, condition); }}><span className="glyphicon glyphicon-trash"></span></button>
-                                <CardConditions condition={condition}></CardConditions>
-                              </div>
-                            ))
-                        }
-                        </div>
-                        <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-                          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
-                          <div className="mt-auto d-flex align-items-end d-space-x-4">
-                            <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewCondition2Card(card); }}>Nova Condição</button>
-                          </div>
-                        </div>
-                      </div>
+      <Form {...cardSchema} liveValidate />
+      <div className="section-content-rows-wrapper">
+        {
+          (conditions.length > 0) &&
+          conditions.map(condition => (
+            <div className="section-content-row">
+              <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeCardCondition(card, condition); }}><span className="glyphicon glyphicon-trash"></span></button>
+              <CardConditions condition={condition}></CardConditions>
+            </div>
+          ))
+        }
+      </div>
+      <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+        <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+        <div className="mt-auto d-flex align-items-end d-space-x-4">
+          <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewCondition2Card(card); }}>Nova Condição</button>
+        </div>
+      </div>
+    </div>
 
     return cardcontent
   }
 
-  function CardConditions(props){
+  function CardConditions(props) {
     let condition = props.condition
     let conditionSchema = {
       "schema": {
@@ -1930,11 +2119,11 @@
         "description": "Para que este card apareça, todas as condições devem ser verdadeiras",
         "type": "object",
         "properties": {
-          "condition":{
+          "condition": {
             "title": "Condição",
             "type": "object",
             "properties": {
-              "conditionvar":{
+              "conditionvar": {
                 "title": "Variável",
                 "type": "string",
                 "default": condition.variable ? condition.variable : ""
@@ -1968,11 +2157,11 @@
       }
     }
 
-    let conditioncontent = <Form {...conditionSchema} liveValidate/>
+    let conditioncontent = <Form {...conditionSchema} liveValidate />
     return conditioncontent
   }
 
-  function SectionContent(props){
+  function SectionContent(props) {
     let card = props.card
     let section = props.section
     let sectionSchema = {
@@ -1980,7 +2169,7 @@
         "title": section.name ? section.name : "Nova Seção",
         "type": "object",
         "properties": {
-          "section":{
+          "section": {
             "title": "Dados da Seção",
             "type": "object",
             "properties": {
@@ -2028,66 +2217,65 @@
       }
     }
 
-    let sectioncontent = <Form {...sectionSchema} liveValidate/>
+    let sectioncontent = <Form {...sectionSchema} liveValidate />
 
-    if(section.hasOwnProperty('rows') && section.rows.length >0){
+    if (section.hasOwnProperty('rows') && section.rows.length > 0) {
       let rows = section.rows;
       sectioncontent = <div className="section-content-wrapper">
-                          <Form {...sectionSchema} liveValidate/>
-                          <div className="section-content-rows-wrapper">
-                          {
-                            rows.map(row => (
-                              <div className="section-content-row">
-                                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRow(card, row); }}><span className="glyphicon glyphicon-trash"></span></button>
-                                <SectionRow card={card} section={section} row={row}></SectionRow>
-                              </div>
-                            ))
-                          }
-                          </div>
-                      </div>
+        <Form {...sectionSchema} liveValidate />
+        <div className="section-content-rows-wrapper">
+          {
+            rows.map(row => (
+              <div className="section-content-row">
+                <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRow(card, section, row); }}><span className="glyphicon glyphicon-trash"></span></button>
+                <SectionRow card={card} section={section} row={row}></SectionRow>
+              </div>
+            ))
+          }
+        </div>
+      </div>
     }
 
     return sectioncontent
   }
 
-  function SectionRow(props){
+  function SectionRow(props) {
     let card = props.card
     let section = props.section
     let row = props.row
     let fields = row.fields ? row.fields : []
     let rowcontent;
 
-    if(row.type == 'definition'){
-    rowcontent = <div>
-                    <div className="section-content-row-title">{row.name}</div>
-                    <div className="section-content-row-field">
-                        <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRowField(card, row, field); }}><span className="glyphicon glyphicon-trash"></span></button>
-                        <SectionDefinition row={row}></SectionDefinition>
-                    </div>
-                </div>
-    }else{ // Nova linha
+    if (row.type == 'definition') {
       rowcontent = <div>
-                        <div className="section-content-row-title">{row.name}</div>
-                        {
-                          fields.map(field => (
-                            <div className="section-content-row-field">
-                              <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRowField(card, row, field); }}><span className="glyphicon glyphicon-trash"></span></button>
-                              <SectionRowField field={field}></SectionRowField>
-                            </div>
-                          ))
-                        }
-                        <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-                          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
-                          <div className="mt-auto d-flex align-items-end d-space-x-4">
-                            <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewField2Row(card, section, row); }}>Novo Campo</button>
-                          </div>
-                        </div>
-                  </div>
+        <div className="section-content-row-title">{row.name}</div>
+        <div className="section-content-row-field">
+          <SectionDefinition row={row}></SectionDefinition>
+        </div>
+      </div>
+    } else { // Nova linha
+      rowcontent = <div>
+        <div className="section-content-row-title">{row.name}</div>
+        {
+          fields.map(field => (
+            <div className="section-content-row-field">
+              <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeSectionRowField(card, section, row, field); }}><span className="glyphicon glyphicon-trash"></span></button>
+              <SectionRowField field={field}></SectionRowField>
+            </div>
+          ))
+        }
+        <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+          <div className="mt-auto d-flex align-items-end d-space-x-4">
+            <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewField2Row(card, section, row); }}>Novo Campo</button>
+          </div>
+        </div>
+      </div>
     }
     return rowcontent
   }
 
-  function SectionDefinition(props){
+  function SectionDefinition(props) {
     let row = props.row
     let loadedDefs = [
       {
@@ -2111,7 +2299,7 @@
         "description": "Você deve escolher uma definição do banco de dados no campo abaixo, que fará parte do seu formulário",
         "type": "object",
         "properties": {
-          "definition":{
+          "definition": {
             "title": "Escolha da Definição",
             "type": "string",
             "anyOf": loadedDefs
@@ -2135,18 +2323,18 @@
       }
     }
 
-    let defcontent = <Form {...definitionSchema} liveValidate/>
+    let defcontent = <Form {...definitionSchema} liveValidate />
     return defcontent
   }
 
-  function SectionRowField(props){
+  function SectionRowField(props) {
     let field = props.field
     let fieldSchema = {
       "schema": {
         "title": field.name ? field.name : "Campo de Formulário",
         "type": "object",
         "properties": {
-          "section":{
+          "section": {
             "title": "Dados do Campo",
             "type": "object",
             "properties": {
@@ -2274,44 +2462,44 @@
       }
     }
 
-    let fieldcontent = <Form {...fieldSchema} liveValidate/>
+    let fieldcontent = <Form {...fieldSchema} liveValidate />
     return fieldcontent
   }
 
-  function FormCard(props){
+  function FormCard(props) {
     let card = props.card
     let formcard;
-    
-    if(card.hasOwnProperty('cardType') && card.cardType === 'formCard'){
+
+    if (card.hasOwnProperty('cardType') && card.cardType === 'formCard') {
       let sections = card.hasOwnProperty('cardSections') && card.cardSections.length > 0 ? card.cardSections : []
-      formcard =  <div className="section-card">
-                    <div className="section-card-title">
-                      Card {card.cardId}
-                    </div>
-                    <div className="section-card-content">
-                      <CardInfo card={card}></CardInfo>
-                    </div>
-                    {
-                      sections.map(section => (
-                        <div className="section-card-content">
-                          <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeCardSection(card, section); }}><span className="glyphicon glyphicon-trash"></span></button>
-                          <SectionContent card={card} section={section}></SectionContent>
-                          <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-                          <div className="mt-auto d-flex align-items-end d-space-x-4">
-                              <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); createNewDefinition(card, section); }}>Criar Definição</button>
-                            </div>
-                            <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
-                            <div className="mt-auto d-flex align-items-end d-space-x-4">
-                              <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewDefinition2Section(card, section); }}>Adicionar Definição</button>
-                              <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Adicionar Linha</button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    }
-                    <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewSection2Card(card); }}>Adicionar Seção</button>
-                  </div>
-    }else{
+      formcard = <div className="section-card">
+        <div className="section-card-title">
+          Card {card.cardId}
+        </div>
+        <div className="section-card-content">
+          <CardInfo card={card}></CardInfo>
+        </div>
+        {
+          sections.map(section => (
+            <div className="section-card-content">
+              <button type="button" className={`btn btn-danger remove-icon`} onClick={(e) => { e.preventDefault(); removeCardSection(card, section); }}><span className="glyphicon glyphicon-trash"></span></button>
+              <SectionContent card={card} section={section}></SectionContent>
+              <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                <div className="mt-auto d-flex align-items-end d-space-x-4">
+                  <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); createNewDefinition(card, section); }}>Criar Definição</button>
+                </div>
+                <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+                <div className="mt-auto d-flex align-items-end d-space-x-4">
+                  <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewDefinition2Section(card, section); }}>Adicionar Definição</button>
+                  <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewRow2Section(card, section); }}>Adicionar Linha</button>
+                </div>
+              </div>
+            </div>
+          ))
+        }
+        <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewSection2Card(card); }}>Adicionar Seção</button>
+      </div>
+    } else {
       formcard = <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
     }
 
@@ -2365,9 +2553,9 @@
         </div>
         {
           (modal.canCancel) &&
-            <form method="dialog" className="d-modal-backdrop">
-              <button>close</button>
-            </form>  
+          <form method="dialog" className="d-modal-backdrop">
+            <button>close</button>
+          </form>
         }
       </dialog>
 
@@ -2438,7 +2626,7 @@
                             </div>
                             <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
                               <div className="mt-auto d-flex align-items-start d-space-x-4">
-                                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); addNewCard2Deck();}}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((initialform.language === 'en_us') ? 'New Card' : 'Novo Card')}</button>
+                                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); addNewCard2Deck(); }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((initialform.language === 'en_us') ? 'Loading...' : 'Carregando...') : ((initialform.language === 'en_us') ? 'New Card' : 'Novo Card')}</button>
                               </div>
                               <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
                               <div className="mt-auto d-flex align-items-end d-space-x-4">
@@ -2469,27 +2657,38 @@
                         }{
                           (panelView == 'preview') &&
                           (
+                            <>
+                            <div className="preview-form">
                             <section class="deckofcards">
-                              <div ref={noCodeCarouselRef} className='d-carousel d-w-full'>
-                                {
-                                  (noCodeCards.length === 0) ?
-                                    <span>Prévia indisponível</span>
-                                    : ''
-                                }
-                                {noCodeCards.map((card, index) => {
-                                  const active = index === activeCard;
-                                  return (
-                                    <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                                      <div className="d-w-full">
+                                <div ref={noCodeCarouselRef} className='d-carousel d-w-full'>
+                                  {
+                                    (noCodeCards.length === 0) ?
+                                      <span>Prévia indisponível</span>
+                                      : ''
+                                  }
+                                  {noCodeCards.map((card, index) => {
+                                    const active = index === activeCard;
+                                    return (
+                                      <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                                         <div className="d-w-full">
-                                          <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                          <div className="d-w-full">
+                                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                    );
+                                  })}
+                                </div>
                             </section>
+                            <section className="navigation d-flex align-items-end flex-column">
+                            <div className="d-flex d-space-x-4 align-items-center">
+                              <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                              <span class="glyphicon glyphicon-option-horizontal"></span>
+                              <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                            </div>
+                            </section>
+                            </div>
+                            </>
                           )
                         }{
                           (panelView == 'versions') &&
