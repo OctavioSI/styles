@@ -64,7 +64,7 @@ section.navigation {
   color: darkorange;
 }
 .preview-json .boolean {
-  color: blue;
+  color: yellow;
 }
 .preview-json .null {
   color: magenta;
