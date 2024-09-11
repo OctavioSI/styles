@@ -58,7 +58,7 @@ section.navigation {
   color: #FFF;
 }
 .preview-json .string {
-  color: green;
+  color: #c98a74;
 }
 .preview-json .number {
   color: darkorange;
@@ -70,5 +70,5 @@ section.navigation {
   color: magenta;
 }
 .preview-json .key {
-  color: red;
+  color: #94dcfd;
 }
