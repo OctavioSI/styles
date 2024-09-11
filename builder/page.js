@@ -244,6 +244,7 @@
     aside_versions: true
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [noCodeIsLoading, setNoCodeIsLoading] = useState(false)
   const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRendering, setIsRendering] = useState(false)
@@ -256,9 +257,11 @@
   const [loginAccessRules, setLoginAccessRules] = useState({})
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
+  const [noCodeActiveCard, setNoCodeActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
   const noCodeCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
+  const noCodeActiveCardRef = useRef(null);
   const modalRef = useRef(null);
   const alertRef = useRef(null);
 
@@ -390,6 +393,35 @@
       counter += 1;
     }
     return result;
+  }
+
+  // Faz o syntax Hightlight para JSON
+  function syntaxHighlight(json) {
+    if (typeof json != "string") {
+      json = JSON.stringify(json, null, "\t");
+    }
+    json = json
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return json.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      function(match) {
+        var cls = "number";
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = "key";
+          } else {
+            cls = "string";
+          }
+        } else if (/true|false/.test(match)) {
+          cls = "boolean";
+        } else if (/null/.test(match)) {
+          cls = "null";
+        }
+        return '<span class="' + cls + '">' + match + "</span>";
+      }
+    );
   }
 
   /*******************************************
@@ -615,6 +647,15 @@
       inline: "nearest"
     });
   }, [activeCard]);
+
+  useEffect(() => {
+    console.log('CHANGED!')
+    noCodeActiveCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+      inline: "nearest"
+    });
+  }, [noCodeActiveCard]);
 
   /*******************************************
    * Funções de manipulação de Cards e Card Deck
@@ -898,6 +939,65 @@
       // console.log('activeCardRef', activeCardRef)
     }
   }
+
+  // Chamado sempre que o botão de próxima ou anterior for clicado
+  async function handleClickEventNoCard(cardId, formData, cardTargetIdx) {
+    console.log('cardId', cardId)
+    console.log('formData', formData)
+    console.log('cardTargetIdx', cardTargetIdx)
+    
+    let load_card = noCodeCards.filter(cd => cd.cardId === cardId)[0];
+    let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
+    let canRunDMN = true;
+    let dmnVariables = {};
+
+    if (dmnStructure && !isObjectEmpty(dmnStructure)) {
+      console.log('Tem uma DMN aqui...')
+      for (let dmnInput in dmnStructure.map) {
+        dmnVariables[dmnInput] = dmnStructure.map[dmnInput].split('.').reduce(
+          (preview, current) => preview[current],
+          formData
+        )
+      }
+      // setTmpVisor(JSON.stringify(dmnVariables))
+      for (let [dmnInput2, localVar] of Object.entries(dmnStructure.map)) {
+        if (dmnVariables[dmnInput2] === undefined) {
+          canRunDMN = false;
+        }
+      }
+      if (canRunDMN) {
+        console.log('Can run DMN')
+        setNoCodeIsLoading(true)
+        let arrayIDs = await runDMN(formData, dmnStructure, load_card['partitionKey'])
+        if (arrayIDs && arrayIDs.length > 0 && arrayIDs[0].cardID) {
+          let current_ID = arrayIDs[0].cardID
+          let scope = arrayIDs[0].scope
+          let card_conditions = (arrayIDs[0].card_conditions && arrayIDs[0].card_conditions !== '') ? JSON.parse(arrayIDs[0].card_conditions) : {};
+
+          let card_loaded = noCodeCards.filter(cd => cd.cardId === current_ID);
+          if (!card_loaded || card_loaded.length === 0) {
+            await loadRemoteSchema(current_ID, cardId, formData, scope, card_conditions)
+            isLoadingRemoteSchema.current = false;
+          }
+          setNoCodeIsLoading(false)
+        } else {
+          setNoCodeIsLoading(false)
+
+        }
+      }
+    }
+
+    let nextState = setSchema(noCodeCards, cardId, formData)
+    setNoCodeCards(nextState)
+    console.log('noCodeCards', noCodeCards)
+    if (noCodeCards.length > 1) {
+      let moveLeft = Math.max(0, noCodeActiveCard - 1);
+      let moveRight = Math.min(noCodeCards.length - 1, noCodeActiveCard + 1);
+      setNoCodeActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
+      console.log('noCodeActiveCard',noCodeActiveCard)
+    }
+  }
+
   // Chamado sempre que o formulário for alterado
   async function handleChangeEvent(cardId, formData, fieldId) {
     // Quando altero qualquer campo do meu form, eu quero
@@ -1408,20 +1508,12 @@
       "type": "object",
       "description": "Insira as seções, conteúdo e definições que serão renderizadas no card correspondente no Formulário"
     };
-    let sections = [
-      {
-        "id": makeid(5),
-        "name": "Seção",
-        "description": "Seção do Formulário",
-        "rows": []
-      }
-    ];
-    newCard = {
+    let newCard = {
       cardId: makeid(3),
       card_conditions: {},
       cardConditionsRules: [],
       cardType: 'formCard',
-      cardSections: sections,
+      cardSections: [],
       scope: '',
       dmnStructure: {},
       schema: newCardBasicSchema,
@@ -1435,10 +1527,8 @@
     };
     tmpCards.push(newCard);
     setAllLoadedCards(tmpCards);
-    let newCards = setSchema(tmpCards)
-    setCards(newCards)
+    setCards(setSchema(tmpCards))
     alertModal("Novo Card", "", "Um novo card foi adicionado ao deck!", "")
-    console.log(cards, JSON.stringify(cards))
   }
 
   async function addNewSection2Card(card) {
@@ -1451,14 +1541,18 @@
     };
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx;
+    /**
+     * TODO -- ainda não conclusivo, mas o deck de preview apenas funciona o carousel se eu tiver a linha abaixo e 
+     * é ativado quando houver mais de uma seção (adicionar apenas a primeira seção ainda não libera o carousel)
+     */
+
     if (findCard && findCard.length > 0) {
       findCardIdx = tmpCards.indexOf(findCard[0]);
-      findCard[0].cardSections.push(newCardSection);
+      findCard[0].cardSections.push(newCardSection); // Essa linha faz com que o carousel direito funcione (? :/) -- Qual o motivo?
       tmpCards[findCardIdx] = findCard[0];
+      setAllLoadedCards(tmpCards);
+      setCards(setSchema(tmpCards))
     }
-    setAllLoadedCards(tmpCards);
-    let newCards = setSchema(tmpCards)
-    setCards(newCards)
   }
 
   async function removeCardSection(card, section) {
@@ -2506,6 +2600,14 @@
     return formcard
   }
 
+  function JSONStructureView(props){
+    let json = props.json
+    let jsonview = <div className="preview-json">
+      Teste
+    </div>
+    return jsonview
+  }
+
   /*******************************************************************
    * Renderização da Tela
    * 
@@ -2652,7 +2754,7 @@
                         {
                           (panelView == 'schema') &&
                           (
-                            <span>Schema Aqui</span>
+                            <JSONStructureView json=""></JSONStructureView>
                           )
                         }{
                           (panelView == 'preview') &&
@@ -2667,13 +2769,11 @@
                                       : ''
                                   }
                                   {noCodeCards.map((card, index) => {
-                                    const active = index === activeCard;
+                                    const active = index === noCodeActiveCard;
                                     return (
-                                      <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
+                                      <div id={`nocodecard_${index}`} key={`nocodecard_${index}`} className='d-carousel-item d-w-full' ref={active ? noCodeActiveCardRef : null}>
                                         <div className="d-w-full">
-                                          <div className="d-w-full">
-                                            <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
-                                          </div>
+                                           <Form {...card} liveValidate />
                                         </div>
                                       </div>
                                     );
@@ -2682,9 +2782,9 @@
                             </section>
                             <section className="navigation d-flex align-items-end flex-column">
                             <div className="d-flex d-space-x-4 align-items-center">
-                              <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+                              <button className={`btn btn-outline-secondary btn-navigation ${((noCodeActiveCard - 1) < 0 || noCodeIsLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEventNoCard(noCodeCards[noCodeActiveCard].cardId, Object.assign({}, payloadFormData, noCodeCards[noCodeActiveCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
                               <span class="glyphicon glyphicon-option-horizontal"></span>
-                              <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+                              <button type="button" className={`btn btn-outline-secondary btn-navigation ${((noCodeActiveCard + 1) >= noCodeCards.length || noCodeIsLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEventNoCard(noCodeCards[noCodeActiveCard].cardId, Object.assign({}, payloadFormData, noCodeCards[noCodeActiveCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
                             </div>
                             </section>
                             </div>

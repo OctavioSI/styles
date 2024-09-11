@@ -53,3 +53,23 @@ section.navigation {
   border: 2px dashed #CCCCCC;
   height: 100%;
 }
+.preview-json pre {
+  outline: 1px solid #ccc;
+  padding: 5px;
+  margin: 15px;
+}
+.preview-json .string {
+  color: green;
+}
+.preview-json .number {
+  color: darkorange;
+}
+.preview-json .boolean {
+  color: blue;
+}
+.preview-json .null {
+  color: magenta;
+}
+.preview-json .key {
+  color: red;
+}
