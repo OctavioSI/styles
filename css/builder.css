@@ -53,12 +53,6 @@ section.navigation {
   border: 2px dashed #CCCCCC;
   height: 100%;
 }
-.preview-json {
-  border: 1px solid #CCCCCC;
-  background-color: #000;
-  padding: 12px;
-  color: #FFF;
-}
 .preview-json pre {
   outline: 1px solid #ccc;
   padding: 5px;

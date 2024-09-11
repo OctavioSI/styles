@@ -2603,7 +2603,11 @@
   function JSONStructureView(props){
     let json = props.json
     let jsonview = <div className="preview-json">
-      Teste
+        <pre
+        dangerouslySetInnerHTML={{
+          __html: syntaxHighlight(JSON.stringify(json, undefined, 4))
+        }}
+      />
     </div>
     return jsonview
   }
@@ -2754,7 +2758,7 @@
                         {
                           (panelView == 'schema') &&
                           (
-                            <JSONStructureView json=""></JSONStructureView>
+                            <JSONStructureView json={noCodeCards}></JSONStructureView>
                           )
                         }{
                           (panelView == 'preview') &&
