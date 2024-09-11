@@ -241,7 +241,7 @@
     aside_summary: true,
     aside_preview: true,
     aside_schema: true,
-    aside_versions: true
+    aside_versions: false // TODO
   })
   const [isLoading, setIsLoading] = useState(false)
   const [noCodeIsLoading, setNoCodeIsLoading] = useState(false)
