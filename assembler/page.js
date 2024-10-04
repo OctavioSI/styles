@@ -1,54 +1,64 @@
 /*******************************************************************
 * Carousel Padrão Flows
 * 
-* STATUS: Estável
+* STATUS: Em teste
 * 
 * CHANGELOG
 *
+* v. 1.2
+*   - send2Code:      Alteração no onSubmitActions para possibilitar que um code seja sempre
+*                     enviado desde que exista um codeDestination no payload. Se você desejar
+*                     apenas chamar o code sem criar nova versão ou novo documento, vc deve definir 
+*                     no onSubmitAction como "justRender". Removemos assim a opção "send2Code" no
+*                     onSubmitAction
+*
 * v. 1.1
-*   - Page:         Reorganização do documento e comentários adicionais para 
-*                   facilitar a leitura e entendimento
-*   - Login:        Autenticação utilizando o sistema de login do LawOffice. 
-*                   O acesso ao formulário é gerenciado pelo registro existente 
-*                   no CosmosDB (trabalho em progresso)
-*   - formLayout:   Agora é possível selecionar no registro do CosmosDB quais as 
-*                   telas estão disponíveis para esta visualização. 
-*   - saveAsNewDoc: Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
-*                   utilizado para criar um novo documento (por exemplo, quando usamos
-*                   um WorkRequest que é uma nova solicitação e não tem versões 
-*                   anteriores) ou para criar uma nova versão de um documento existente
-*   - send2Code:    Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
-*                   utilizado para disparar um outro Code. Para isso, você deve passar
-*                   no payload também um parâmetro codeDestination com o ID do code que
-*                   será chamado
-*   - preloaded:    Agora é possível pré-carregar cards remotos logo na inicialização
-*                   do formulário
+*   - Page:           Reorganização do documento e comentários adicionais para 
+*                     facilitar a leitura e entendimento
+*   - Login:          Autenticação utilizando o sistema de login do LawOffice. 
+*                     O acesso ao formulário é gerenciado pelo registro existente 
+*                     no CosmosDB (trabalho em progresso)
+*   - formLayout:     Agora é possível selecionar no registro do CosmosDB quais as 
+*                     telas estão disponíveis para esta visualização. 
+*   - saveAsNewDoc:   Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
+*                     utilizado para criar um novo documento (por exemplo, quando usamos
+*                     um WorkRequest que é uma nova solicitação e não tem versões 
+*                     anteriores) ou para criar uma nova versão de um documento existente
+*   - send2Code:      Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
+*                     utilizado para disparar um outro Code. Para isso, você deve passar
+*                     no payload também um parâmetro codeDestination com o ID do code que
+*                     será chamado
+*   - preloaded:      Agora é possível pré-carregar cards remotos logo na inicialização
+*                     do formulário
 *
 * v. 1.0
-*   - Carousel:     Formulário pode ser usado com cards, sendo possível 
-*                   passar os cards no arquivo rjsf na pasta ou montar
-*                   os cards no cosmosDB (container Workflows > rjsf-schema).
-*                   No cosmosDB agora é possível também passar apenas 1 card
-*                   ou o array cards[]
-*   - Layout:       Este formulário agora tem o Layout atualizado em linha
-*                   com o design definido para o Cases. O formulário é 
-*                   renderizado do lado esquerdo e o painel com propriedades
-*                   e outras funções fica do lado direito.
-*   - Aspose:       Na guia de versões anteriores é possível fazer a 
-*                   comparação do documento renderizado autualmente com 
-*                   versões salvas anteriormente. Usamos o Aspose para isso
-*   - Versões:      Versões anteriores são salvas no cosmosDB, com o formData
-*                   utilizado. É possível baixar o documento da versão e
-*                   realizar comparação com a versão renderizada atualmente.
-*   - Modal:        Foi implementado modal para ações específicas -- você
-*                   usar o modal como popup para alertas ou como popup de 
-*                   interação, que recebe um RJSF próprio.
-*   - Anexos:       Anexos enviados no formulário usando o Filepond são
-*                   salvos em pastas definitivas e com o link disponibilizado
-*                   na guia de Anexos do painel lateral
+*   - Carousel:       Formulário pode ser usado com cards, sendo possível 
+*                     passar os cards no arquivo rjsf na pasta ou montar
+*                     os cards no cosmosDB (container Workflows > rjsf-schema).
+*                     No cosmosDB agora é possível também passar apenas 1 card
+*                     ou o array cards[]
+*   - Layout:         Este formulário agora tem o Layout atualizado em linha
+*                     com o design definido para o Cases. O formulário é 
+*                     renderizado do lado esquerdo e o painel com propriedades
+*                     e outras funções fica do lado direito.
+*   - Aspose:         Na guia de versões anteriores é possível fazer a 
+*                     comparação do documento renderizado autualmente com 
+*                     versões salvas anteriormente. Usamos o Aspose para isso
+*   - Versões:        Versões anteriores são salvas no cosmosDB, com o formData
+*                     utilizado. É possível baixar o documento da versão e
+*                     realizar comparação com a versão renderizada atualmente.
+*   - Modal:          Foi implementado modal para ações específicas -- você
+*                     usar o modal como popup para alertas ou como popup de 
+*                     interação, que recebe um RJSF próprio.
+*   - Anexos:         Anexos enviados no formulário usando o Filepond são
+*                     salvos em pastas definitivas e com o link disponibilizado
+*                     na guia de Anexos do painel lateral
 *
 * BUG FIXES
 *
+*   - Arrumado problema de form que é carregado antes das abas laterais (o que causava problema de apagar 
+*     formData que estivesse em preenchimento antes do carregamento completo) -- Agora apenas abre o form quando 
+*     tudo estiver carregado.
 *   - Arrumado problema com dados de formData anteriores sumindo
 *   - Ajustado problema com troca de cards
 *   - Ajustado problema com carregamento de form quando não tem document
@@ -97,7 +107,6 @@
     *** onSubmitAction: 
       - 'saveAsNewVersion': Abre um modal para definir número da versão, título e descrição
       - 'saveAsNewDocument': Cria um novo registro de documento no Workflows/assembler
-      - 'send2Code': Pega o formData e envia tudo em um payload para um code determinado
       - 'justRender': Apenas renderiza o documento na página com base nas respostas do formulário
 
    * Após gerar acima, passamos no formulário como parâmetro payload, dessa forma:
@@ -882,12 +891,6 @@
             setIsSubmitting(false)
             alertModal("Obrigado!", "glyphicon-ok", "O formulário foi enviado com sucesso.", "")
             break;
-          case 'send2Code':
-            setIsSubmitting(true)
-            await send2Code();
-            setIsSubmitting(false)
-            alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
-            break;
           case 'justRender':
             setIsRendering(true)
             let render = await renderDocument();
@@ -898,6 +901,12 @@
           default:
             submitNewVersion()
             break;
+        }
+        if(initialform.codeDestination && initialform.codeDestination !== ''){
+          setIsSubmitting(true)
+          await send2Code();
+          setIsSubmitting(false)
+          // alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
         }
       }
     }
@@ -1789,22 +1798,25 @@
                         {submitted}
                         <div ref={myCarouselRef} className='d-carousel d-w-full'>
                           {
-                            (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
+                            (cards.length === 0 || isLoading || isLoadingDocumentDetails) ?
                               <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
                               : ''
                           }
-                          {cards.map((card, index) => {
-                            const active = index === activeCard;
-                            return (
-                              <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                                <div className="d-w-full">
-                                  <div className="d-w-full">
-                                    <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                          {
+                            (cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && 
+                              cards.map((card, index) => {
+                                const active = index === activeCard;
+                                return (
+                                  <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
+                                    <div className="d-w-full">
+                                      <div className="d-w-full">
+                                        <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            );
-                          })}
+                                );
+                              })
+                          }
                         </div>
                       </section>
                       <section className="navigation d-flex align-items-end flex-column">

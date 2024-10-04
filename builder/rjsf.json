@@ -43,10 +43,12 @@
                 "type": "string",
                 "title": "Pré-definição",
                 "enum": [
+                  "Sem pré-definição",
                   "Assembler",
-                  "Work Request"
+                  "Work Request",
+                  "Data Analyzer"
                 ],
-                "default": "Assembler"
+                "default": "Sem pré-definição"
               },
               "template": {
                 "type": "string",
@@ -160,6 +162,10 @@
                           "targetCode": {
                             "type": "string",
                             "title": "ID do Code a ser executado"
+                          },
+                          "commandCode": {
+                            "type": "string",
+                            "title": "Comando a ser executado no Code"
                           }
                         }
                       }
@@ -213,6 +219,21 @@
         "formProps": {
           "template": {
             "ui:widget": "filepond"
+          }
+        },
+        "formAction": {
+          "calledActionDefinitions": {
+            "ui:ObjectFieldTemplate": "layout",
+            "ui:layout": [
+              {
+                "targetCode": {
+                  "classNames": "col-md-6"
+                },
+                "commandCode": {
+                  "classNames": "col-md-6"
+                }
+              }
+            ]
           }
         }
       },

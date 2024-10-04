@@ -241,7 +241,7 @@
     aside_summary: true,
     aside_preview: true,
     aside_schema: true,
-    aside_versions: false // TODO
+    aside_versions: true
   })
   const [isLoading, setIsLoading] = useState(false)
   const [noCodeIsLoading, setNoCodeIsLoading] = useState(false)
@@ -429,9 +429,28 @@
    *******************************************/
   // Rodando apenas uma vez no início do form
   useEffect(() => {
+    // função chamada quando não existe um registro de documentDetails ainda
+    const setInitialDocumentDetails = () => {
+      let documentdetails = {
+        versions: [],
+        attachments: [],
+        author: initialform.author,
+        currentVersion: "1.0.0",
+        description: "",
+        created_at: "",
+        updated_at: "",
+        title: "",
+        base_filename: initialform.base_filename,
+        template: initialform.template
+      }
+      setDocumentDetails(documentdetails);
+      setIsLoadingDocumentDetails(false);
+    }
+
     if (!initialform.id) {
       let originalcards = setSchema()
       setCards(originalcards)
+      setInitialDocumentDetails()
       return
     };
     const maxAttempts = 3; // maximo de retries nas requests
@@ -538,24 +557,6 @@
         setIsLoadingDocumentDetails(false);
         return true;
       }
-    }
-
-    // função chamada quando não existe um registro de documentDetails ainda
-    const setInitialDocumentDetails = () => {
-      let documentdetails = {
-        versions: [],
-        attachments: [],
-        author: initialform.author,
-        currentVersion: "1.0.0",
-        description: "",
-        created_at: "",
-        updated_at: "",
-        title: "",
-        base_filename: initialform.base_filename,
-        template: initialform.template
-      }
-      setDocumentDetails(documentdetails);
-      setIsLoadingDocumentDetails(false);
     }
 
     for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
@@ -998,8 +999,34 @@
     }
   }
 
+  async function handleSectionChangeEvent(card, section, formData){
+    console.log('Atualizando Section...')
+    console.log('card', card)
+    console.log('section', section)
+    console.log('formData', formData)
+    return
+  }
+
+  async function handleSectionRowFieldChangeEvent(field, formData){
+    console.log('Atualizando Section Row Field...')
+    console.log('field', field)
+    console.log('formData', formData)
+    return
+  }
+
+  async function handleSectionDefinitionChangeEvent(row, formData){
+    console.log('Atualizando Section Definition...')
+    console.log('row', row)
+    console.log('formData', formData)
+    return
+  }
+
   // Chamado sempre que o formulário for alterado
   async function handleChangeEvent(cardId, formData, fieldId) {
+    console.log('Atualizando...')
+    return
+    // TODO -- problema na atualização de campos: a cada onChange ele perde o foco (imagino que em função
+    // da necessidade de atualização dos cards)
     // Quando altero qualquer campo do meu form, eu quero
     // atualizar o formData do card correspondente
     let field = fieldId.replace('root_', '').replaceAll('_', '.');
@@ -1852,42 +1879,42 @@
 
             <tbody>
               <tr>
-                <td className="table-highlight">
+                <td className="table-highlight col-xs-4" colspan="1">
                   Versão atual
                 </td>
-                <td>
+                <td className="col-xs-8" colspan="2">
                   {description.version}
                 </td>
               </tr>
               <tr>
-                <td className="table-highlight">
+                <td className="table-highlight col-xs-4" colspan="1">
                   Autor
                 </td>
-                <td>
+                <td className="col-xs-8" colspan="2">
                   {description.author}
                 </td>
               </tr>
               <tr>
-                <td className="table-highlight">
+                <td className="table-highlight col-xs-4" colspan="1">
                   Data de criação
                 </td>
-                <td>
+                <td className="col-xs-8" colspan="2">
                   {(description.created_at && description.created_at !== '') ? (formatUTCDate(description.created_at)) : ''}
                 </td>
               </tr>
               <tr>
-                <td className="table-highlight">
+                <td className="table-highlight col-xs-4" colspan="1">
                   Última Atualização
                 </td>
-                <td>
+                <td className="col-xs-8" colspan="2">
                   {(description.updated_at && description.updated_at !== '') ? (formatUTCDate(description.updated_at)) : ''}
                 </td>
               </tr>
               <tr>
-                <td className="table-highlight">
+                <td className="table-highlight col-xs-4" colspan="1">
                   Descrição
                 </td>
-                <td>
+                <td className="col-xs-8" colspan="2">
                   {description.description}
                 </td>
               </tr>
@@ -1909,8 +1936,7 @@
     let row =
       <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
         <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight col-xs-4" colspan="1">{title}</td>
-        <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-4" colspan="1">{priorValue}</td>
-        <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-4" colspan="1">{currentValue}</td>
+        <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-8" colspan="2">{currentValue}</td>
       </tr>
 
     return row
@@ -1948,8 +1974,7 @@
           <thead class="thead-light">
             <tr className="table-title">
               <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Field' : 'Campo'}</th>
-              <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Original' : 'Original'}</th>
-              <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Modified' : 'Alterado'}</th>
+              <th className="table-title col-xs-8" scope="col">{initialform.language === 'en_us' ? 'Value' : 'Valor'}</th>
             </tr>
           </thead>
           <tbody>
@@ -1965,17 +1990,19 @@
   function Summary(props) {
     function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
       let items = []
-      for (let i = 0; i < Object.keys(schema.properties).length; i++) {
-        let key = Object.keys(schema.properties)[i]
-        let formItem = schema.properties[key]
-        let type = formItem.type
-        if (type == 'string') {
-          let row = <Row title={formItem.title ? formItem.title : ""} priorValue={previewFormData[key] ? previewFormData[key] : ""} currentValue={currentFormData[key] ? currentFormData[key] : ""} />
-          items.push(row)
-        }
-        if (type == 'object') {
-          let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
-          items.push(row)
+      if(schema.hasOwnProperty('properties') && schema.properties && schema.properties.length > 0){
+        for (let i = 0; i < Object.keys(schema.properties).length; i++) {
+          let key = Object.keys(schema.properties)[i]
+          let formItem = schema.properties[key]
+          let type = formItem.type
+          if (type == 'string') {
+            let row = <Row title={formItem.title ? formItem.title : ""} priorValue={previewFormData[key] ? previewFormData[key] : ""} currentValue={currentFormData[key] ? currentFormData[key] : ""} />
+            items.push(row)
+          }
+          if (type == 'object') {
+            let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
+            items.push(row)
+          }
         }
       }
       return items
@@ -2316,7 +2343,7 @@
     if (section.hasOwnProperty('rows') && section.rows.length > 0) {
       let rows = section.rows;
       sectioncontent = <div className="section-content-wrapper">
-        <Form {...sectionSchema} liveValidate />
+        <Form {...sectionSchema} onChange={(event) => handleSectionChangeEvent(card, section, event.formData)} liveValidate />
         <div className="section-content-rows-wrapper">
           {
             rows.map(row => (
@@ -2417,7 +2444,7 @@
       }
     }
 
-    let defcontent = <Form {...definitionSchema} liveValidate />
+    let defcontent = <Form {...definitionSchema} onChange={(event) => handleSectionDefinitionChangeEvent(row, event.formData)} liveValidate />
     return defcontent
   }
 
@@ -2556,7 +2583,7 @@
       }
     }
 
-    let fieldcontent = <Form {...fieldSchema} liveValidate />
+    let fieldcontent = <Form {...fieldSchema} onChange={(event) => handleSectionRowFieldChangeEvent(field, event.formData)} liveValidate />
     return fieldcontent
   }
 
