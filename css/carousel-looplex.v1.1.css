@@ -397,3 +397,7 @@ legend#root__title::before{
 .login-spacer{
   margin-bottom: 12px;
 }
+
+.error-detail{
+  display:none;
+}
