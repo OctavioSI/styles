@@ -1,0 +1,243 @@
+{
+  "cards": [
+    {
+      "cardId": "generalinfo",
+      "schema": {
+        "type": "object",
+        "title": "Configurações Gerais",
+        "description": "Nesta seção você deve definir as configurações gerais do formulário que será criado.",
+        "properties": {
+          "formInfo": {
+            "type": "object",
+            "title": "Informações do Formulário",
+            "properties": {
+              "tenant": {
+                "type": "string",
+                "title": "Tenant",
+                "default": "looplex.com.br"
+              },
+              "form_language": {
+                "type": "string",
+                "title": "Idioma",
+                "enum": [
+                  "Português",
+                  "Inglês"
+                ],
+                "default": "Português"
+              },
+              "form_title": {
+                "type": "string",
+                "title": "Título do Formulário"
+              },
+              "form_description": {
+                "type": "string",
+                "title": "Descrição do Formulário"
+              }
+            }
+          },
+          "formProps": {
+            "type": "object",
+            "title": "Propriedades do Formulário",
+            "properties": {
+              "formPreset": {
+                "type": "string",
+                "title": "Pré-definição",
+                "enum": [
+                  "Sem pré-definição",
+                  "Assembler",
+                  "Work Request",
+                  "Data Analyzer"
+                ],
+                "default": "Sem pré-definição"
+              },
+              "template": {
+                "type": "string",
+                "title": "Docx do modelo a ser renderizado"
+              },
+              "showAside": {
+                "type": "string",
+                "title": "Exibir Painel Lateral?",
+                "enum": [
+                  "Sim",
+                  "Não"
+                ],
+                "default": "Sim"
+              }
+            },
+            "dependencies": {
+              "showAside": {
+                "oneOf": [
+                  {
+                    "properties": {
+                      "showAside": {
+                        "enum": [
+                          "Não"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "showAside": {
+                        "enum": [
+                          "Sim"
+                        ]
+                      },
+                      "asidePanel": {
+                        "type": "object",
+                        "title": "Seções do Painel Lateral",
+                        "properties": {
+                          "showSummary": {
+                            "type": "boolean",
+                            "title": "Sumário"
+                          },
+                          "showPreview": {
+                            "type": "boolean",
+                            "title": "Pré-visualização"
+                          },
+                          "showAttachments": {
+                            "type": "boolean",
+                            "title": "Anexos"
+                          },
+                          "showVersions": {
+                            "type": "boolean",
+                            "title": "Versões Anteriores"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "formAction": {
+            "type": "object",
+            "title": "Ações do Formulário",
+            "properties": {
+              "calledAction": {
+                "type": "string",
+                "title": "Ação a ser executada",
+                "description": "O que devemos fazer quando o usuário submeter o Formulário?",
+                "enum": [
+                  "Salvar como Nova Versão",
+                  "Criar um Novo Documento",
+                  "Executar um Code",
+                  "Apenas Renderizar o Documento"
+                ]
+              }
+            },
+            "dependencies": {
+              "calledAction": {
+                "oneOf": [
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Salvar como Nova Versão"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Criar um Novo Documento"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Executar um Code"
+                        ]
+                      },
+                      "calledActionDefinitions": {
+                        "type": "object",
+                        "title": "Definições da Execução da Ação",
+                        "properties": {
+                          "targetCode": {
+                            "type": "string",
+                            "title": "ID do Code a ser executado"
+                          },
+                          "commandCode": {
+                            "type": "string",
+                            "title": "Comando a ser executado no Code"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "calledAction": {
+                        "enum": [
+                          "Apenas Renderizar o Documento"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "formInfo": {
+          "ui:ObjectFieldTemplate": "layout",
+          "ui:layout": [
+            {
+              "tenant": {
+                "classNames": "col-md-6"
+              },
+              "form_language": {
+                "classNames": "col-md-6"
+              }
+            },
+            {
+              "form_title": {
+                "classNames": "col-md-12"
+              }
+            },
+            {
+              "form_description": {
+                "classNames": "col-md-12"
+              }
+            }
+          ],
+          "form_description": {
+            "ui:widget": "textarea"
+          }
+        },
+        "formProps": {
+          "template": {
+            "ui:widget": "filepond"
+          }
+        },
+        "formAction": {
+          "calledActionDefinitions": {
+            "ui:ObjectFieldTemplate": "layout",
+            "ui:layout": [
+              {
+                "targetCode": {
+                  "classNames": "col-md-6"
+                },
+                "commandCode": {
+                  "classNames": "col-md-6"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "formData": {}
+    }
+  ]
+}

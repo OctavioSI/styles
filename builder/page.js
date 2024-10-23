@@ -107,120 +107,6 @@
   const payloadFormData = props.embeddedData.rjsf?.formData == undefined ? {} : props.embeddedData.rjsf.formData
   const [panelView, setPanelView] = useState('preview')
   const [cards, setCards] = useState([])
-  const [noCodeCards, setNoCodeCards] = useState([
-    {
-      "cardId": "newui-primeiro",
-      "card_conditions": {},
-      "schema": {
-        "title": "Partes",
-        "type": "object",
-        "properties": {
-          "strContratada": {
-            "required": [
-              "nome",
-              "cnpj"
-            ],
-            "title": "Contratada",
-            "type": "object",
-            "properties": {
-              "nome": {
-                "type": "string",
-                "title": "Nome"
-              },
-              "cnpj": {
-                "type": "string",
-                "title": "CNPJ"
-              }
-            }
-          }
-        }
-      },
-      "uiSchema": {
-        "ui:submitButtonOptions": {
-          "norender": true
-        }
-      },
-      "partitionKey": "looplex.com.br",
-      "formData": {
-        "strContratada": {
-          "nome": "Octavio Ietsugu",
-          "cnpj": "01.002.122/0001-16"
-        }
-      },
-      "priorFormData": {
-        "strContratada": {
-          "nome": "Octavio Ietsugu",
-          "cnpj": "01.002.122/0001-16"
-        }
-      },
-      "tagName": "div"
-    },
-    {
-      "cardId": "newui-segundo",
-      "card_conditions": {},
-      "dmnStructure": {},
-      "schema": {
-        "title": "Contratação",
-        "type": "object",
-        "properties": {
-          "strContrato": {
-            "title": "Prazo para aviso",
-            "type": "object",
-            "required": [
-              "prazoAvisoVolume"
-            ],
-            "properties": {
-              "prazoAvisoVolume": {
-                "type": "number",
-                "title": "Prazo para aviso do volume"
-              },
-              "inicioVigencia": {
-                "type": "string",
-                "title": "Início da Vigência"
-              },
-              "fimVigencia": {
-                "type": "string",
-                "title": "Final da Vigência"
-              },
-              "prazoPagamento": {
-                "type": "number",
-                "title": "Prazo para Pagamento"
-              },
-              "dataExp": {
-                "type": "string",
-                "title": "Data de Assinatura"
-              }
-            }
-          }
-        }
-      },
-      "uiSchema": {
-        "ui:submitButtonOptions": {
-          "norender": true
-        }
-      },
-      "partitionKey": "looplex.com.br",
-      "formData": {
-        "strContrato": {
-          "prazoAvisoVolume": 5,
-          "inicioVigencia": "01/12/2024",
-          "fimVigencia": "31/12/2024",
-          "prazoPagamento": 7,
-          "dataExp": "02 de julho de 2024"
-        }
-      },
-      "priorFormData": {
-        "strContrato": {
-          "prazoAvisoVolume": 5,
-          "inicioVigencia": "01/12/2024",
-          "fimVigencia": "31/12/2024",
-          "prazoPagamento": 7,
-          "dataExp": "02 de julho de 2024"
-        }
-      },
-      "tagName": "div"
-    }
-  ])
   const [allLoadedCards, setAllLoadedCards] = useState([])
   const [preloadCards, setPreloadCards] = useState([])
   const [modal, setModal] = useState({
@@ -244,7 +130,6 @@
     aside_versions: true
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [noCodeIsLoading, setNoCodeIsLoading] = useState(false)
   const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRendering, setIsRendering] = useState(false)
@@ -257,11 +142,8 @@
   const [loginAccessRules, setLoginAccessRules] = useState({})
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeCard, setActiveCard] = useState(0);
-  const [noCodeActiveCard, setNoCodeActiveCard] = useState(0);
   const myCarouselRef = useRef(null);
-  const noCodeCarouselRef = useRef(null);
   const activeCardRef = useRef(null);
-  const noCodeActiveCardRef = useRef(null);
   const modalRef = useRef(null);
   const alertRef = useRef(null);
 
@@ -395,42 +277,13 @@
     return result;
   }
 
-  // Faz o syntax Hightlight para JSON
-  function syntaxHighlight(json) {
-    if (typeof json != "string") {
-      json = JSON.stringify(json, null, "\t");
-    }
-    json = json
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    return json.replace(
-      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-      function(match) {
-        var cls = "number";
-        if (/^"/.test(match)) {
-          if (/:$/.test(match)) {
-            cls = "key";
-          } else {
-            cls = "string";
-          }
-        } else if (/true|false/.test(match)) {
-          cls = "boolean";
-        } else if (/null/.test(match)) {
-          cls = "null";
-        }
-        return '<span class="' + cls + '">' + match + "</span>";
-      }
-    );
-  }
-
   /*******************************************
    * Hooks
    *******************************************/
   // Rodando apenas uma vez no início do form
   useEffect(() => {
     // função chamada quando não existe um registro de documentDetails ainda
-    const setInitialDocumentDetails = () => {
+    const defineInitialDocumentDetails = () => {
       let documentdetails = {
         versions: [],
         attachments: [],
@@ -443,14 +296,14 @@
         base_filename: initialform.base_filename,
         template: initialform.template
       }
-      setDocumentDetails(documentdetails);
+      setDocumentDetails(() => documentdetails);
       setIsLoadingDocumentDetails(false);
     }
 
     if (!initialform.id) {
-      let originalcards = setSchema()
-      setCards(originalcards)
-      setInitialDocumentDetails()
+      let originalcards = defineSchema()
+      setCards(() => originalcards)
+      defineInitialDocumentDetails()
       return
     };
     const maxAttempts = 3; // maximo de retries nas requests
@@ -504,24 +357,24 @@
         // setTmpVisor(JSON.stringify(res.data.output))
         if (res.data.output.hasOwnProperty('formLayout') && !isObjectEmpty(res.data.output.formLayout)) {
           // console.log('res.data.output.formLayout', res.data.output.formLayout)
-          setPageLayout(res.data.output.formLayout)
+          setPageLayout(() => res.data.output.formLayout)
         }
 
-        setAllLoadedCards(initialSchema) // criando um local que tem todas as cards, exibidas ou não        
+        setAllLoadedCards(() => initialSchema) // criando um local que tem todas as cards, exibidas ou não        
         if (!initialform.document || initialform.document == '') { // Nao tenho o document, então posso já carregar o form sem esperar os detalhes do document
-          let newcards = setSchema(initialSchema, initialSchema[0].cardId, {})
-          setCards(newcards) // definindo o deck de cards que são exibidos
+          let newcards = defineSchema(initialSchema, initialSchema[0].cardId, {})
+          setCards(() => newcards) // definindo o deck de cards que são exibidos
         }
         setIsLoading(false)
-        console.log('trigger Preloaded_cards')
-        setPreloadCards(preloaded_cards)
+        // console.log('trigger Preloaded_cards')
+        setPreloadCards(() => preloaded_cards)
         // Comentadas o carregamento de cards pq estava com conflito ao abrir os documentDetails
         // console.log('output', res.data.output)
         if (res.data.output.loginRequired) { // Para acessar esse form é necessário um login antes
           setLoginRequired(true)
           loginModal()
           if (res.data.output.loginAccess && !isObjectEmpty(res.data.output.loginAccess)) {
-            setLoginAccessRules(res.data.output.loginAccess)
+            setLoginAccessRules(() => res.data.output.loginAccess)
           }
         }
         return true;
@@ -552,7 +405,7 @@
         for (let i = 0; i < documentdetails.versions.length; i++) {
           documentdetails.versions[i].link = await downloadFile(documentdetails.versions[i].document.path);
         }
-        setDocumentDetails(documentdetails);
+        setDocumentDetails(() => documentdetails);
         setDocumentDetailsVersionsLoaded(true);
         setIsLoadingDocumentDetails(false);
         return true;
@@ -584,7 +437,7 @@
     }
 
     if (!initialform.document || initialform.document == '') {
-      setInitialDocumentDetails()
+      defineInitialDocumentDetails()
       console.log('No initial document defined')
       return
     } else {
@@ -617,8 +470,8 @@
   // Quando carregar os documentdetails, usamos esse hook para atualizar os cards
   useEffect(() => {
     if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
-      let newcards = setSchema(loadPriorFormData(documentDetails));
-      setCards(newcards)
+      let newcards = defineSchema(loadPriorFormData(documentDetails));
+      setCards(() => newcards)
     }
   }, [documentDetailsVersionsLoaded])
 
@@ -649,20 +502,11 @@
     });
   }, [activeCard]);
 
-  useEffect(() => {
-    console.log('CHANGED!')
-    noCodeActiveCardRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-      inline: "nearest"
-    });
-  }, [noCodeActiveCard]);
-
   /*******************************************
    * Funções de manipulação de Cards e Card Deck
    *******************************************/
   // Essa função é utilizada para definir os cards que deverão ser exibidos
-  function setSchema(initialcards = [], cardId = '', formData = {}) {
+  function defineSchema(initialcards = [], cardId = '', formData = {}) {
     let tmpcards = props.rjsf.cards; // Carregando cards do RJSF
     // Aqui vamos carregar cards que tenham sido carregados na memória (no lugar o arquivo rjsf)
     if (initialcards && initialcards.length > 0) {
@@ -797,15 +641,15 @@
           };
           tmpCards.push(newCard);
         }
-        setAllLoadedCards(tmpCards) // criando um local que tem todas as cards, exibidas ou não        
+        setAllLoadedCards(() => tmpCards) // criando um local que tem todas as cards, exibidas ou não        
         let newcards;
         // setTmpVisor(newcards)
         if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
-          newcards = setSchema(loadPriorFormData(documentDetails, true), cardId, formData);
+          newcards = defineSchema(loadPriorFormData(documentDetails, true), cardId, formData);
         } else {
-          newcards = setSchema(tmpCards, cardId, formData)
+          newcards = defineSchema(tmpCards, cardId, formData)
         }
-        setCards(newcards)
+        setCards(() => newcards)
       }
       setIsLoading(false)
     }
@@ -918,12 +762,12 @@
     let nextState;
     if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
       let tmpNextState = loadPriorFormData(documentDetails, true);
-      nextState = setSchema(tmpNextState, cardId, formData);
+      nextState = defineSchema(tmpNextState, cardId, formData);
       // console.log('nextState', nextState)
     } else {
-      nextState = setSchema(allLoadedCards, cardId, formData)
+      nextState = defineSchema(allLoadedCards, cardId, formData)
     }
-    setCards(nextState)
+    setCards(() => nextState)
     // console.log('cards.length',cards.length)
     if (cards.length > 1) {
       // console.log('cards', cards)      
@@ -935,71 +779,63 @@
       // console.log('moveLeft',moveLeft)
       // console.log('moveRight',moveRight)
 
-      setActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
+      setActiveCard(() => (cardTargetIdx === 'moveLeft' ? moveLeft : moveRight))
       // console.log('activeCard DEPOIS',activeCard)
       // console.log('activeCardRef', activeCardRef)
     }
   }
 
-  // Chamado sempre que o botão de próxima ou anterior for clicado
-  async function handleClickEventNoCard(cardId, formData, cardTargetIdx) {
-    console.log('cardId', cardId)
-    console.log('formData', formData)
-    console.log('cardTargetIdx', cardTargetIdx)
-    
-    let load_card = noCodeCards.filter(cd => cd.cardId === cardId)[0];
-    let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
-    let canRunDMN = true;
-    let dmnVariables = {};
-
-    if (dmnStructure && !isObjectEmpty(dmnStructure)) {
-      console.log('Tem uma DMN aqui...')
-      for (let dmnInput in dmnStructure.map) {
-        dmnVariables[dmnInput] = dmnStructure.map[dmnInput].split('.').reduce(
-          (preview, current) => preview[current],
-          formData
-        )
-      }
-      // setTmpVisor(JSON.stringify(dmnVariables))
-      for (let [dmnInput2, localVar] of Object.entries(dmnStructure.map)) {
-        if (dmnVariables[dmnInput2] === undefined) {
-          canRunDMN = false;
-        }
-      }
-      if (canRunDMN) {
-        console.log('Can run DMN')
-        setNoCodeIsLoading(true)
-        let arrayIDs = await runDMN(formData, dmnStructure, load_card['partitionKey'])
-        if (arrayIDs && arrayIDs.length > 0 && arrayIDs[0].cardID) {
-          let current_ID = arrayIDs[0].cardID
-          let scope = arrayIDs[0].scope
-          let card_conditions = (arrayIDs[0].card_conditions && arrayIDs[0].card_conditions !== '') ? JSON.parse(arrayIDs[0].card_conditions) : {};
-
-          let card_loaded = noCodeCards.filter(cd => cd.cardId === current_ID);
-          if (!card_loaded || card_loaded.length === 0) {
-            await loadRemoteSchema(current_ID, cardId, formData, scope, card_conditions)
-            isLoadingRemoteSchema.current = false;
+  async function handleCardChangeEvent(card, formData, id) {
+    if (!id || id == undefined) return
+    console.log('handleCardChangeEvent: Card Changed...', id)
+    console.log('handleCardChangeEvent: Card FormData...', formData)
+    let newcard = {
+      cardId: formData.card.id,
+      cardDisplay: formData.card.display,
+      cardDescription: formData.card.display,
+      schema: {
+        "title": "Novo Card",
+        "type": "object",
+        "properties": {
+          "aaa": {
+            "type": "string",
+            "title": "AAA"
+          },
+          "bbb": {
+            "type": "string",
+            "title": "BBB"
           }
-          setNoCodeIsLoading(false)
-        } else {
-          setNoCodeIsLoading(false)
-
+        }
+      },
+      card_conditions: {},
+      dmnStructure: {},
+      tagName: 'div'
+    }
+    let currentDeck = [...noCodeCards];
+    // Vamos procurar se temos um card já com esse Id
+    let currentCard = currentDeck.filter(cd => cd.cardId == formData.card.id);
+    if (currentCard && currentCard.length > 0) { // Já tenho esse card no meu deck
+      // Vamos localizar o card dentro do deck atual para atualizá-lo
+      let currentCardIdx = currentDeck.indexOf(currentCard[0]);
+      if (currentCardIdx && currentCardIdx > -1) {
+        currentDeck[currentCardIdx] = {
+          ...currentDeck[currentCardIdx],
+          ...newcard
         }
       }
+    } else { // Nao tenho o card no deck
+      currentDeck.push(newcard)
     }
-
-    let nextState = setSchema(noCodeCards, cardId, formData)
-    setNoCodeCards(nextState)
-    console.log('noCodeCards', noCodeCards)
-    if (noCodeCards.length > 1) {
-      let moveLeft = Math.max(0, noCodeActiveCard - 1);
-      let moveRight = Math.min(noCodeCards.length - 1, noCodeActiveCard + 1);
-      setNoCodeActiveCard(cardTargetIdx === 'moveLeft' ? moveLeft : moveRight)
-      console.log('noCodeActiveCard',noCodeActiveCard)
-    }
+    console.log('card', card)
+    console.log('currentDeck', currentDeck)
+    console.log('otherDeck', cards)
+    setNoCodeCards(() => currentDeck)
+    // Definir aqui o noCodeCards acaba por dar trigger nesta função handleCardChangeEvent
+    // console.log('noCodeCards',noCodeCards)
+    return
   }
 
-  async function handleSectionChangeEvent(card, section, formData){
+  async function handleSectionChangeEvent(card, section, formData) {
     console.log('Atualizando Section...')
     console.log('card', card)
     console.log('section', section)
@@ -1007,14 +843,14 @@
     return
   }
 
-  async function handleSectionRowFieldChangeEvent(field, formData){
+  async function handleSectionRowFieldChangeEvent(field, formData) {
     console.log('Atualizando Section Row Field...')
     console.log('field', field)
     console.log('formData', formData)
     return
   }
 
-  async function handleSectionDefinitionChangeEvent(row, formData){
+  async function handleSectionDefinitionChangeEvent(row, formData) {
     console.log('Atualizando Section Definition...')
     console.log('row', row)
     console.log('formData', formData)
@@ -1033,11 +869,11 @@
     let nextState;
     if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
       let tmpNextState = loadPriorFormData(documentDetails, true);
-      nextState = setSchema(tmpNextState, cardId, formData);
+      nextState = defineSchema(tmpNextState, cardId, formData);
     } else {
-      nextState = setSchema(allLoadedCards, cardId, formData)
+      nextState = defineSchema(allLoadedCards, cardId, formData)
     }
-    setCards(nextState)
+    setCards(() => nextState)
     // Vamos também verificar se o nosso botão tem que ser renderizado novamente
     let load_card = nextState.filter(cd => cd.cardId === cardId)[0];
     let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
@@ -1067,8 +903,8 @@
       if (justrender) {
         setIsRendering(true)
         let render = await renderDocument();
-        setPreviewDocURL(render.documentUrl);
-        setDocumentRendered(render);
+        setPreviewDocURL(() => render.documentUrl);
+        setDocumentRendered(() => render);
         setIsRendering(false);
       } else {
         switch (initialform.onSubmitAction) {
@@ -1087,8 +923,8 @@
           case 'justRender':
             setIsRendering(true)
             let render = await renderDocument();
-            setPreviewDocURL(render.documentUrl);
-            setDocumentRendered(render);
+            setPreviewDocURL(() => render.documentUrl);
+            setDocumentRendered(() => render);
             setIsRendering(false);
             break;
           default:
@@ -1238,9 +1074,9 @@
         docdetails.description = description;
         docdetails.created_at = docdetails.created_at ? docdetails.created_at : res.data.output.newversion.date;
         docdetails.updated_at = res.data.output.newversion.date;
-        setDocumentDetails(docdetails)
-        setDocumentRendered(res.data.output.docrendered)
-        setPreviewDocURL(res.data.output.docrendered.documentUrl);
+        setDocumentDetails(() => docdetails)
+        setDocumentRendered(() => res.data.output.docrendered)
+        setPreviewDocURL(() => res.data.output.docrendered.documentUrl);
         return res.data.output;
       }
     } catch (e) {
@@ -1319,7 +1155,7 @@
     setIsPreviewLoaded(false);
     let preview = await renderDocument();
     if (preview) {
-      setPreviewDocURL(preview.documentUrl);
+      setPreviewDocURL(() => preview.documentUrl);
     } else {
       setPreviewDocURL('');
     }
@@ -1388,13 +1224,13 @@
       content: content,
       hasCloseButton: false
     };
-    setAlert(alert)
+    setAlert(() => alert)
     alertRef.current.showModal()
   }
 
   // Exibe o modal para formato de salvar nova versão
   function submitNewVersion() {
-    let modal = {
+    let modaltmp = {
       title: "Nova versão",
       description: "Deseja criar uma nova versão deste documento?",
       rjsf: {
@@ -1431,7 +1267,7 @@
       },
       action: "createNewDocumentVersion"
     }
-    setModal(modal);
+    setModal(() => modaltmp);
     modalRef.current.showModal();
   }
 
@@ -1482,7 +1318,7 @@
 
   // Exibe o modal para formato de salvar nova versão
   function createNewDefinitionModal() {
-    let modal = {
+    let modaltmp = {
       title: "Nova definição",
       description: "Deseja criar uma nova definição com base nesta seção?",
       rjsf: {
@@ -1524,7 +1360,7 @@
       action: "createNewDefinition",
       canCancel: true
     }
-    setModal(modal);
+    setModal(() => modaltmp);
     modalRef.current.showModal();
   }
 
@@ -1553,8 +1389,8 @@
       tagName: 'div'
     };
     tmpCards.push(newCard);
-    setAllLoadedCards(tmpCards);
-    setCards(setSchema(tmpCards))
+    setAllLoadedCards(() => tmpCards);
+    setCards(() => defineSchema(tmpCards))
     alertModal("Novo Card", "", "Um novo card foi adicionado ao deck!", "")
   }
 
@@ -1577,8 +1413,8 @@
       findCardIdx = tmpCards.indexOf(findCard[0]);
       findCard[0].cardSections.push(newCardSection); // Essa linha faz com que o carousel direito funcione (? :/) -- Qual o motivo?
       tmpCards[findCardIdx] = findCard[0];
-      setAllLoadedCards(tmpCards);
-      setCards(setSchema(tmpCards))
+      setAllLoadedCards(() => tmpCards);
+      setCards(() => defineSchema(tmpCards))
     }
   }
 
@@ -1589,9 +1425,9 @@
     if (findCard && findCard.length > 0) {
       findCardIdx = tmpCards.indexOf(findCard[0]);
       tmpCards[findCardIdx].cardSections = findCard[0].cardSections.filter(cd => cd.id !== section.id)
-      setAllLoadedCards(tmpCards);
-      let newCards = setSchema(tmpCards)
-      setCards(newCards)
+      setAllLoadedCards(() => tmpCards);
+      let newCards = defineSchema(tmpCards)
+      setCards(() => newCards)
     }
   }
 
@@ -1616,9 +1452,9 @@
           findSectionIdx = cardSections.indexOf(findSection[0]);
           findSection[0].rows.push(newSectionRow)
           tmpCards[findCardIdx].cardSections[findSectionIdx].rows = findSection[0].rows;
-          setAllLoadedCards(tmpCards);
-          let newCards = setSchema(tmpCards)
-          setCards(newCards)
+          setAllLoadedCards(() => tmpCards);
+          let newCards = defineSchema(tmpCards)
+          setCards(() => newCards)
         }
       }
     }
@@ -1637,9 +1473,9 @@
         if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
           tmpCards[findCardIdx].cardSections[findSectionIdx].rows = findSection[0].rows.filter(r => r.id !== row.id);
-          setAllLoadedCards(tmpCards);
-          let newCards = setSchema(tmpCards)
-          setCards(newCards)
+          setAllLoadedCards(() => tmpCards);
+          let newCards = defineSchema(tmpCards)
+          setCards(() => newCards)
         }
       }
     }
@@ -1665,9 +1501,9 @@
           findSectionIdx = cardSections.indexOf(findSection[0]);
           findSection[0].rows.push(newSectionDef)
           tmpCards[findCardIdx].cardSections[findSectionIdx] = findSection[0];
-          setAllLoadedCards(tmpCards);
-          let newCards = setSchema(tmpCards)
-          setCards(newCards)
+          setAllLoadedCards(() => tmpCards);
+          let newCards = defineSchema(tmpCards)
+          setCards(() => newCards)
         }
       }
     }
@@ -1704,9 +1540,9 @@
               if (!findRow[0].hasOwnProperty('fields')) findRow[0].fields = [];
               findRow[0].fields.push(newFieldElement);
               tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields;
-              setAllLoadedCards(tmpCards);
-              let newCards = setSchema(tmpCards)
-              setCards(newCards)
+              setAllLoadedCards(() => tmpCards);
+              let newCards = defineSchema(tmpCards)
+              setCards(() => newCards)
             }
           }
         }
@@ -1732,9 +1568,9 @@
             if (findRow && findRow.length > 0) {
               let findRowIdx = sectionRows.indexOf(findRow[0]);
               tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields.filter(fd => fd.id !== field.id);
-              setAllLoadedCards(tmpCards);
-              let newCards = setSchema(tmpCards)
-              setCards(newCards)
+              setAllLoadedCards(() => tmpCards);
+              let newCards = defineSchema(tmpCards)
+              setCards(() => newCards)
             }
           }
         }
@@ -1758,9 +1594,9 @@
       }
       findCard[0].cardConditionsRules.push(newConditionElement);
       tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules;
-      setAllLoadedCards(tmpCards);
-      let newCards = setSchema(tmpCards)
-      setCards(newCards)
+      setAllLoadedCards(() => tmpCards);
+      let newCards = defineSchema(tmpCards)
+      setCards(() => newCards)
     }
   }
 
@@ -1771,9 +1607,9 @@
     if (findCard && findCard.length > 0) {
       findCardIdx = tmpCards.indexOf(findCard[0]);
       tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules.filter(cd => cd.id !== condition.id)
-      setAllLoadedCards(tmpCards);
-      let newCards = setSchema(tmpCards)
-      setCards(newCards)
+      setAllLoadedCards(() => tmpCards);
+      let newCards = defineSchema(tmpCards)
+      setCards(() => newCards)
     }
   }
 
@@ -1793,12 +1629,12 @@
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
-        setLoginUser(
+        setLoginUser(() => (
           {
             user: username,
             domain: domain
           }
-        )
+        ))
         return res.data.output;
       }
     } catch (e) {
@@ -1866,248 +1702,6 @@
    * A ideia é componentizar cada um dos elementos que são 
    * repetidos durante a implementação
    *******************************************************************/
-
-  // Descrição do documento que está sendo construído. No painel de 
-  // sumário ele aparece como "Informações Gerais"
-  function Description(props) {
-    let description = props.description
-    return (
-      <div >
-        <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>Informações Gerais</a>
-        <div class="collapse" id="overview">
-          <table class="table table-hover table-sm table-bordered">
-
-            <tbody>
-              <tr>
-                <td className="table-highlight col-xs-4" colspan="1">
-                  Versão atual
-                </td>
-                <td className="col-xs-8" colspan="2">
-                  {description.version}
-                </td>
-              </tr>
-              <tr>
-                <td className="table-highlight col-xs-4" colspan="1">
-                  Autor
-                </td>
-                <td className="col-xs-8" colspan="2">
-                  {description.author}
-                </td>
-              </tr>
-              <tr>
-                <td className="table-highlight col-xs-4" colspan="1">
-                  Data de criação
-                </td>
-                <td className="col-xs-8" colspan="2">
-                  {(description.created_at && description.created_at !== '') ? (formatUTCDate(description.created_at)) : ''}
-                </td>
-              </tr>
-              <tr>
-                <td className="table-highlight col-xs-4" colspan="1">
-                  Última Atualização
-                </td>
-                <td className="col-xs-8" colspan="2">
-                  {(description.updated_at && description.updated_at !== '') ? (formatUTCDate(description.updated_at)) : ''}
-                </td>
-              </tr>
-              <tr>
-                <td className="table-highlight col-xs-4" colspan="1">
-                  Descrição
-                </td>
-                <td className="col-xs-8" colspan="2">
-                  {description.description}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div >
-      </div >
-    )
-  }
-
-  // Cada uma das linhas com o conteúdo que estamos populando.
-  // Ele indica que há um valor original e o destaca com o valor atual
-  // que é trazido no formulario
-  function Row(props) {
-    let title = props.title
-    let priorValue = props.priorValue
-    let currentValue = props.currentValue
-
-    let row =
-      <tr className={priorValue == currentValue ? "table-default" : "table-primary"}>
-        <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight col-xs-4" colspan="1">{title}</td>
-        <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-8" colspan="2">{currentValue}</td>
-      </tr>
-
-    return row
-  }
-
-  // Quando em nosso RJSF temos uma subseção, colocaremos o elemento 
-  // a seguir para indicar que as linhas seguintes dizem respeito 
-  // a essa subseção usando um subtítulo
-  function TableRow(props) {
-    let rows = props.rows
-    let subtitle = props.subtitle
-    let sublevel = props.sublevel
-    let table =
-      <>
-        <tr class="table-subtitle">
-          <td class="table-subtitle" colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
-        </tr>
-        {rows}
-      </>
-    return table
-  }
-
-  // Cada uma das seções do sumário
-  function Section(props) {
-    let table = props.table
-    let title = props.title
-    let id = props.id
-    let isCurrentCard = props.isCurrentCard
-    let section = <div style={{
-      width: "100%", height: "100%", backgroundColor: "white"
-    }} >
-      <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>{title}</a>
-      <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
-        <table class="table table-hover table-sm table-bordered">
-          <thead class="thead-light">
-            <tr className="table-title">
-              <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Field' : 'Campo'}</th>
-              <th className="table-title col-xs-8" scope="col">{initialform.language === 'en_us' ? 'Value' : 'Valor'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {table}
-          </tbody>
-        </table>
-      </div>
-    </div >
-    return section
-  }
-
-  // Montagem do sumário efetiva
-  function Summary(props) {
-    function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
-      let items = []
-      if(schema.hasOwnProperty('properties') && schema.properties && schema.properties.length > 0){
-        for (let i = 0; i < Object.keys(schema.properties).length; i++) {
-          let key = Object.keys(schema.properties)[i]
-          let formItem = schema.properties[key]
-          let type = formItem.type
-          if (type == 'string') {
-            let row = <Row title={formItem.title ? formItem.title : ""} priorValue={previewFormData[key] ? previewFormData[key] : ""} currentValue={currentFormData[key] ? currentFormData[key] : ""} />
-            items.push(row)
-          }
-          if (type == 'object') {
-            let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
-            items.push(row)
-          }
-        }
-      }
-      return items
-    }
-    let cards = props.cards
-    let activeCard = props.activeCard
-    let sections = []
-    let currentCard = cards[activeCard];
-    for (let i = 0; i < cards.length; i++) {
-      let card = cards[i]
-      let title = card.schema?.title ? card.schema?.title : card.cardId
-      let cardSchema = card.schema
-      let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
-      let cardCurrentFormData = card.formData ? card.formData : {}
-      let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
-      sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} />)
-    }
-    return (
-      <div>
-        {sections}
-      </div>
-    )
-  }
-
-  // Montagem da tabela de versões
-  function PreviousVersions(props) {
-    function tableBuilder(version, docrendered, versionidx) {
-      const [isComparing, setIsComparing] = useState(false)
-      const [isComparingError, setIsComparingError] = useState(false)
-      const [comparisonLink, setComparisonLink] = useState(false)
-      async function triggerCompareVersions(version, docrendered, versionidx) {
-        // console.log('docrendered', docrendered)
-        // console.log('version', version)
-        setIsComparing(true);
-        setIsComparingError(false);
-        try {
-          let comparisondoc = await compareVersions(version, docrendered);
-          setIsComparing(false);
-          setIsComparingError(false);
-          setComparisonLink(comparisondoc)
-          return true;
-        } catch (e) {
-          setIsComparing(false);
-          setIsComparingError(true);
-          setComparisonLink('')
-          return;
-        }
-      }
-
-      let versiontable =
-        <div className="version-table">
-          <table class="table table-sm table-bordered">
-            <tbody>
-              <tr class="table-subtitle">
-                <td class="table-subtitle" colspan="1">{initialform.language === 'en_us' ? 'Version' : 'Versão'} {version.version}</td>
-                <td class="table-subtitle" colspan="2">{initialform.language === 'en_us' ? 'Date:' : 'Data:'} {formatUTCDate(version.date)}</td>
-              </tr>
-              <tr className="table-default">
-                <td colspan="1" className="table-subtitle">{initialform.language === 'en_us' ? 'Author' : 'Autor'}</td>
-                <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.author}</td>
-              </tr>
-              <tr className="table-default">
-                <td colspan="1" className="table-subtitle">{initialform.language === 'en_us' ? 'Description' : 'Descrição'}</td>
-                <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
-              </tr>
-              <tr className="table-default">
-                <td colspan="1" className="table-subtitle col-xs-4">{initialform.language === 'en_us' ? 'Actions' : 'Ações'}</td>
-                <td className="table-subtitle col-xs-8" colspan="2">
-                  <a href={version.link} download target="_blank">
-                    <button type="button" className={"btn btn-outline-secondary"}>{initialform.language === 'en_us' ? 'Download' : 'Baixar'}</button>
-                  </a>
-                  {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
-                    <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((initialform.language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((initialform.language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
-                  )}
-                  {(comparisonLink && comparisonLink !== '') && (
-                    <a href={comparisonLink} download target="_blank">
-                      <button type="button" className={"btn btn-outline-secondary"}>{initialform.language === 'en_us' ? 'Check Comparison' : 'Ver Comparação'}</button>
-                    </a>
-                  )}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      return versiontable;
-    }
-
-    let versions = props.docdetails.versions
-    let docrendered = props.docrendered
-    let sections = []
-    if (versions && versions.length > 0) {
-      for (let i = 0; i < versions.length; i++) {
-        sections.push(tableBuilder(versions[i], docrendered, i))
-      }
-    } else {
-      sections.push(
-        <>{initialform.language === 'en_us' ? 'No previous versions.' : 'Sem versões anteriores.'}</>
-      )
-    }
-    return (
-      <>
-        {sections}
-      </>
-    )
-  }
 
   // Modal
   function Modal(props) {
@@ -2209,7 +1803,7 @@
 
     let conditions = card.cardConditionsRules;
     let cardcontent = <div className="section-content-wrapper">
-      <Form {...cardSchema} liveValidate />
+      <Form {...cardSchema} liveValidate onChange={({ formData }, id) => handleCardChangeEvent(card, formData, id)} />
       <div className="section-content-rows-wrapper">
         {
           (conditions.length > 0) &&
@@ -2623,20 +2217,7 @@
     } else {
       formcard = <Form {...card} onChange={(event, id) => handleChangeEvent(card.cardId, event.formData, id)} extraErrors={extraErrors} liveValidate />
     }
-
     return formcard
-  }
-
-  function JSONStructureView(props){
-    let json = props.json
-    let jsonview = <div className="preview-json">
-        <pre
-        dangerouslySetInnerHTML={{
-          __html: syntaxHighlight(JSON.stringify(json, undefined, 4))
-        }}
-      />
-    </div>
-    return jsonview
   }
 
   /*******************************************************************
@@ -2651,27 +2232,16 @@
       <Head>
         <title>{initialform.formTitle}</title>
         <link rel="icon" type="image/x-icon" href="https://www.looplex.com.br/img/favicon.ico"></link>
-        <link
-          href='https://bootswatch.com/5/lumen/bootstrap.min.css'
-          rel='stylesheet'
-          type='text/css'
-        />
+        <link rel='stylesheet' type='text/css' href='https://bootswatch.com/5/lumen/bootstrap.min.css' />
         <link rel="stylesheet" type='text/css' href='https://looplex-workflows.s3.us-east-1.amazonaws.com/css-form-padrao/ant.css' />
         <link rel='stylesheet' type='text/css' href='https://looplex-workflows.s3.sa-east-1.amazonaws.com/css-form-padrao/daisy.css' />
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
-        <link
-          rel='stylesheet'
-          href='https://octaviosi.github.io/styles/css/carousel-looplex.v1.1.css'
-        />
-        <link
-          rel='stylesheet'
-          href='https://octaviosi.github.io/styles/css/builder.css'
-        />
+        <link rel="stylesheet" type='text/css' href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
+
+        <link rel='stylesheet' type='text/css' href='https://octaviosi.github.io/styles/css/carousel-looplex.v1.1.css' />
+        <link rel='stylesheet' type='text/css' ref='https://octaviosi.github.io/styles/css/builder.css' />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-
         <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
@@ -2704,6 +2274,7 @@
       <div className="looplex-header">
         <img src="https://dev.looplex.com/_next/image?url=%2Flogo-white.png&w=32&q=75" /><span>No-code RJSF Builder</span>
       </div>
+      
       <div className='container-form'>
         {(!isAuthenticated && loginRequired) ?
           (
@@ -2783,71 +2354,24 @@
                       </div>
                       <div className="card-summary">
                         {
+                          (panelView == 'preview') &&
+                          (
+                            <PreviewForm></PreviewForm>
+                          )
+                        }{
                           (panelView == 'schema') &&
                           (
                             <JSONStructureView json={noCodeCards}></JSONStructureView>
                           )
                         }{
-                          (panelView == 'preview') &&
-                          (
-                            <>
-                            <div className="preview-form">
-                            <section class="deckofcards">
-                                <div ref={noCodeCarouselRef} className='d-carousel d-w-full'>
-                                  {
-                                    (noCodeCards.length === 0) ?
-                                      <span>Prévia indisponível</span>
-                                      : ''
-                                  }
-                                  {noCodeCards.map((card, index) => {
-                                    const active = index === noCodeActiveCard;
-                                    return (
-                                      <div id={`nocodecard_${index}`} key={`nocodecard_${index}`} className='d-carousel-item d-w-full' ref={active ? noCodeActiveCardRef : null}>
-                                        <div className="d-w-full">
-                                           <Form {...card} liveValidate />
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                            </section>
-                            <section className="navigation d-flex align-items-end flex-column">
-                            <div className="d-flex d-space-x-4 align-items-center">
-                              <button className={`btn btn-outline-secondary btn-navigation ${((noCodeActiveCard - 1) < 0 || noCodeIsLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEventNoCard(noCodeCards[noCodeActiveCard].cardId, Object.assign({}, payloadFormData, noCodeCards[noCodeActiveCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
-                              <span class="glyphicon glyphicon-option-horizontal"></span>
-                              <button type="button" className={`btn btn-outline-secondary btn-navigation ${((noCodeActiveCard + 1) >= noCodeCards.length || noCodeIsLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEventNoCard(noCodeCards[noCodeActiveCard].cardId, Object.assign({}, payloadFormData, noCodeCards[noCodeActiveCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
-                            </div>
-                            </section>
-                            </div>
-                            </>
-                          )
-                        }{
                           (panelView == 'versions') &&
                           (
-                            <>
-                              <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
-                            </>
+                            <PreviousVersions docdetails={documentDetails} docrendered={documentRendered} />
                           )
                         }{
                           (panelView == 'summary') &&
                           (
-                            (documentDetails && documentDetails.currentVersion) ?
-                              (
-                                <>
-                                  <Description description={{
-                                    "version": documentDetails.currentVersion,
-                                    "author": documentDetails.author,
-                                    "created_at": documentDetails.created_at,
-                                    "updated_at": documentDetails.updated_at,
-                                    "description": documentDetails.description
-                                  }} />
-                                  <Summary cards={cards} activeCard={activeCard} />
-                                </>
-                              )
-                              :
-                              (
-                                <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-                              )
+                            <SummaryView documentDetails={documentDetails} cards={cards} activeCard={activeCard} initialform={initialform}></SummaryView>
                           )
                         }
                       </div>
@@ -2861,3 +2385,273 @@
   )
 
 })() // Temos que fechar a function aqui pois usamos funções do parent dentro dos componentes child
+
+/******************************************************
+ * Componentes
+ * 
+ * Abaixo temos os componentes que formam esta página
+ ******************************************************/
+
+/**
+ * JSONStructureView
+ * 
+ * folha de estilos: https://looplex.github.io/wf_reactcomponents/form/JSONStructureView/JSONStructureView.css
+ */
+function JSONStructureView({ json }) {
+  /** Component Helpers */
+  // Faz o syntax Hightlight para JSON
+  function syntaxHighlight(json) {
+    if (typeof json != "string") {
+      json = JSON.stringify(json, null, "\t");
+    }
+    json = json
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return json.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      function (match) {
+        var cls = "number";
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = "key";
+          } else {
+            cls = "string";
+          }
+        } else if (/true|false/.test(match)) {
+          cls = "boolean";
+        } else if (/null/.test(match)) {
+          cls = "null";
+        }
+        return '<span class="' + cls + '">' + match + "</span>";
+      }
+    );
+  }
+  /** // Component Helpers */
+
+  let jsonview = <div className="preview-json">
+    <pre
+      dangerouslySetInnerHTML={{
+        __html: syntaxHighlight(JSON.stringify(json, undefined, 4))
+      }}
+    />
+  </div>
+  return jsonview
+}
+
+function PreviewForm(props) {
+
+  return <>Teste</>
+
+  const [noCodeActiveCard, setNoCodeActiveCard] = useState(0);
+  const [noCodeIsLoading, setNoCodeIsLoading] = useState(false);
+  const noCodeCarouselRef = useRef(null);
+  const noCodeActiveCardRef = useRef(null);
+  const [noCodeCards, setNoCodeCards] = useState([
+    {
+      "cardId": "newui-primeiro",
+      "card_conditions": {},
+      "schema": {
+        "title": "Partes",
+        "type": "object",
+        "properties": {
+          "strContratada": {
+            "required": [
+              "nome",
+              "cnpj"
+            ],
+            "title": "Contratada",
+            "type": "object",
+            "properties": {
+              "nome": {
+                "type": "string",
+                "title": "Nome"
+              },
+              "cnpj": {
+                "type": "string",
+                "title": "CNPJ"
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "looplex.com.br",
+      "formData": {
+        "strContratada": {
+          "nome": "Octavio Ietsugu",
+          "cnpj": "01.002.122/0001-16"
+        }
+      },
+      "priorFormData": {
+        "strContratada": {
+          "nome": "Octavio Ietsugu",
+          "cnpj": "01.002.122/0001-16"
+        }
+      },
+      "tagName": "div"
+    },
+    {
+      "cardId": "newui-segundo",
+      "card_conditions": {},
+      "dmnStructure": {},
+      "schema": {
+        "title": "Contratação",
+        "type": "object",
+        "properties": {
+          "strContrato": {
+            "title": "Prazo para aviso",
+            "type": "object",
+            "required": [
+              "prazoAvisoVolume"
+            ],
+            "properties": {
+              "prazoAvisoVolume": {
+                "type": "number",
+                "title": "Prazo para aviso do volume"
+              },
+              "inicioVigencia": {
+                "type": "string",
+                "title": "Início da Vigência"
+              },
+              "fimVigencia": {
+                "type": "string",
+                "title": "Final da Vigência"
+              },
+              "prazoPagamento": {
+                "type": "number",
+                "title": "Prazo para Pagamento"
+              },
+              "dataExp": {
+                "type": "string",
+                "title": "Data de Assinatura"
+              }
+            }
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        }
+      },
+      "partitionKey": "looplex.com.br",
+      "formData": {
+        "strContrato": {
+          "prazoAvisoVolume": 5,
+          "inicioVigencia": "01/12/2024",
+          "fimVigencia": "31/12/2024",
+          "prazoPagamento": 7,
+          "dataExp": "02 de julho de 2024"
+        }
+      },
+      "priorFormData": {
+        "strContrato": {
+          "prazoAvisoVolume": 5,
+          "inicioVigencia": "01/12/2024",
+          "fimVigencia": "31/12/2024",
+          "prazoPagamento": 7,
+          "dataExp": "02 de julho de 2024"
+        }
+      },
+      "tagName": "div"
+    }
+  ])
+
+  useEffect(() => {
+    noCodeActiveCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+      inline: "nearest"
+    });
+  }, [noCodeActiveCard]);
+
+  // Chamado sempre que o botão de próxima ou anterior for clicado
+  async function handleClickEventNoCard(cardId, formData, cardTargetIdx) {
+    let load_card = noCodeCards.filter(cd => cd.cardId === cardId)[0];
+    let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
+    let canRunDMN = true;
+    let dmnVariables = {};
+
+    if (dmnStructure && !isObjectEmpty(dmnStructure)) {
+      console.log('Tem uma DMN aqui...')
+      for (let dmnInput in dmnStructure.map) {
+        dmnVariables[dmnInput] = dmnStructure.map[dmnInput].split('.').reduce(
+          (preview, current) => preview[current],
+          formData
+        )
+      }
+      // setTmpVisor(JSON.stringify(dmnVariables))
+      for (let [dmnInput2, localVar] of Object.entries(dmnStructure.map)) {
+        if (dmnVariables[dmnInput2] === undefined) {
+          canRunDMN = false;
+        }
+      }
+
+      if (canRunDMN) {
+        console.log('Can run DMN')
+        setNoCodeIsLoading(true)
+        let arrayIDs = await runDMN(formData, dmnStructure, load_card['partitionKey'])
+        if (arrayIDs && arrayIDs.length > 0 && arrayIDs[0].cardID) {
+          let current_ID = arrayIDs[0].cardID
+          let scope = arrayIDs[0].scope
+          let card_conditions = (arrayIDs[0].card_conditions && arrayIDs[0].card_conditions !== '') ? JSON.parse(arrayIDs[0].card_conditions) : {};
+
+          let card_loaded = noCodeCards.filter(cd => cd.cardId === current_ID);
+          if (!card_loaded || card_loaded.length === 0) {
+            await loadRemoteSchema(current_ID, cardId, formData, scope, card_conditions)
+            isLoadingRemoteSchema.current = false;
+          }
+          setNoCodeIsLoading(false)
+        } else {
+          setNoCodeIsLoading(false)
+
+        }
+      }
+    }
+
+    let nextState = defineSchema(noCodeCards, cardId, formData)
+    setNoCodeCards(() => nextState)
+    if (noCodeCards.length > 1) {
+      let moveLeft = Math.max(0, noCodeActiveCard - 1);
+      let moveRight = Math.min(noCodeCards.length - 1, noCodeActiveCard + 1);
+      setNoCodeActiveCard(() => (cardTargetIdx === 'moveLeft' ? moveLeft : moveRight))
+    }
+  }
+
+  let preview = <>
+    <div className="preview-form">
+      <section class="deckofcards">
+        <div ref={noCodeCarouselRef} className='d-carousel d-w-full'>
+          {
+            (noCodeCards.length === 0) ?
+              <span>Prévia indisponível</span>
+              : ''
+          }
+          {noCodeCards.map((nocodecard, ncindex) => {
+            const nocodeactive = ncindex === noCodeActiveCard;
+            return (
+              <div id={`nocodecard_${ncindex}`} key={`nocodecard_${ncindex}`} className='d-carousel-item d-w-full' ref={nocodeactive ? noCodeActiveCardRef : null}>
+                <div className="d-w-full">
+                  <Form {...nocodecard} liveValidate />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+      <section className="navigation d-flex align-items-end flex-column">
+        <div className="d-flex d-space-x-4 align-items-center">
+          <button className={`btn btn-outline-secondary btn-navigation ${((noCodeActiveCard - 1) < 0 || noCodeIsLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEventNoCard(noCodeCards[noCodeActiveCard].cardId, Object.assign({}, payloadFormData, noCodeCards[noCodeActiveCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(initialform.language === 'en_us') ? 'Previous' : 'Anterior'}</button>
+          <span class="glyphicon glyphicon-option-horizontal"></span>
+          <button type="button" className={`btn btn-outline-secondary btn-navigation ${((noCodeActiveCard + 1) >= noCodeCards.length || noCodeIsLoading) && 'disabled'}`} onClick={(e) => { e.preventDefault(); handleClickEventNoCard(noCodeCards[noCodeActiveCard].cardId, Object.assign({}, payloadFormData, noCodeCards[noCodeActiveCard].formData), 'moveRight') }}>{(initialform.language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
+        </div>
+      </section>
+    </div>
+  </>
+  return preview
+}
