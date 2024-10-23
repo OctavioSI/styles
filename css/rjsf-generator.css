@@ -42,6 +42,13 @@ body {
   --bs-table-bg: #0077fd;
 }
 
+legend#root__title::before{
+  margin-right:0;
+}
+#root__description{
+  padding-bottom: 24px;
+}
+
 .looplex-header {
   height: 60px;
   background-color: #001529;
@@ -149,4 +156,9 @@ body {
 
 .left-margin-2px{
   margin-left:2px;    
+}
+
+.preview-form {
+  border: 2px dashed #CCCCCC;
+  height: 100%;
 }
