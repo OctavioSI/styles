@@ -1,0 +1,498 @@
+{
+  "cardId": "nortec-work-request-solicitante",
+  "partitionKey": "nortec.com.br",
+  "card_conditions": {},
+  "dmnStructure": {},
+  "schema": {
+      "type": "object",
+      "properties": {
+          "requester": {
+              "type": "object",
+              "title": "Informações do Solicitante",
+              "required": [
+                  "emailAddress",
+                  "name"
+              ],
+              "properties": {
+                  "emailAddress": {
+                      "type": "string",
+                      "title": "Endereço de Email"
+                  },
+                  "name": {
+                      "title": "E-mails Nortec",
+                      "type": "array",
+                      "uniqueItems": true,
+                      "minItems": 1,
+                      "items": {
+                          "type": "string",
+                          "enum": [
+                              "samara.jalloul+req@looplex.com.br",
+                              "luan.carletto+req@looplex.com.br"
+                          ]
+                      }
+                  },
+                  "department": {
+                      "type": "string",
+                      "title": "Departamento"
+                  },
+                  "contactNumber": {
+                      "type": "string",
+                      "title": "Número de Contato"
+                  }
+              }
+          },
+          "caseReference": {
+              "title": "Referência de caso",
+              "type": "object",
+              "required": [
+                  "isRelatedToExistingCase"
+              ],
+              "properties": {
+                  "isRelatedToExistingCase": {
+                      "type": "boolean",
+                      "oneOf": [
+                          {
+                              "const": true,
+                              "title": "Sim"
+                          },
+                          {
+                              "const": false,
+                              "title": "Não"
+                          }
+                      ],
+                      "default": true,
+                      "title": "Esta solicitação está relacionada a um caso existente anteriormente na plataforma Looplex?"
+                  }
+              },
+              "allOf": [
+                  {
+                      "if": {
+                          "properties": {
+                              "isRelatedToExistingCase": {
+                                  "const": true
+                              }
+                          }
+                      },
+                      "then": {
+                          "properties": {
+                              "caseId": {
+                                  "type": "string",
+                                  "title": "ID do caso na plataforma"
+                              }
+                          }
+                      }
+                  },
+                  {
+                      "if": {
+                          "properties": {
+                              "isRelatedToExistingCase": {
+                                  "const": false
+                              }
+                          }
+                      },
+                      "then": {
+                          "properties": {
+                              "caseInformation": {
+                                  "title": "Informações do Caso",
+                                  "type": "object",
+                                  "properties": {
+                                      "area": {
+                                          "type": "string",
+                                          "title": "Área",
+                                          "enum": [
+                                              "Administrativo Interno",
+                                              "ConteciosoTrabalhista",
+                                              "Contencioso Cível",
+                                              "Dir. Administrativo",
+                                              "Dir. Desportivo",
+                                              "Família",
+                                              "Investimento em Sociedade",
+                                              "Planejamento Sucessório",
+                                              "Societário",
+                                              "Tributário"
+                                          ]
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              ]
+          },
+          "productDeliverable": {
+              "type": "string",
+              "title": "Qual documento deseja solicitar?",
+              "enum": [
+                  "Acordo de Confidencialidade - Serviço",
+                  "Acordo de Confidencialidade - Anvisa",
+                  "Secrecy Agreement - 2 Parties",
+                  "Secrecy Agreement - 3 Parties"
+              ]
+          },
+          "objective": {
+              "title": "Objetivo",
+              "type": "object",
+              "required": [
+                  "processDeliverables"
+              ],
+              "properties": {
+                  "processDeliverables": {
+                      "title": "Pontos de atenção da solicitação",
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                          "title": "Pontos de atenção",
+                          "type": "string"
+                      }
+                  },
+                  "successCriteria": {
+                      "title": "Especifique os critérios de sucesso para a solicitação de trabalho",
+                      "type": "string"
+                  }
+              }
+          },
+          "additionalInformation": {
+              "title": "Informações complementares",
+              "type": "object",
+              "required": [
+                  "complexity",
+                  "model",
+                  "jurisdiction"
+              ],
+              "properties": {
+                  "complexity": {
+                      "type": "string",
+                      "title": "Grau de Complexidade",
+                      "enum": [
+                          "Alta",
+                          "Média",
+                          "Baixa"
+                      ]
+                  },
+                  "model": {
+                      "type": "string",
+                      "title": "Tipo de Modelo",
+                      "enum": [
+                          "Modelo Nortec",
+                          "Modelo Contraparte"
+                      ]
+                  },
+                  "jurisdiction": {
+                      "type": "boolean",
+                      "oneOf": [
+                          {
+                              "const": true,
+                              "title": "Sim"
+                          },
+                          {
+                              "const": false,
+                              "title": "Não"
+                          }
+                      ],
+                      "title": "Editar Foro"
+                  }
+              },
+              "allOf": [
+                  {
+                      "if": {
+                          "properties": {
+                              "jurisdiction": {
+                                  "const": true
+                              }
+                          }
+                      },
+                      "then": {
+                          "properties": {
+                              "editJurisdiction": {
+                                  "title": "Foro",
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  }
+              ]
+          }
+      },
+      "definitions": {
+          "legalEntity": {
+              "properties": {
+                  "polo": {
+                      "title": "Posição da parte neste caso",
+                      "type": "string",
+                      "enum": [
+                          "Ativo",
+                          "Passivo"
+                      ]
+                  },
+                  "type": {
+                      "type": "string",
+                      "title": "Tipo de pessoa",
+                      "default": "Pessoa jurídica",
+                      "enum": [
+                          "Pessoa física",
+                          "Pessoa jurídica"
+                      ]
+                  },
+                  "idNumber": {
+                      "type": "string",
+                      "title": "Número do Documento de Identificação"
+                  },
+                  "name": {
+                      "type": "string",
+                      "title": "Identificação",
+                      "description": "'Nome' em caso de pessoa física; 'Razão social' em caso de pessoa jurídica"
+                  },
+                  "alias": {
+                      "type": "string",
+                      "title": "Denominação no contrato"
+                  },
+                  "email": {
+                      "type": "string",
+                      "title": "E-mail para contato"
+                  },
+                  "businessAddress": {
+                      "title": "Endereço",
+                      "type": "object",
+                      "required": [
+                          "postalCode",
+                          "streetName",
+                          "addressNumber",
+                          "district",
+                          "municipality",
+                          "region"
+                      ],
+                      "properties": {
+                          "postalCode": {
+                              "type": "string",
+                              "title": "CEP"
+                          },
+                          "streetName": {
+                              "type": "string",
+                              "title": "Logradouro"
+                          },
+                          "addressNumber": {
+                              "type": "string",
+                              "title": "Número"
+                          },
+                          "additionalDetails": {
+                              "type": "string",
+                              "title": "Complemento"
+                          },
+                          "district": {
+                              "type": "string",
+                              "title": "Bairro"
+                          },
+                          "municipality": {
+                              "type": "string",
+                              "title": "Município"
+                          },
+                          "region": {
+                              "type": "string",
+                              "title": "UF"
+                          }
+                      }
+                  }
+              },
+              "dependencies": {
+                  "type": {
+                      "oneOf": [
+                          {
+                              "properties": {
+                                  "type": {
+                                      "const": "Pessoa física"
+                                  },
+                                  "nationality": {
+                                      "type": "string",
+                                      "title": "Nacionalidade",
+                                      "default": "Brasileira"
+                                  },
+                                  "primaryBusinessActivity": {
+                                      "type": "string",
+                                      "title": "Ocupação da Parte"
+                                  },
+                                  "maritalStatus": {
+                                      "type": "string",
+                                      "title": "Estado civil",
+                                      "enum": [
+                                          "Solteiro",
+                                          "Casado",
+                                          "Separado",
+                                          "Divorciado",
+                                          "Viúvo"
+                                      ]
+                                  }
+                              }
+                          },
+                          {
+                              "properties": {
+                                  "type": {
+                                      "const": "Pessoa jurídica"
+                                  },
+                                  "nature": {
+                                      "type": "string",
+                                      "title": "Natureza jurídica"
+                                  },
+                                  "primaryBusinessActivity": {
+                                      "type": "string",
+                                      "title": "Atividade da Parte"
+                                  },
+                                  "legalRepresentatives": {
+                                      "title": "Representantes legais",
+                                      "type": "array",
+                                      "items": {
+                                          "title": "Representante",
+                                          "type": "object",
+                                          "properties": {
+                                              "nome_socio": {
+                                                  "title": "Nome",
+                                                  "type": "string"
+                                              },
+                                              "qualificacao_socio": {
+                                                  "title": "Cargo",
+                                                  "type": "string"
+                                              },
+                                              "email": {
+                                                  "title": "Email",
+                                                  "type": "string"
+                                              },
+                                              "idNumber": {
+                                                  "title": "CPF",
+                                                  "type": "string"
+                                              }
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      ]
+                  }
+              }
+          },
+          "listName": {
+              "type": "string",
+              "required": [
+                  "listName"
+              ],
+              "enum": [
+                  "luan.carletto+solicitante@looplex.com.br",
+                  "samara.jalloul+solicitante@looplex.com.br",
+                  "erick.kitada+solicitante@looplex.com.br"
+              ]
+          }
+      }
+  },
+  "uiSchema": {
+      "parties": {
+          "agreementPoleChoice": {
+              "ui:widget": "radio"
+          },
+          "disclosingParty": {
+              "nature": {
+                  "ui:widget": "hidden"
+              },
+              "idNumber": {
+                  "ui:widget": "masked",
+                  "ui:options": {
+                      "mask": "99.999.999/9999-99",
+                      "type": "code"
+                  }
+              },
+              "businessAddress": {
+                  "ui:field": "autofill",
+                  "ui:autofill": {
+                      "requestConfig": {
+                          "url": "https://brasilapi.com.br/api/cep/v1/{{{postalCode}}}"
+                      },
+                      "responseMap": {
+                          "street": "streetAddress",
+                          "neighborhood": "district",
+                          "city": "addressLocality",
+                          "state": "addressCountry"
+                      },
+                      "trigger": "postalCode"
+                  },
+                  "postalCode": {
+                      "ui:widget": "masked",
+                      "ui:options": {
+                          "mask": "99.999-999",
+                          "type": "code"
+                      }
+                  },
+                  "email": {
+                      "title": "Email",
+                      "type": "string"
+                  }
+              }
+          },
+          "recipient": {
+              "nature": {
+                  "ui:widget": "hidden"
+              },
+              "idNumber": {
+                  "ui:widget": "masked",
+                  "ui:options": {
+                      "mask": "99.999.999/9999-99",
+                      "type": "code"
+                  }
+              },
+              "businessAddress": {
+                  "ui:field": "autofill",
+                  "ui:autofill": {
+                      "requestConfig": {
+                          "url": "https://brasilapi.com.br/api/cep/v1/{{{postalCode}}}"
+                      },
+                      "responseMap": {
+                          "street": "streetAddress",
+                          "neighborhood": "district",
+                          "city": "addressLocality",
+                          "state": "addressCountry"
+                      },
+                      "trigger": "postalCode"
+                  },
+                  "postalCode": {
+                      "ui:widget": "masked",
+                      "ui:options": {
+                          "mask": "99.999-999",
+                          "type": "code"
+                      }
+                  }
+              }
+          }
+      },
+      "requester": {
+          "name": {
+              "ui:widget": "checkboxes"
+          }
+      },
+      "additionalInformation": {
+          "urgency": {
+              "ui:widget": "radio"
+          },
+          "complexity": {
+              "ui:widget": "radio"
+          },
+          "model": {
+              "ui:widget": "radio"
+          },
+          "jurisdiction": {
+              "ui:widget": "radio"
+          }
+      },
+      "ui:field": "lambda",
+      "ui:lambda": {
+          "trigger": "createdOn",
+          "requestConfig": {
+              "method": "POST",
+              "url": "https://actions.looplex.com/api/code/A47C84F0-459D-11EE-8802-41C5522541B5",
+              "data": "{{{$}}}"
+          },
+          "functionBody": "context.uiSchema.pageHooks.setPreviewUrl(context.data.message);  context.uiSchema.pageHooks.setUpdatedFormData(context.data.formData.formData)"
+      },
+      "ui:submitButtonOptions": {
+          "norender": true
+      }
+  },
+  "formData": {},
+  "priorFormData": {},
+  "tagName": "div"
+}
