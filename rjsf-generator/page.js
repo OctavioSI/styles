@@ -138,8 +138,7 @@ function App() {
                 "properties": {
                   "targetCode": {
                     "type": "string",
-                    "title": "ID do Code a ser executado",
-                    "hint": "Após enviar o Formulário, vamos executar algum code? Se sim, informe o ID."
+                    "title": "ID do Code a ser executado"
                   }
                 }
               }
@@ -213,6 +212,13 @@ function App() {
         "formProps": {
           "template": {
             "ui:widget": "filepond"
+          }
+        },
+        "formAction":{
+          "executeCode":{
+            "targetCode":{
+              "ui:help": "Após enviar o Formulário, vamos executar algum code? Se sim, informe o ID."
+            }
           }
         }
       },
@@ -342,14 +348,11 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
    */
   const [activeCard, setActiveCard] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingDocumentDetails, setIsLoadingDocumentDetails] = useState(false)
   const [isReady2Submit, setIsReady2Submit] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cards, setCards] = useState(schemacards)
-  const [allLoadedCards, setAllLoadedCards] = useState([])
   const carouselRef = useRef(null);
   const activeCardRef = useRef(null);
-  const isLoadingRemoteSchema = useRef(false);
   const cardInfoFormData = useRef({});
   const cardConditionFormData = useRef({});
   const cardSectionFormData = useRef({});
@@ -359,12 +362,15 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   const cardAutofillMapFormData = useRef({});
   const cardLambdaFormData = useRef({});
   const cardLambdaMapFormData = useRef({});
+  const cardFieldsSelectionOptFormData = useRef({});
+  const fieldConditionFormData = useRef({});
   const availableDefinitions = useRef({});
   const availableAFDefinitions = useRef({});
   const availableLbDefinitions = useRef({});
   const usedDefinitions = useRef({});
   const usedAFDefinitions = useRef({});
   const usedLbDefinitions = useRef({});
+
   let payloadFormData = {};
   /** Hooks - INÍCIO */
   useEffect(() => {
@@ -537,59 +543,60 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
 
     availableAFDefinitions.current = {
       "cep": "CEP",
-      "cnpj": "CNPJ"
+      "qsa": "Quadro de Sócios e Administradores"
     }
     usedAFDefinitions.current = {
       "cep": {
-        "url": "https://brasilapi.com.br/api/cep/v1/{{{postalCode}}}",
-        "trigger": "postalCode",
+        "url": "7C1E4940-A12B-11EF-AA4C-AD8F75759CDD", // wf_codecomponent_autofill_cep
+        "trigger": "CEP",
         "responsemap": {
           "street": "",
           "neighborhood": "",
           "city": "",
           "state": ""
-        }
+        },
+        "payload": "{ \"cep\": \"{{{CEP}}}\" }"
       },
-      "cnpj": {
-        "url": "https://brasilapi.com.br/api/cnpj/v1/{{{cnpjNumber}}}",
-        "trigger": "cnpjNumber",
+      "qsa": {
+        "url": "2D45B230-A12C-11EF-BEA5-B70C9B867623", // wf_codecomponent_autofill_qsa
+        "trigger": "CNPJ",
         "responsemap": {
-          "cnpj": "",
-          "identificador_matriz_filial": "",
-          "descricao_matriz_filial": "",
-          "razao_social": "",
-          "nome_fantasia": "",
-          "situacao_cadastral": "",
-          "descricao_situacao_cadastral": "",
-          "data_situacao_cadastral": "",
-          "motivo_situacao_cadastral": "",
-          "nome_cidade_exterior": "",
-          "codigo_natureza_juridica": "",
-          "data_inicio_atividade": "",
-          "cnae_fiscal": "",
-          "cnae_fiscal_descricao": "",
-          "descricao_tipo_de_logradouro": "",
+          "abertura": "",
+          "situacao": "",
+          "tipo": "",
+          "nome": "",
+          "fantasia": "",
+          "porte": "",
+          "natureza_juridica": "",
+          "atividade_principal": "",
+          "atividades_secundarias": "",
+          "qsa": "",
           "logradouro": "",
           "numero": "",
           "complemento": "",
-          "bairro": "",
-          "cep": "",
-          "uf": "",
-          "codigo_municipio": "",
           "municipio": "",
-          "ddd_telefone_1": "",
-          "ddd_telefone_2": "",
-          "ddd_fax": "",
-          "qualificacao_do_responsavel": "",
-          "capital_social": "",
-          "porte": "",
-          "descricao_porte": "",
-          "opcao_pelo_simples": "",
-          "data_opcao_pelo_simples": "",
-          "data_exclusao_do_simples": "",
-          "opcao_pelo_mei": "",
+          "bairro": "",
+          "uf": "",
+          "cep": "",
+          "email": "",
+          "telefone": "",
+          "data_situacao": "",
+          "cnpj": "",
+          "ultima_atualizacao": "",
+          "status": "",
+          "efr": "",
+          "motivo_situacao": "",
           "situacao_especial": "",
-          "data_situacao_especial": ""
+          "data_situacao_especial": "",
+          "capital_social": "",
+          "simples.optante": "",
+          "simples.data_opcao": "",
+          "simples.data_exclusao": "",
+          "simples.ultima_atualizacao": "",
+          "simei.optante": "",
+          "simei.data_opcao": "",
+          "simei.data_exclusao": "",
+          "simei.ultima_atualizacao": ""
         }
       }
     }
@@ -637,15 +644,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   /** Hooks - FIM */
 
   /** Component Helpers - INICIO */
-  // Timer
-  function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms))
-  }
-  // Funcao que verifica se o objeto é vazio
   function isObjectEmpty(objectName) {
     return JSON.stringify(objectName) === '{}'
   }
-  // Monta a estrutura do objeto JSON
   function assembleJSONObjectStructure(source) {
     let obj = JSON.parse(JSON.stringify(source))
     // iterate over the property names
@@ -672,7 +673,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     });
     return obj
   }
-  // Checa se um valor existe no Objeto JSON
   function isValueInObject(searchObject, referenceObject) {
     function get(obj, path) {
       return path.split('.').reduce((r, e) => {
@@ -694,6 +694,14 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       }, false)
     }
     return compare(searchObject, referenceObject);
+  }
+  function isJsonString(str) {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
   }
   function makeid(length) {
     let result = '';
@@ -720,41 +728,44 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         return value;
     }
   }
+  function updateCardReferences(oldreference, newreference, basepath = []){
+  /**
+   * Esta função atualiza as referências dos campos de useRef e sections dentro do cardSections
+   * elchanged: tipo de informação
+   * oldreference: valor do elemento original
+   * newreferente: valor do novo elemento
+   * basepath: array com o caminho para acessar a referencia
+   */    
+    if(oldreference === newreference) return
+    function checkNUpdate(el, ref){
+      if(!el.hasOwnProperty(ref)) return {}
+      let nref = {...el[ref]}
+      delete el[ref]
+      return nref
+    }
+    function getBasePath(el, basepath){
+      for(let i=0; i<basepath.length; i++){
+        if(el.hasOwnProperty(basepath[i])){
+          el = el[basepath[i]]
+        }
+      }
+      return el
+    }
+        getBasePath(cardInfoFormData.current, basepath)[newreference]                 = checkNUpdate(getBasePath(cardInfoFormData.current, basepath), oldreference) // card
+        getBasePath(cardConditionFormData.current, basepath)[newreference]            = checkNUpdate(getBasePath(cardConditionFormData.current, basepath), oldreference) // card conditions
+        getBasePath(cardSectionFormData.current, basepath)[newreference]              = checkNUpdate(getBasePath(cardSectionFormData.current, basepath), oldreference) // sections
+        getBasePath(cardFieldsFormData.current, basepath)[newreference]               = checkNUpdate(getBasePath(cardFieldsFormData.current, basepath), oldreference) // fields
+        getBasePath(cardDefinitionsFormData.current, basepath)[newreference]          = checkNUpdate(getBasePath(cardDefinitionsFormData.current, basepath), oldreference) // definitions
+        getBasePath(cardAutofillFormData.current, basepath)[newreference]             = checkNUpdate(getBasePath(cardAutofillFormData.current, basepath), oldreference) // autofill
+        getBasePath(cardAutofillMapFormData.current, basepath)[newreference]          = checkNUpdate(getBasePath(cardAutofillMapFormData.current, basepath), oldreference) // autofill map
+        getBasePath(cardLambdaFormData.current, basepath)[newreference]               = checkNUpdate(getBasePath(cardLambdaFormData.current, basepath), oldreference) // lambda
+        getBasePath(cardLambdaMapFormData.current, basepath)[newreference]            = checkNUpdate(getBasePath(cardLambdaMapFormData.current, basepath), oldreference) // lambda map
+        getBasePath(cardFieldsSelectionOptFormData.current, basepath)[newreference]   = checkNUpdate(getBasePath(cardFieldsSelectionOptFormData.current, basepath), oldreference) // select options
+        getBasePath(fieldConditionFormData.current, basepath)[newreference]           = checkNUpdate(getBasePath(fieldConditionFormData.current, basepath), oldreference) // field conditions
+  }  
   /** Component Helpers - FIM*/
 
   /** Funções do Componente - INÍCIO */
-  // executa uma DMN -- precisa do endpoint no post.js
-  async function runDMN(formData, dmnStructure, tenant) {
-    // formData é a variável com o objeto de respostas atuais do formulário
-    // dmnStrucutre é o atributo dmn do card (contém dmnID e map)
-    let { id, map } = dmnStructure
-    let dmnVariables = {};
-    for (let i in map) {
-      dmnVariables[i] = map[i].split('.').reduce(
-        (preview, current) => preview[current],
-        formData
-      )
-    }
-    try {
-      let data = {
-        command: "runDMN",
-        tenant: tenant,
-        id: id,
-        variables: dmnVariables
-      };
-      let config = {
-        method: 'post',
-        url: `/api/code/${codeId}`,
-        data
-      }
-      const res = await axios(config);
-      if (res.data && res.data.output) {
-        return res.data.output.output;
-      }
-    } catch (e) {
-      throw new Error('Erro ao executar DMN')
-    }
-  }
   // Essa função é utilizada para definir os cards que deverão ser exibidos
   function defineSchema(initialcards = [], cardId = '', formData = {}) {
     let tmpcards = [];
@@ -838,165 +849,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     // Ao final, retornamos o array com cards que atendem as conditions
     return cards2Show;
   }
-  // Carrega um schema remoto, que está armazenado no cosmosDB
-  // Precisa do endpoint fetchSchema no post.js
-  async function loadRemoteSchema(id, cardId, formData, scope = '', card_conditions = {}, tenant = 'looplex.com.br', codeId = '') {
-    let documentDetails = {};
-    async function fetchRemoteSchema() {
-      let data = {
-        command: "fetchSchema",
-        tenant: tenant,
-        id: id
-      };
-      let config = {
-        method: 'post',
-        url: `/api/code/${codeId}`,
-        data
-      }
-      const res = await axios(config);
-      if (res.data && res.data.output) {
-        let newCard = {};
-        let iSchema = {};
-        let tmpCards = allLoadedCards;
-        if (res.data.output.hasOwnProperty('cards') && Array.isArray(res.data.output.cards)) { // É um array, não um objeto
-          let tmpcardsarray = res.data.output.cards;
-          for (let i = 0; i < tmpcardsarray.length; i++) {
-            iSchema = tmpcardsarray[i];
-            newCard = {
-              cardId: iSchema.cardId,
-              partitionKey: iSchema.partitionKey,
-              card_conditions: iSchema.card_conditions,
-              scope: iSchema.scope,
-              dmnStructure: iSchema.dmnStructure,
-              schema: iSchema.schema,
-              uiSchema: iSchema.uiSchema,
-              formData: {},
-              tagName: 'div'
-            }
-            tmpCards.push(newCard);
-          }
-        } else { // Tenho só o objeto de um card
-          iSchema = res.data.output;
-          newCard = {
-            cardId: iSchema.id,
-            card_conditions: card_conditions,
-            scope: (scope && scope != '') ? scope : '',
-            dmnStructure: iSchema.dmnStructure,
-            schema: iSchema.schema,
-            uiSchema: iSchema.uiSchema,
-            formData: {},
-            tagName: 'div'
-          };
-          tmpCards.push(newCard);
-        }
-        setAllLoadedCards(() => tmpCards) // criando um local que tem todas as cards, exibidas ou não        
-        let newCards;
-        // setTmpVisor(newCards)
-        if (documentDetails && documentDetails.hasOwnProperty('versions') && documentDetails.versions.length > 0) {
-          newCards = defineSchema(loadPriorFormData(documentDetails, true), cardId, formData);
-        } else {
-          newCards = defineSchema(tmpCards, cardId, formData)
-        }
-        setCards(() => newCards)
-      }
-      setIsLoading(false)
-    }
-    let maxAttempts = 3;
-    for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
-      if (isLoadingRemoteSchema.current) {
-        // console.log('mounted');
-      } else {
-        // console.log('mounting');
-        isLoadingRemoteSchema.current = true;
-        setIsLoading(true);
-        fetchRemoteSchema()
-          .then(res => {
-            countAttempts = maxAttempts;
-            console.log('Remote Schema loaded successfully. Attempt: ' + countAttempts)
-            setIsLoading(false);
-          })
-          .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
-            setIsLoading(false);
-            if (countAttempts >= maxAttempts) {
-              setTmpVisor('Erro ao carregar o formulário remoto: ' + err.message)
-            }
-            sleep(500);
-          });
-      }
-      if (countAttempts == maxAttempts) break;
-    }
-  }
-  // Busca o formData que será exibido como valor anterior
-  function loadPriorFormData(docdetails, keepFormData = false) {
-    let currentVersion = docdetails.versions.filter(v => v.version == docdetails.currentVersion);
-    let formDataComplete = {};
-    if (currentVersion && currentVersion.length > 0) {
-      formDataComplete = currentVersion[0].formData;
-    }
-    // console.log('formDataComplete', formDataComplete)
-    let priorDataCards = allLoadedCards.map((card) => {
-      // Para cada schema no card, vou montar o objeto de prior correspondente
-      let priorData = {}
-      if (card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')) {
-        for (const property in card.schema.properties) {
-          priorData[property] = formDataComplete[property];
-        }
-      }
-      let loadedFormData = priorData
-      if (keepFormData) {
-        let loadedcard = cards.filter(cd => cd.cardId === card.cardId);
-        if (loadedcard && loadedcard.length > 0)
-          loadedFormData = loadedcard[0].formData
-      }
-      return {
-        ...card,
-        priorFormData: priorData,
-        formData: loadedFormData
-      }
-    })
-    return priorDataCards
-  }
   // Chamado sempre que o botão de próxima ou anterior for clicado
   async function handleClickEvent(cardId, formData, cardTargetIdx) {
     let load_card = cards.filter(cd => cd.cardId === cardId)[0];
-    let dmnStructure = load_card.hasOwnProperty('dmnStructure') ? load_card['dmnStructure'] : {};
-    let canRunDMN = true;
-    let dmnVariables = {};
-    // Temos uma DMN na estrutura do Card (carregamento de cards progressivo)
-    if (dmnStructure && !isObjectEmpty(dmnStructure)) {
-      console.log('Tem uma DMN aqui...')
-      for (let dmnInput in dmnStructure.map) {
-        dmnVariables[dmnInput] = dmnStructure.map[dmnInput].split('.').reduce(
-          (preview, current) => preview[current],
-          formData
-        )
-      }
-      // setTmpVisor(JSON.stringify(dmnVariables))
-      for (let [dmnInput2, localVar] of Object.entries(dmnStructure.map)) {
-        if (dmnVariables[dmnInput2] === undefined) {
-          canRunDMN = false;
-        }
-      }
-      if (canRunDMN) {
-        console.log('Can run DMN')
-        setIsLoading(true)
-        let arrayIDs = await runDMN(formData, dmnStructure, load_card['partitionKey'])
-        if (arrayIDs && arrayIDs.length > 0 && arrayIDs[0].cardID) {
-          let current_ID = arrayIDs[0].cardID
-          let scope = arrayIDs[0].scope
-          let card_conditions = (arrayIDs[0].card_conditions && arrayIDs[0].card_conditions !== '') ? JSON.parse(arrayIDs[0].card_conditions) : {};
-          let card_loaded = cards.filter(cd => cd.cardId === current_ID);
-          if (!card_loaded || card_loaded.length === 0) {
-            await loadRemoteSchema(current_ID, cardId, formData, scope, card_conditions)
-            isLoadingRemoteSchema.current = false;
-          }
-          setIsLoading(false)
-        } else {
-          setIsLoading(false)
-
-        }
-      }
-    }
     setCards(prev => {
       let tmpCards = [...prev]
       let nextState = defineSchema(tmpCards, cardId, formData)
@@ -1025,8 +880,14 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     // Ao dar o blur, vamos atualizar o formData do card todo
     let cardFD = cards.filter(cd => cd.cardId === cardId)[0].formData;
     cardFD.card = cardInfoFormData.current[cardId].card;
+    updateCardReferences(cardId, cardInfoFormData.current[cardId].card.id);
     setCards(prev => {
       let tmpCards = [...prev]
+      // Temos que alterar os cards -- sai o card antigo e substitui pelo novo Id
+      let previousCard = tmpCards.filter(cd => cd.cardId === cardId)[0]
+      let previousCardIdx = tmpCards.indexOf(previousCard);
+      previousCard.cardId = cardFD.card.id;
+      tmpCards[previousCardIdx] = previousCard;
       let nextState = defineSchema(tmpCards, cardId, cardFD)
       return nextState
     })
@@ -1034,6 +895,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   async function handleChangeCardConditionsEvent(cardId, formData, conditionId) {
     if (!cardId) return
     if (!cardConditionFormData.current.hasOwnProperty(cardId)) cardConditionFormData.current[cardId] = {}
+    console.log('formData', formData)
     cardConditionFormData.current[cardId][conditionId] = {
       "id": conditionId,
       "variable": formData.conditionvar ? formData.conditionvar : '',
@@ -1065,7 +927,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     if (!cardId) return
     if (!cardSectionFormData.current.hasOwnProperty(cardId)) cardSectionFormData.current[cardId] = {}
     cardSectionFormData.current[cardId][sectionId] = {
-      "id": sectionId,
+      "id": formData.section?.id ? formData.section?.id : sectionId,
       "name": formData.section?.display ? formData.section?.display : '',
       "description": formData.section?.description ? formData.section?.description : ''
     }
@@ -1079,13 +941,15 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       cardSection.cardSections = [];
     }
     let section = cardSection.cardSections.filter(cc => cc.id === sectionId);
+    let newref = cardSectionFormData.current[cardId][sectionId].id
+    updateCardReferences(sectionId, newref, [cardId]);
     let sectionIdx = 0;
     if (section.length > 0) {
       sectionIdx = cardSection.cardSections.indexOf(section[0]);
-      cardSection.cardSections[sectionIdx] = { ...cardSection.cardSections[sectionIdx], ...(cardSectionFormData.current[cardId][sectionId]) }
+      cardSection.cardSections[sectionIdx] = { ...cardSection.cardSections[sectionIdx], ...(cardSectionFormData.current[cardId][newref]) }
     } else {
       sectionIdx = cardSection.cardSections.length;
-      cardSection.cardSections.push(cardSectionFormData.current[cardId][sectionId])
+      cardSection.cardSections.push(cardSectionFormData.current[cardId][newref])
     }
     // Adicionar ao cardSection as rows se existirem (para reconstituir o objeto)
     setCards(prev => {
@@ -1112,7 +976,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       return basePath
     }
     let fielditem = {
-      "id": fieldId,
+      "id": formData.section?.id ? formData.section?.id : fieldId,
       "name": formData.section?.display ? formData.section?.display : '',
       "description": formData.section?.description ? formData.section?.description : '',
       "colsize": formData.section?.colsize ? formData.section?.colsize : '12',
@@ -1139,13 +1003,41 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     let cardSectionRow = cardSection.rows.filter(cs => cs.id === rowId)[0];
     let cardSectionRowIdx = cardSection.rows.indexOf(cardSectionRow);
     let cardSectionRowFields = cardSectionRow.fields.filter(cf => cf.id === fieldId);
+    let newref = cardFieldsFormData.current[cardId][sectionId][rowId][fieldId].id;
+    updateCardReferences(fieldId, newref, [cardId, sectionId, rowId]);
     let fieldIdx = 0;
     if (cardSectionRowFields.length > 0) {
       fieldIdx = cardSectionRow.fields.indexOf(cardSectionRowFields[0]);
-      cardSectionRow.fields[fieldIdx] = cardFieldsFormData.current[cardId][sectionId][rowId][fieldId]
+      cardSectionRow.fields[fieldIdx] = cardFieldsFormData.current[cardId][sectionId][rowId][newref]
     } else {
       fieldIdx = cardSectionRowFields.fields.length;
-      cardSectionRow.fields.push(cardFieldsFormData.current[cardId][sectionId][rowId][fieldId])
+      cardSectionRow.fields.push(cardFieldsFormData.current[cardId][sectionId][rowId][newref])
+    }
+    // checar se temos options
+    if(cardSectionRow.fields[fieldIdx].fieldtype === 'selection'){
+      cardSectionRow.fields[fieldIdx].selectionOptions = []
+      if(
+        cardFieldsSelectionOptFormData.current.hasOwnProperty(cardId) &&
+        cardFieldsSelectionOptFormData.current[cardId].hasOwnProperty(sectionId) &&
+        cardFieldsSelectionOptFormData.current[cardId][sectionId].hasOwnProperty(rowId) &&
+        cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId].hasOwnProperty(newref)
+      ) {
+        for (const opt in cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId][newref]) {
+          cardSectionRow.fields[fieldIdx].selectionOptions.push(cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId][newref][opt])
+        }
+      }
+    }
+    // checar se temos conditions para o field
+    cardSectionRow.fields[fieldIdx].fieldConditionsRules = []
+    if(
+      fieldConditionFormData.current.hasOwnProperty(cardId) &&
+      fieldConditionFormData.current[cardId].hasOwnProperty(sectionId) &&
+      fieldConditionFormData.current[cardId][sectionId].hasOwnProperty(rowId) &&
+      fieldConditionFormData.current[cardId][sectionId][rowId].hasOwnProperty(newref)
+    ) {
+      for (const cnd in fieldConditionFormData.current[cardId][sectionId][rowId][newref]) {
+        cardSectionRow.fields[fieldIdx].fieldConditionsRules.push(fieldConditionFormData.current[cardId][sectionId][rowId][newref][cnd])
+      }
     }
     setCards(prev => {
       let tmpCards = [...prev]
@@ -1198,6 +1090,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         "autofill": formData.autofill,
         "url": formData.url,
         "trigger": formData.trigger,
+        "method": formData.method,
+        "payload": formData.payload,
         "changedpreset": true
       }
     } else { // Estou alterando outro campo do autofill que nao o preset
@@ -1206,6 +1100,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         "autofill": formData.autofill,
         "url": formData.url,
         "trigger": formData.trigger,
+        "method": formData.method,
+        "payload": formData.payload,
         "changedpreset": false
       }
     }
@@ -1216,17 +1112,19 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     let cardSection = cardTmp.cardSections.filter(cc => cc.id === sectionId)[0];
     let cardSectionIdx = cardTmp.cardSections.indexOf(cardSection);
     cardSection.autofill = cardAutofillFormData.current[cardId][sectionId]
-    // Ao mudar o tipo de autofill, vamos carregar as variaveis remotas para montar a correspondencia
-    if (!cardSection.autofill?.autofill || cardSection.autofill?.autofill === '') {
-      cardSection.autofill.url = '';
-      cardSection.autofill.trigger = '';
-      cardSection.autofill.map = [];
-    } else {
+    if (!cardSection.autofill?.autofill || cardSection.autofill?.autofill === '') { // Limpei o campo de autofill ou estou mexendo sem uma pré-seleção
+      cardSection.autofill.url = cardSection.autofill.url ? cardSection.autofill.url : '';
+      cardSection.autofill.trigger = cardSection.autofill.trigger ? cardSection.autofill.trigger : '';
+      cardSection.autofill.method = cardSection.autofill.method ? cardSection.autofill.method : '';
+      cardSection.autofill.map = cardSection.autofill.map ? cardSection.autofill.map : [];
+    } else { // Ao mudar o tipo de autofill, vamos carregar as variaveis remotas para montar a correspondencia
       if (cardSection.autofill.changedpreset) {
         if (usedAFDefinitions.current.hasOwnProperty(cardSection.autofill?.autofill)) {
           let selectedAFOption = usedAFDefinitions.current[cardSection.autofill.autofill];
           cardSection.autofill.url = selectedAFOption.url;
           cardSection.autofill.trigger = selectedAFOption.trigger;
+          cardSection.autofill.method = selectedAFOption.method;
+          cardSection.autofill.payload = selectedAFOption.payload;
           let respmap = [];
           for (const [remote, local] of Object.entries(selectedAFOption.responsemap)) {
             respmap.push({
@@ -1377,8 +1275,103 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       return tmpCards
     })
   }
-  // Exibe o modal para formato de salvar nova definição
+  async function handleChangeSectionRowFieldSelectionOptEvent(cardId, formData, sectionId, rowId, fieldId, optId) {
+    if (!cardId) return
+    if (!cardFieldsSelectionOptFormData.current.hasOwnProperty(cardId)) cardFieldsSelectionOptFormData.current[cardId] = {}
+    if (!cardFieldsSelectionOptFormData.current[cardId].hasOwnProperty(sectionId)) cardFieldsSelectionOptFormData.current[cardId][sectionId] = {}
+    if (!cardFieldsSelectionOptFormData.current[cardId][sectionId].hasOwnProperty(rowId)) cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId] = {}
+    if (!cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId].hasOwnProperty(fieldId)) cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId][fieldId] = {}
+    cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId][fieldId][optId] = {
+      "id": optId,
+      "value": formData.optvalue ? formData.optvalue : '',
+      "display": formData.optdisplay ? formData.optdisplay : ''
+    }
+  }
+  async function handleBlurSectionRowFieldSelectionOptEvent(cardId, sectionId, rowId, fieldId, optId) {
+    if (!cardId) return
+    let cardTmp = cards.filter(cd => cd.cardId === cardId)[0];
+    let cardTmpIdx = cards.indexOf(cardTmp);
+    let cardSection = cardTmp.cardSections.filter(cc => cc.id === sectionId)[0];
+    let cardSectionIdx = cardTmp.cardSections.indexOf(cardSection);
+    let cardSectionRow = cardSection.rows.filter(cs => cs.id === rowId)[0];
+    let cardSectionRowIdx = cardSection.rows.indexOf(cardSectionRow);
+    let cardSectionRowField = cardSectionRow.fields.filter(cf => cf.id === fieldId)[0];
+    let cardSectionRowFieldIdx = cardSectionRow.fields.indexOf(cardSectionRowField);
+    let cardSectionRowFieldSelectionOpt = cardSectionRowField.selectionOptions.filter(opt => opt.id === optId);
+    let optIdx = 0;
+    if (cardSectionRowFieldSelectionOpt.length > 0) {
+      optIdx = cardSectionRowField.selectionOptions.indexOf(cardSectionRowFieldSelectionOpt[0]);
+      cardSectionRowField.selectionOptions[optIdx] = cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId][fieldId][optId]
+    } else {
+      optIdx = cardSectionRowField.selectionOptions;
+      cardSectionRowField.selectionOptions.push(cardFieldsSelectionOptFormData.current[cardId][sectionId][rowId][fieldId][optId])
+    }
+    setCards(prev => {
+      let tmpCards = [...prev]
+      tmpCards[cardTmpIdx].cardSections[cardSectionIdx].rows[cardSectionRowIdx].fields[cardSectionRowFieldIdx].selectionOptions = cardSectionRowField.selectionOptions
+      return tmpCards
+    })
+  }
+  async function handleChangeFieldConditionsEvent(cardId, sectionId, rowId, fieldId, formData, conditionId) {
+    if (!cardId) return
+    if (!fieldConditionFormData.current.hasOwnProperty(cardId)) fieldConditionFormData.current[cardId] = {}
+    if (!fieldConditionFormData.current[cardId].hasOwnProperty(sectionId)) fieldConditionFormData.current[cardId][sectionId] = {}
+    if (!fieldConditionFormData.current[cardId][sectionId].hasOwnProperty(rowId)) fieldConditionFormData.current[cardId][sectionId][rowId] = {}
+    if (!fieldConditionFormData.current[cardId][sectionId][rowId].hasOwnProperty(fieldId)) fieldConditionFormData.current[cardId][sectionId][rowId][fieldId] = {}
+    // Vamos pegar primeiro o field da conditionvar, se houver
+    if(formData.conditionvar && formData.conditionvar !== ''){
+      if( cardFieldsFormData.current.hasOwnProperty(cardId) && 
+          cardFieldsFormData.current[cardId].hasOwnProperty(sectionId) && 
+          cardFieldsFormData.current[cardId][sectionId].hasOwnProperty(rowId) && 
+          cardFieldsFormData.current[cardId][sectionId][rowId].hasOwnProperty(formData.conditionvar)
+      ){
+        let selectedField = cardFieldsFormData.current[cardId][sectionId][rowId][formData.conditionvar];
+        fieldConditionFormData.current[cardId][sectionId][rowId][fieldId][conditionId] = {
+          "id": conditionId,
+          "variable": formData.conditionvar ? formData.conditionvar : '',
+          "value": formData.conditionvalue ? formData.conditionvalue : '',
+          "fieldtype": selectedField.fieldtype ? selectedField.fieldtype : '',
+          "fieldmask": selectedField.fieldmask ? selectedField.fieldmask : '',
+          "maskvalue": selectedField.maskvalue ? selectedField.maskvalue : ''
+        }
+      }
+    }else{
+      fieldConditionFormData.current[cardId][sectionId][rowId][fieldId][conditionId] = {
+        "id": conditionId,
+        "variable": formData.conditionvar ? formData.conditionvar : '',
+        "value": formData.conditionvalue ? formData.conditionvalue : '',
+        "fieldtype": "string"
+      }
+    }
+  }
+  async function handleBlurFieldConditionsEvent(cardId, sectionId, rowId, fieldId, conditionId) {
+    if (!cardId) return
+    let cardTmp = cards.filter(cd => cd.cardId === cardId)[0];
+    let cardTmpIdx = cards.indexOf(cardTmp);
+    let cardSection = cardTmp.cardSections.filter(cc => cc.id === sectionId)[0];
+    let cardSectionIdx = cardTmp.cardSections.indexOf(cardSection);
+    let cardSectionRow = cardSection.rows.filter(cs => cs.id === rowId)[0];
+    let cardSectionRowIdx = cardSection.rows.indexOf(cardSectionRow);
+    let cardSectionRowField = cardSectionRow.fields.filter(cf => cf.id === fieldId)[0];
+    let cardSectionRowFieldIdx = cardSectionRow.fields.indexOf(cardSectionRowField);
+    if (!cardSectionRowField.hasOwnProperty('fieldConditionsRules')) {
+      cardSectionRowField.fieldConditionsRules = [];
+    }
+    let condition = cardSectionRowField.fieldConditionsRules.filter(cc => cc.id === conditionId);
+    if (condition.length > 0) {
+      let conditionIdx = cardSectionRowField.fieldConditionsRules.indexOf(condition[0]);
+      cardSectionRowField.fieldConditionsRules[conditionIdx] = fieldConditionFormData.current[cardId][sectionId][rowId][fieldId][conditionId]
+    } else {
+      cardSectionRowField.fieldConditionsRules.push(fieldConditionFormData.current[cardId][sectionId][rowId][fieldId][conditionId])
+    }
+    setCards(prev => {
+      let tmpCards = [...prev]
+      tmpCards[cardTmpIdx].cardSections[cardSectionIdx].rows[cardSectionRowIdx].fields[cardSectionRowFieldIdx].fieldConditionsRules = cardSectionRowField.fieldConditionsRules
+      return tmpCards
+    })
+  }
   function createNewDefinitionModal() {
+    // Exibe o modal para formato de salvar nova definição
     return
     /*
     let modaltmp = {
@@ -1454,7 +1447,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     };
     tmpCards.push(newCard);
     setCards(prev => {
-      setAllLoadedCards(() => tmpCards);
       setActiveCard(() => prev.length - 1)
       return defineSchema(tmpCards);
     })
@@ -1463,8 +1455,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     console.log('card', card)
     setCards(prev => {
       let remainingCards = prev.filter(cd => cd.cardId !== card.cardId);
-      console.log('remainingCards', remainingCards)
-      setAllLoadedCards(() => remainingCards);
       setActiveCard((currentActive) => {
         return Math.max(0, currentActive - 1);
       })
@@ -1487,7 +1477,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       }
       findCard[0].cardConditionsRules.push(newConditionElement);
       tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules;
-      setAllLoadedCards(() => tmpCards);
       let newCards = defineSchema(tmpCards)
       setCards(() => newCards)
     }
@@ -1499,7 +1488,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     if (findCard && findCard.length > 0) {
       findCardIdx = tmpCards.indexOf(findCard[0]);
       tmpCards[findCardIdx].cardConditionsRules = findCard[0].cardConditionsRules.filter(cd => cd.id !== condition.id)
-      setAllLoadedCards(() => tmpCards);
       let newCards = defineSchema(tmpCards)
       setCards(() => newCards)
     }
@@ -1518,7 +1506,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       findCardIdx = tmpCards.indexOf(findCard[0]);
       findCard[0].cardSections.push(newCardSection);
       tmpCards[findCardIdx] = findCard[0];
-      setAllLoadedCards(() => tmpCards);
       let newCards = defineSchema(tmpCards)
       setCards(() => newCards)
     }
@@ -1530,7 +1517,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     if (findCard && findCard.length > 0) {
       findCardIdx = tmpCards.indexOf(findCard[0]);
       tmpCards[findCardIdx].cardSections = findCard[0].cardSections.filter(cd => cd.id !== section.id)
-      setAllLoadedCards(() => tmpCards);
       let newCards = defineSchema(tmpCards)
       setCards(() => newCards)
     }
@@ -1552,7 +1538,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           findSection[0].rows.push(newSectionDef)
           setCards(prev => {
             prev[findCardIdx].cardSections[findSectionIdx] = findSection[0];
-            setAllLoadedCards(() => prev);
             let newCards = defineSchema(prev)
             return newCards
           })
@@ -1584,7 +1569,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           findSectionIdx = cardSections.indexOf(findSection[0]);
           findSection[0].rows.push(newSectionRow)
           tmpCards[findCardIdx].cardSections[findSectionIdx].rows = findSection[0].rows;
-          setAllLoadedCards(() => tmpCards);
           let newCards = defineSchema(tmpCards)
           setCards(() => newCards)
         }
@@ -1604,7 +1588,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
           tmpCards[findCardIdx].cardSections[findSectionIdx].rows = findSection[0].rows.filter(r => r.id !== row.id);
-          setAllLoadedCards(() => tmpCards);
           let newCards = defineSchema(tmpCards)
           setCards(() => newCards)
         }
@@ -1639,7 +1622,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               if (!findRow[0].hasOwnProperty('fields')) findRow[0].fields = [];
               findRow[0].fields.push(newFieldElement);
               tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields;
-              setAllLoadedCards(() => tmpCards);
               let newCards = defineSchema(tmpCards)
               setCards(() => newCards)
             }
@@ -1666,7 +1648,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             if (findRow && findRow.length > 0) {
               let findRowIdx = sectionRows.indexOf(findRow[0]);
               tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields.filter(fd => fd.id !== field.id);
-              setAllLoadedCards(() => tmpCards);
               let newCards = defineSchema(tmpCards)
               setCards(() => newCards)
             }
@@ -1681,6 +1662,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       "autofill": "",
       "type": "autofill"
     };
+    console.log('noAF', cardInfoFormData.current)
     let findCard = cards.filter(cd => cd.cardId === card.cardId);
     if (findCard && findCard.length > 0) {
       let findCardIdx = cards.indexOf(findCard[0]);
@@ -1690,16 +1672,20 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         if (findSection && findSection.length > 0) {
           let findSectionIdx = cardSections.indexOf(findSection[0]);
           findSection[0].autofill = newSectionAutofill
+          console.log('1')
           if (cardAutofillFormData.current && cardAutofillFormData.current.hasOwnProperty(card.cardId) && cardAutofillFormData.current[card.cardId].hasOwnProperty(section.id)) {
             cardAutofillFormData.current[card.cardId][section.id] = {}
           }
+          console.log('2')
           if (cardAutofillMapFormData.current && cardAutofillMapFormData.current.hasOwnProperty(card.cardId) && cardAutofillMapFormData.current[card.cardId].hasOwnProperty(section.id)) {
             cardAutofillMapFormData.current[card.cardId][section.id] = {} // zerando mapeamento
           }
+          console.log('3')
           setCards(prev => {
+            console.log('Aqui', findSection[0])
             prev[findCardIdx].cardSections[findSectionIdx] = findSection[0];
-            setAllLoadedCards(() => prev);
             let newCards = defineSchema(prev)
+            console.log('newcards', newCards)
             return newCards
           })
         }
@@ -1719,7 +1705,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
           delete tmpCards[findCardIdx].cardSections[findSectionIdx].autofill
-          setAllLoadedCards(() => tmpCards);
           let newCards = defineSchema(tmpCards)
           setCards(() => newCards)
         }
@@ -1750,7 +1735,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           }
           findSection[0].autofill.map.push(newAutofillMapElement);
           tmpCards[findCardIdx].cardSections[findSectionIdx].autofill = findSection[0].autofill;
-          setAllLoadedCards(() => tmpCards);
           let newCards = defineSchema(tmpCards)
           setCards(() => newCards)
         }
@@ -1770,7 +1754,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           let findSectionIdx = cardSections.indexOf(findSection[0]);
           setCards((prev) => {
             prev[findCardIdx].cardSections[findSectionIdx].autofill.map = findSection[0].autofill.map.filter(af => af.id !== afmapId);
-            setAllLoadedCards(() => prev);
             let newCards = defineSchema(prev)
             return newCards
           })
@@ -1801,7 +1784,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           }
           setCards(prev => {
             prev[findCardIdx].cardSections[findSectionIdx] = findSection[0];
-            setAllLoadedCards(() => prev);
             let newCards = defineSchema(prev)
             return newCards
           })
@@ -1822,7 +1804,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         if (findSection && findSection.length > 0) {
           findSectionIdx = cardSections.indexOf(findSection[0]);
           delete tmpCards[findCardIdx].cardSections[findSectionIdx].lambda
-          setAllLoadedCards(() => tmpCards);
           let newCards = defineSchema(tmpCards)
           setCards(() => newCards)
         }
@@ -1853,7 +1834,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           }
           findSection[0].lambda.map.push(newLambdaMapElement);
           tmpCards[findCardIdx].cardSections[findSectionIdx].lambda = findSection[0].lambda;
-          setAllLoadedCards(() => tmpCards);
           let newCards = defineSchema(tmpCards)
           setCards(() => newCards)
         }
@@ -1873,10 +1853,147 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           let findSectionIdx = cardSections.indexOf(findSection[0]);
           setCards((prev) => {
             prev[findCardIdx].cardSections[findSectionIdx].lambda.map = findSection[0].lambda.map.filter(lb => lb.id !== lbmapId);
-            setAllLoadedCards(() => prev);
             let newCards = defineSchema(prev)
             return newCards
           })
+        }
+      }
+    }
+  }
+  async function addNewOption2SectionFieldSelection(card, section, row, field) {
+    let tmpCards = cards;
+    let newOptionElement = {
+      "id": makeid(5),
+      "value": "",
+      "display": ""
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
+        let cardSections = findCard[0].cardSections;
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if (findSection && findSection.length > 0) {
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          if (findSection[0].rows && findSection[0].rows.length > 0) {
+            let sectionRows = findSection[0].rows;
+            let findRow = sectionRows.filter(r => r.id === row.id);
+            if (findRow && findRow.length > 0) {
+              let findRowIdx = sectionRows.indexOf(findRow[0]);
+              let sectionRowFields = findRow[0].fields;
+              let findField = sectionRowFields.filter(f => f.id === field.id);
+              if (findField && findField.length > 0) {
+                let findFieldIdx = sectionRowFields.indexOf(findField[0]);
+                if (!findField[0].hasOwnProperty('selectionOptions')) findField[0].selectionOptions = [];
+                findField[0].selectionOptions.push(newOptionElement);
+                tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields[findFieldIdx].selectionOptions = findField[0].selectionOptions;
+                let newCards = defineSchema(tmpCards)
+                setCards(() => newCards)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  async function removeSectionFieldSelection(card, section, row, field, optId) {
+    let tmpCards = cards;
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
+        let cardSections = findCard[0].cardSections;
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if (findSection && findSection.length > 0) {
+          let findSectionIdx = cardSections.indexOf(findSection[0]);
+          if (findSection[0].rows && findSection[0].rows.length > 0) {
+            let sectionRows = findSection[0].rows;
+            let findRow = sectionRows.filter(r => r.id === row.id);
+            if (findRow && findRow.length > 0) {
+              let findRowIdx = sectionRows.indexOf(findRow[0]);
+              let sectionRowFields = findRow[0].fields;
+              let findField = sectionRowFields.filter(f => f.id === field.id);
+              if (findField && findField.length > 0) {
+                let findFieldIdx = sectionRowFields.indexOf(findField[0]);
+                setCards((prev) => {
+                  prev[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields[findFieldIdx].selectionOptions = findField[0].selectionOptions.filter(opt => opt.id !== optId);
+                  let newCards = defineSchema(prev)
+                  return newCards
+                })
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  async function addNewCondition2Field(card, section, row, field) {
+    let tmpCards = cards;
+    let newConditionElement = {
+      "id": makeid(5),
+      "variable": "",
+      "value": ""
+    };
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
+        let cardSections = findCard[0].cardSections;
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if (findSection && findSection.length > 0) {
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          if (findSection[0].rows && findSection[0].rows.length > 0) {
+            let sectionRows = findSection[0].rows;
+            let findRow = sectionRows.filter(r => r.id === row.id);
+            if (findRow && findRow.length > 0) {
+              let findRowIdx = sectionRows.indexOf(findRow[0]);
+              let sectionRowFields = findRow[0].fields;
+              let findField = sectionRowFields.filter(f => f.id === field.id);
+              if (findField && findField.length > 0) {
+                let findFieldIdx = sectionRowFields.indexOf(findField[0]);
+                if (!findField[0].hasOwnProperty('fieldConditionsRules')) {
+                  findField[0].fieldConditionsRules = []
+                }
+                findField[0].fieldConditionsRules.push(newConditionElement);
+                tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields[findFieldIdx].fieldConditionsRules = findField[0].fieldConditionsRules;
+                let newCards = defineSchema(tmpCards)
+                setCards(() => newCards)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  async function removeFieldCondition(card, section, row, field, condition) {
+    let tmpCards = cards;
+    let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
+    let findCardIdx, findSectionIdx;
+    if (findCard && findCard.length > 0) {
+      findCardIdx = tmpCards.indexOf(findCard[0]);
+      if (findCard[0].cardSections && findCard[0].cardSections.length > 0) {
+        let cardSections = findCard[0].cardSections;
+        let findSection = cardSections.filter(sec => sec.id === section.id);
+        if (findSection && findSection.length > 0) {
+          findSectionIdx = cardSections.indexOf(findSection[0]);
+          if (findSection[0].rows && findSection[0].rows.length > 0) {
+            let sectionRows = findSection[0].rows;
+            let findRow = sectionRows.filter(r => r.id === row.id);
+            if (findRow && findRow.length > 0) {
+              let findRowIdx = sectionRows.indexOf(findRow[0]);
+              let sectionRowFields = findRow[0].fields;
+              let findField = sectionRowFields.filter(f => f.id === field.id);
+              if (findField && findField.length > 0) {
+                let findFieldIdx = sectionRowFields.indexOf(findField[0]);
+                tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields[findFieldIdx].fieldConditionsRules = findField[0].fieldConditionsRules.filter(cd => cd.id !== condition.id)
+                let newCards = defineSchema(tmpCards)
+                setCards(() => newCards)
+              }
+            }
+          }
         }
       }
     }
@@ -1910,6 +2027,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         let rowslayout = [];
         let fieldsmask = {};
         let fields = {};
+        let fieldswidgets = {};
+        let fieldsconditions = {};
         let sectionlayout = {};
         let sectionautofill = {};
         let sectionlambda = {};
@@ -1920,11 +2039,27 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             for (let l = 0; l < rowfields.length; l++) {
               let fielditem = rowfields[l]
               let defaultvalue = setCorrectDefaultType(fielditem.defaultvalue, fielditem.fieldtype)
-              fields[fielditem.id] = {
-                "type": fielditem.fieldtype ? fielditem.fieldtype : 'string',
+              let fieldtype = (!fielditem.fieldtype || fielditem.fieldtype === '' || fielditem.fieldtype === 'textarea' || fielditem.fieldtype === 'selection' || fielditem.fieldtype === 'hidden' ) ? 'string' : fielditem.fieldtype
+              let tmpfield = {};
+              tmpfield[fielditem.id] = {
+                "type": fieldtype,
                 "title": fielditem.name ? fielditem.name : '',
                 "description": fielditem.description ? fielditem.description : '',
                 "default": defaultvalue
+              }
+              if(fielditem.fieldtype === 'selection' && fielditem.hasOwnProperty('selectionOptions')){
+                let selectOptions = []
+                for(let m=0; m<fielditem.selectionOptions.length; m++){
+                  let optitem = {
+                    "type": "string",
+                    "enum": [
+                      fielditem.selectionOptions[m].value
+                    ],
+                    "title": fielditem.selectionOptions[m].display
+                  }
+                  selectOptions.push(optitem)
+                }                
+                tmpfield.anyOf = selectOptions 
               }
               fieldslayout[fielditem.id] = {
                 "classNames": `col-md-${fielditem.colsize}`
@@ -1938,7 +2073,44 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                   }
                 }
               }
+              if(fielditem.fieldtype === 'textarea'){
+                fieldswidgets[fielditem.id] = {
+                  "ui:widget": "textarea"
+                }
+              }
+              if(fielditem.fieldtype === 'hidden'){
+                fieldswidgets[fielditem.id] = {
+                  "ui:widget": "hidden"
+                }
+              }
 
+              // Para cada field, eu posso ter uma ou mais condições 
+              // que vão fazer com que ele apareça ou não
+              if(fielditem.hasOwnProperty('fieldConditionsRules') && fielditem.fieldConditionsRules.length > 0){
+                let newconditions = {};
+                let conditionslist = [];
+                if(!fieldsconditions.hasOwnProperty('allOf')){
+                  fieldsconditions.allOf = [];
+                }
+                for(let m=0; m < fielditem.fieldConditionsRules.length; m++){
+                  let defaultvalue = setCorrectDefaultType(fielditem.fieldConditionsRules[m].value, fielditem.fieldConditionsRules[m].fieldtype)
+                  newconditions[fielditem.fieldConditionsRules[m].variable] = {
+                    "const": defaultvalue
+                  }
+                  conditionslist.push(fielditem.fieldConditionsRules[m].variable)
+                }
+                fieldsconditions.allOf.push({
+                  "if": {
+                    "properties": newconditions,
+                    "required": conditionslist
+                  },
+                  "then": {
+                    "properties": tmpfield
+                  }
+                })
+              }else{
+                fields[fielditem.id] = tmpfield[fielditem.id]
+              }
             }
           } else if (sectionrows[k].type === 'definition') {
             let def = sectionrows[k].definition;
@@ -1975,20 +2147,20 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             }
           }
           rowslayout.push(fieldslayout)
-
         } // for each row
         sections[sct.id] = {
           "type": "object",
           "title": sct.name ? sct.name : '',
           "description": sct.description ? sct.description : '',
-          "properties": fields
+          "properties": fields,
+          ...fieldsconditions
         }
         if (rowslayout && rowslayout.length > 0) {
           sectionlayout = {
             "ui:ObjectFieldTemplate": "layout",
             "ui:layout": rowslayout
           }
-          uiSchemaLayout[sct.id] = { ...uiSchemaLayout[sct.id], ...sectionlayout }
+          uiSchemaLayout[sct.id] = { ...uiSchemaLayout[sct.id], ...sectionlayout, ...fieldswidgets }
         }
         if (sct.hasOwnProperty('autofill')) {
           let afconfig = sct.autofill;
@@ -1997,16 +2169,25 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             let afmap = afconfig['map'];
             for (let k = 0; k < afmap.length; k++) {
               if (afmap[k]) {
-                respmap[afmap[k].remote] = afmap[k].local
+                respmap['output.'+afmap[k].remote] = afmap[k].local
               }
+            }
+          }
+          afconfig.method = afconfig.method ? afconfig.method : 'POST'
+          let reqConfig = {
+            "method": afconfig.method,
+            "url": "/api/code/"+afconfig.url // Poderíamos usar request GET e URL externas, mas optamos por deixar apenas code post.js
+          };
+          if(afconfig.method === 'POST'){
+            reqConfig.data = afconfig.payload
+            if(isJsonString(afconfig.payload)){
+              reqConfig.data = JSON.parse(afconfig.payload)
             }
           }
           sectionautofill = {
             "ui:field": "autofill",
             "ui:autofill": {
-              "requestConfig": {
-                "url": afconfig.url,
-              },
+              "requestConfig": reqConfig,
               "responseMap": respmap,
               "trigger": afconfig.trigger
             }
@@ -2037,7 +2218,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                 "data": "{{{$}}}"
               },
               "trigger": lbconfig.trigger,
-              "functionBody": "context.uiSchema.pageHooks.setUpdatedFormData(context.data.formData.formData)"
+              "responseMap": respmap
             }
           }
         }
@@ -2130,7 +2311,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               "id": {
                 "type": "string",
                 "title": "ID do Card",
-                "default": card.cardId ? card.cardId : ""
+                "default": card.cardId ? card.cardId : "",
+                "pattern": "^[a-zA-Z0-9_-]+$"
               },
               "display": {
                 "type": "string",
@@ -2170,7 +2352,10 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                 "classNames": "col-md-12"
               }
             }
-          ]
+          ],
+          "id":{
+            "ui:help":"Atenção: espaços e caracteres especiais não são permitidos"
+          }
         }
       },
       "formData": card.formData
@@ -2204,15 +2389,38 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         }
       </div>
       <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-        <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
-        <div className="mt-auto d-flex align-items-end d-space-x-4">
+        <div className="mt-auto d-flex align-items-start d-space-x-4">
           <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewCondition2Card(card); }}>Inserir Condição</button>
-        </div>
+        </div>        
+        <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
       </div>
     </div>
     return cardcontent
   }
   function CardConditions({ condition, card }) {
+    let loadCardVariables = [{
+      "type": "string",
+      "enum": [
+        ""
+      ],
+      "title": "-- Selecione --"
+    }]
+    for (const [cardVarId, cardVar] of Object.entries(cardFieldsFormData.current)) {
+      for (const [sectionVarId, sectionVar] of Object.entries(cardVar)) {
+        for (const [rowVarId, rowVar] of Object.entries(sectionVar)) {
+          for (const [fieldVarId, fieldVar] of Object.entries(rowVar)) {
+            let tmpoption = {
+              "type": "string",
+              "enum": [
+                fieldVar.id
+              ],
+              "title": `[${fieldVar.id}] ${fieldVar.name}`
+            }
+            loadCardVariables.push(tmpoption)
+          }
+        }
+      }  
+    }
     let conditionSchema = {
       "schema": {
         "type": "object",
@@ -2220,7 +2428,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           "conditionvar": {
             "title": "Variável",
             "type": "string",
-            "default": condition.variable ? condition.variable : ""
+            "default": condition.variable ? condition.variable : "",
+            "anyOf": loadCardVariables
           },
           "conditionvalue": {
             "title": "Valor",
@@ -2247,7 +2456,14 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               "classNames": "col-md-6"
             }
           }
-        ]
+        ],
+        "conditionvalue": {
+          "ui:help": "Para condições do Card, este valor será sempre uma string"
+        }
+      },
+      "formData": {
+        "conditionvar": condition.variable,
+        "conditionvalue": condition.value
       }
     }
 
@@ -2267,7 +2483,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               "id": {
                 "type": "string",
                 "title": "ID da Seção",
-                "default": section.id ? section.id : ""
+                "default": section.id ? section.id : "",
+                "pattern": "^[a-zA-Z0-9_-]+$"
               },
               "display": {
                 "type": "string",
@@ -2303,7 +2520,10 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                 "classNames": "col-md-12"
               }
             }
-          ]
+          ],
+          "id":{
+            "ui:help":"Atenção: espaços e caracteres especiais não são permitidos"
+          }
         }
       }
     }
@@ -2312,11 +2532,12 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       
         <div className="mt-auto mb-4 d-flex d-space-x-4 flex-row  d-w-full">
           <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
-          {(!section.hasOwnProperty('lambda')) &&          
+          {/* TODO: Por enquanto não vamos usar o lambda function (temos que entender melhor os casos de uso dentro do RJSF)
+          (!section.hasOwnProperty('lambda')) &&          
           <div className="mt-auto d-flex align-items-end d-space-x-4">
             <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addLambda2Section(card, section); }}>Adicionar Lambda</button>
           </div>          
-          }
+          */}
           {(!section.hasOwnProperty('autofill')) &&          
           <div className="mt-auto d-flex align-items-end d-space-x-4">
             <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addAutofill2Section(card, section); }}>Adicionar Autofill</button>
@@ -2369,10 +2590,10 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           ))
         }
         <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
-          <div className="mt-auto d-flex align-items-end d-space-x-4">
+          <div className="mt-auto d-flex align-items-start d-space-x-4">
             <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewField2Row(card, section, row); }}>Novo Campo</button>
-          </div>
+          </div>          
+          <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
         </div>
       </div>
     }
@@ -2406,7 +2627,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             "title": "Padrão de autofill",
             "description": "Há padrão de autofill pré-definido?",
             "type": "string",
-            "anyOf": loadedAFDefs
+            "anyOf": loadedAFDefs,
+            "default": ""
           },
           "trigger": {
             "title": "Gatilho: Variável observada",
@@ -2414,7 +2636,20 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             "type": "string"
           },
           "url": {
-            "title": "URL do serviço (GET)",
+            "title": "Code",
+            "type": "string"
+          },
+          // "method": {
+          //   "title": "Método da requisição",
+          //   "type": "string",
+          //   "enum": [
+          //     "GET",
+          //     "POST"
+          //   ],
+          //   "default": "GET"
+          // },
+          "payload":{
+            "title": "Payload",
             "type": "string"
           }
         }
@@ -2422,6 +2657,13 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       "uiSchema": {
         "ui:submitButtonOptions": {
           "norender": true
+        },
+        "url":{
+          "ui:help":"UUID do Code que será chamado (post.js). O code deverá retornar um objeto com os dados necessários ao mapeamento de variáveis."
+        },
+        "payload": {
+          "ui:widget": "textarea",
+          "ui:help": "Adicione aqui o payload no formato JSON que será enviado ao code definido. Se quiser enviar o formData, use o valor {{{$}}}"
         },
         "ui:ObjectFieldTemplate": "layout",
         "ui:layout": [
@@ -2436,6 +2678,14 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             "url": {
               "classNames": "col-md-12"
             }
+            // "method": {
+            //   "classNames": "col-md-3"
+            // }
+          },
+          {
+            "payload": {
+              "classNames": "col-md-12"
+            }
           }
         ]
       },
@@ -2443,6 +2693,8 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         autofill: section.autofill?.autofill ? section.autofill?.autofill : '',
         url: section.autofill.url ? section.autofill.url : '',
         trigger: section.autofill.trigger ? section.autofill.trigger : '',
+        method: section.autofill.method ? section.autofill.method : '',
+        payload: section.autofill.payload ? section.autofill.payload : '',
         map: section.autofill.map ? section.autofill.map : [],
       }
     }
@@ -2763,8 +3015,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             "properties": {
               "id": {
                 "type": "string",
-                "title": "ID do Campo",
-                "default": field.id ? field.id : ""
+                "title": "ID do Campo (variável)",
+                "default": field.id ? field.id : "",
+                "pattern": "^[a-zA-Z0-9_-]+$"
               },
               "display": {
                 "type": "string",
@@ -2882,6 +3135,13 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                   {
                     "type": "string",
                     "enum": [
+                      "textarea"
+                    ],
+                    "title": "Textarea"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
                       "boolean"
                     ],
                     "title": "Booleano"
@@ -2899,7 +3159,21 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                       "number"
                     ],
                     "title": "Número"
-                  }//,
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "selection"
+                    ],
+                    "title": "Seleção"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "hidden"
+                    ],
+                    "title": "Oculto"
+                  }
                   // {
                   //   "type": "string",
                   //   "enum": [
@@ -2948,7 +3222,10 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                       "fieldtype": {
                         "enum": [
                           "integer",
-                          "number"
+                          "number",
+                          "textarea",
+                          "selection",
+                          "hidden"
                         ]
                       },
                       "defaultvalue": {
@@ -3108,6 +3385,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           ],
           "colsize": {
             'ui:help': 'A soma das larguras dos campos deve sempre ser 12 por linha'
+          },
+          "id":{
+            "ui:help":"Atenção: espaços e caracteres especiais não são permitidos"
           }
         }
       },
@@ -3133,18 +3413,254 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     if (field.fieldtype === 'object' && field.hasOwnProperty('subfields') && field.subfields.length > 0) {
       subfields = field.subfields;
     }
+    let selectionOptions = [];
+    if (field.fieldtype === 'selection' && field.hasOwnProperty('selectionOptions') && field.selectionOptions.length > 0) {
+      selectionOptions = field.selectionOptions;
+    }
     let newpath = [...path, field.id]
+    let conditions = field.fieldConditionsRules ? field.fieldConditionsRules : [];
     let fieldcontent = <>
       <Form {...fieldSchema} onChange={({ formData }, id) => handleChangeSectionRowFieldEvent(card.cardId, formData, section.id, row.id, field.id, path)} onBlur={() => handleBlurSectionRowFieldEvent(card.cardId, section.id, row.id, field.id)} liveValidate />
+      {
+        (field.fieldtype === 'selection') &&
+        (
+          <>
+          <div className="section-content-rows-wrapper">
+            {
+              (selectionOptions.length > 0) &&
+              (
+                <>
+                  <legend>Opções da Seleção</legend>
+                  <div className="section-content-row">
+                    {
+                      selectionOptions.map((opt) => (
+                        <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                          <div className="mt-auto d-flex d-space-x-4 d-grow">
+                            <SectionRowFieldSelectionOption field={field} card={card} section={section} row={row} opt={opt}></SectionRowFieldSelectionOption>
+                          </div>
+                          <div className="mt-auto d-flex align-items-start d-space-x-4">
+                            <button type="button" className={`btn btn-danger remove-icon-sameline`} onClick={(e) => { e.preventDefault(); removeSectionFieldSelection(card, section, row, field, opt.id); }}><span className="glyphicon glyphicon-trash"></span></button>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </>
+              )
+            }
+          </div>
+          <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+            <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+            <div className="mt-auto d-flex align-items-end d-space-x-4">
+              <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewOption2SectionFieldSelection(card, section, row, field); }}>Adicionar Opção</button>
+            </div>
+          </div>
+          </>
+        )
+      }
       {
         (field.fieldtype === 'object') &&
         subfields.map(subfield => (
           <SectionRowField field={subfield} card={card} section={section} row={row} path={newpath}></SectionRowField>
         ))
       }
+      <div className="section-content-rows-wrapper">
+        {
+          (conditions.length > 0) &&
+          (
+            <>
+              <legend>Condições do Campo</legend>
+              <p className="mb-4">Especifique as campos e valores correspondentes que devem existir para que este campo seja exibido. Todas as condições devem ser verdadeiras.</p>
+              <div className="section-content-row">
+                {
+                  conditions.map((condition) => (
+                    <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+                      <div className="mt-auto d-flex d-space-x-4 d-grow">
+                        <FieldConditions condition={condition} card={card} section={section} row={row} field={field} />
+                      </div>
+                      <div className="mt-auto d-flex align-items-start d-space-x-4">
+                        <button type="button" className={`btn btn-danger remove-icon-sameline`} onClick={(e) => { e.preventDefault(); removeFieldCondition(card, section, row, field, condition); }}><span className="glyphicon glyphicon-trash"></span></button>
+                      </div>
+                    </div>
+                  ))
+                }
+              </div>
+            </>
+          )
+        }
+      </div>
+      <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+        <div className="mt-auto d-flex align-items-start d-space-x-4">
+          <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); addNewCondition2Field(card, section, row, field); }}>Inserir Condição</button>
+        </div>        
+        <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+      </div>
+
     </>
     // let fieldcontent = <Form {...fieldSchema} onChange={({ formData }, id) => handleChangeSectionRowFieldEvent(card.cardId, formData, section.id, row.id, field.id)} liveValidate />
     return fieldcontent
+  }
+  function SectionRowFieldSelectionOption({ field, card, section, row, opt }) {
+    let selectionOptSchema = {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "optvalue": {
+            "title": "Valor da Opção",
+            "type": "string",
+            "default": opt?.value ? opt?.value : ""
+          },
+          "optdisplay": {
+            "title": "Texto de Exibição",
+            "type": "string",
+            "default": opt?.display ? opt?.display : ""
+          }
+        },
+        "required": [
+          "optvalue",
+          "optdisplay"
+        ]
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "ui:ObjectFieldTemplate": "layout",
+        "ui:layout": [
+          {
+            "optvalue": {
+              "classNames": "col-md-6"
+            },
+            "optdisplay": {
+              "classNames": "col-md-6"
+            }
+          }
+        ]
+      },
+      "formData": {
+        "optvalue": opt?.value ? opt?.value : '',
+        "optdisplay": opt?.display ? opt?.display : ''
+      }
+    }
+    let selectionOptcontent = <Form {...selectionOptSchema} onChange={({ formData }, id) => handleChangeSectionRowFieldSelectionOptEvent(card.cardId, formData, section.id, row.id, field.id, opt.id)} onBlur={() => handleBlurSectionRowFieldSelectionOptEvent(card.cardId, section.id, row.id, field.id, opt.id)} liveValidate />
+    return selectionOptcontent
+  }
+  function FieldConditions({ condition, card, section, row, field }) {
+    let loadCardVariables = [{
+      "type": "string",
+      "enum": [
+        ""
+      ],
+      "title": "-- Selecione --"
+    }]
+    for (const [cardVarId, cardVar] of Object.entries(cardFieldsFormData.current)) {
+      // Vamos selectionar apenas a section atual (não consigo
+      // condicionar um campo a variaveis de outra section)
+      let sectionVar = cardVar[section.id]
+      for (const [rowVarId, rowVar] of Object.entries(sectionVar)) {
+        for (const [fieldVarId, fieldVar] of Object.entries(rowVar)) {
+          if(fieldVar.id !== field.id){
+            let tmpoption = {
+              "type": "string",
+              "enum": [
+                fieldVar.id
+              ],
+              "title": `[${fieldVar.id}] ${fieldVar.name}`
+            }
+            loadCardVariables.push(tmpoption)
+          }
+        }
+      }
+    }
+    let condvalue = {
+      "title": "Valor",
+      "type": "string",
+      "default": condition.value ? condition.value : ""
+    };
+    let fieldmask = {};
+    switch(condition.fieldtype){
+      case 'boolean':
+        condvalue = { 
+          ...condvalue,
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                ""
+              ],
+              "title": "-- Selecione --"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "true"
+              ],
+              "title": "Verdadeiro"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "false"
+              ],
+              "title": "Falso"
+            }
+          ]
+        }
+        break;
+      case 'string':
+        if (condition.fieldmask && condition.fieldmask !== '') {
+          fieldmask['conditionvalue'] = {
+            "ui:widget": "masked",
+            "ui:options": {
+              "mask": (condition.fieldmask !== 'custom' ? condition.fieldmask : condition.maskvalue),
+              "type": "code"
+            }
+          }
+        }
+        break;
+    }
+    let conditionSchema = {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "conditionvar": {
+            "title": "Variável",
+            "type": "string",
+            "default": condition.variable ? condition.variable : "",
+            "anyOf": loadCardVariables
+          },
+          "conditionvalue": condvalue
+        },
+        "required": [
+          "conditionvar",
+          "conditionvalue"
+        ]
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "ui:ObjectFieldTemplate": "layout",
+        "ui:layout": [
+          {
+            "conditionvar": {
+              "classNames": "col-md-6"
+            },
+            "conditionvalue": {
+              "classNames": "col-md-6"
+            }
+          }
+        ],
+        ...fieldmask
+      },
+      "formData": {
+        "conditionvar": condition.variable,
+        "conditionvalue": condition.value
+      }
+    }
+
+    let conditioncontent = <Form {...conditionSchema} onChange={({ formData }, id) => handleChangeFieldConditionsEvent(card.cardId, section.id, row.id, field.id, formData, condition.id)} onBlur={() => handleBlurFieldConditionsEvent(card.cardId, section.id, row.id, field.id, condition.id)} liveValidate />
+    return conditioncontent
   }
   /** Subcomponentes - FIM */
 
@@ -3153,7 +3669,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       <section class="deckofcards">
         <div ref={carouselRef} className='d-carousel d-w-full'>
           {
-            (cards.length === 0 && (isLoading || isLoadingDocumentDetails)) ?
+            (cards.length === 0 && (isLoading)) ?
               <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
               : ''
           }
@@ -3170,7 +3686,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         </div>
       </section>
       <section className="navigation d-flex align-items-end flex-column">
-        {(cards.length > 0 && !isLoading && !isLoadingDocumentDetails) && (
+        {(cards.length > 0 && !isLoading) && (
           <>
             <div className="d-flex d-space-x-4 align-items-center">
               <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} disabled={((activeCard - 1) < 0 || isLoading)} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{(language === 'en_us') ? 'Previous' : 'Anterior'}</button>

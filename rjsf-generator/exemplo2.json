@@ -1,0 +1,91 @@
+{
+  "type": "object",
+  "title": "Configurações Gerais",
+  "description": "Nesta seção você deve definir as configurações gerais do formulário que será criado.",
+  "properties": {
+    "formProps": {
+      "type": "object",
+      "title": "Propriedades do Formulário",
+      "properties": {
+        "showAside": {
+          "type": "boolean",
+          "title": "Exibir Painel Lateral?",
+          "default": false
+        },
+        "segundaparte": {
+          "type": "string",
+          "title": "Segunda Parte",
+          "default": ""
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "showAside": {
+                "const": false
+              },
+              "segundaparte": {
+                "const": "a"
+              }
+            },
+            "required": [
+              "segundaparte",
+              "showAside"
+            ]
+          },
+          "then": {
+            "properties": {
+              "asidePanel": {
+                "type": "object",
+                "title": "Seções do Painel Lateral",
+                "properties": {
+                  "showSummary": {
+                    "type": "boolean",
+                    "title": "Sumário"
+                  },
+                  "showPreview": {
+                    "type": "boolean",
+                    "title": "Pré-visualização"
+                  },
+                  "showAttachments": {
+                    "type": "boolean",
+                    "title": "Anexos"
+                  },
+                  "showVersions": {
+                    "type": "boolean",
+                    "title": "Versões Anteriores"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "showAside": {
+                "const": false
+              },
+              "segundaparte": {
+                "const": "b"
+              }
+            },
+            "required": [
+              "segundaparte",
+              "showAside"
+            ]
+          },
+          "then": {
+            "properties": {
+              "showSummary": {
+                "type": "boolean",
+                "title": "bloblao"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
