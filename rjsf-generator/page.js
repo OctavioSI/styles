@@ -1,9 +1,17 @@
+/*******************************************************************
+* NO CODE RJSF BUILDER
+* 
+* STATUS: Em desenvolvimento
+*
+*/
+
 function App() {
   let pageLayout = {
     main: true,
     aside: true,
     aside_preview: true,
-    aside_schema: true
+    aside_schema: true,
+    aside_docpreview: true
   }
   let initialform = {
     language: 'pt-br'
@@ -20,20 +28,54 @@ function App() {
             "type": "object",
             "title": "Informações do Formulário",
             "properties": {
+              "id": {
+                "type": "string",
+                "title": "ID do Formulário",
+                "default": props.embeddedData.formId ? props.embeddedData.formId : ''
+              },
               "tenant": {
                 "type": "string",
                 "title": "Tenant",
                 "default": "looplex.com.br"
               },
+              "form_version": {
+                "type": "string",
+                "title": "Versão",
+                "default": "1.0.0"
+              },
               "form_language": {
                 "type": "string",
                 "title": "Idioma",
-                "enum": [
-                  "Português",
-                  "Inglês"
-                ],
-                "default": "Português"
+                "default": "pt_br",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ],
+                    "title": "-- Selecione --"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "pt_br"
+                    ],
+                    "title": "Português"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "en_us"
+                    ],
+                    "title": "Inglês"
+                  }
+                ]
               },
+              "form_author": {
+                "type": "string",
+                "title": "Autor",
+                "default": ""
+              },              
               "form_title": {
                 "type": "string",
                 "title": "Título do Formulário"
@@ -42,7 +84,10 @@ function App() {
                 "type": "string",
                 "title": "Descrição do Formulário"
               }
-            }
+            },
+            "required": [
+              "form_title"
+            ]
           },
           "formProps": {
             "type": "object",
@@ -51,15 +96,37 @@ function App() {
               "formPreset": {
                 "type": "string",
                 "title": "Pré-definição",
-                "enum": [
-                  "Assembler",
-                  "Work Request"
-                ],
-                "default": "Assembler"
-              },
-              "template": {
-                "type": "string",
-                "title": "Docx do modelo a ser renderizado"
+                "default": "",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ],
+                    "title": "-- Selecione --"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "document_assembler"
+                    ],
+                    "title": "Document Assembler"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "work_request"
+                    ],
+                    "title": "Work Request [em breve]"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "data_analyzer"
+                    ],
+                    "title": "AI Data Analyzer [em breve]"
+                  }
+                ]
               },
               "showAside": {
                 "type": "string",
@@ -126,10 +193,35 @@ function App() {
                 "type": "string",
                 "title": "Ação a ser executada",
                 "description": "O que devemos fazer quando o usuário submeter o Formulário?",
-                "enum": [
-                  "Salvar como Nova Versão",
-                  "Criar um Novo Documento",
-                  "Apenas Renderizar o Documento"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      ""
+                    ],
+                    "title": "-- Selecione --"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "saveAsNewVersion"
+                    ],
+                    "title": "Salvar como Nova Versão"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "createNewDocument"
+                    ],
+                    "title": "Criar um Novo Documento"
+                  },
+                  {
+                    "type": "string",
+                    "enum": [
+                      "justRender"
+                    ],
+                    "title": "Apenas Renderizar o Documento"
+                  }
                 ]
               },
               "executeCode": {
@@ -187,16 +279,27 @@ function App() {
           "ui:ObjectFieldTemplate": "layout",
           "ui:layout": [
             {
-              "tenant": {
-                "classNames": "col-md-6"
-              },
-              "form_language": {
-                "classNames": "col-md-6"
+              "id": {
+                "classNames": "col-md-12"
               }
             },
             {
+              "tenant": {
+                "classNames": "col-md-4"
+              },
+              "form_version": {
+                "classNames": "col-md-4"
+              },
+              "form_language": {
+                "classNames": "col-md-4"
+              }
+            },
+            {
+              "form_author": {
+                "classNames": "col-md-3"
+              },
               "form_title": {
-                "classNames": "col-md-12"
+                "classNames": "col-md-9"
               }
             },
             {
@@ -205,14 +308,12 @@ function App() {
               }
             }
           ],
+          "id": {
+            "ui:readonly": true
+          },          
           "form_description": {
             "ui:widget": "textarea"
-          }
-        },
-        "formProps": {
-          "template": {
-            "ui:widget": "filepond"
-          }
+          }       
         },
         "formAction":{
           "executeCode":{
@@ -225,9 +326,13 @@ function App() {
       "formData": {}
     }
   ]
-  const [previewSchema, setPreviewSchema] = useState([]); // mockado
+  const [previewSchema, setPreviewSchema] = useState([]);
+  const [previewURL, setPreviewURL] = useState('');
   function definePreviewSchema(newschema) {
     setPreviewSchema(() => newschema)
+  }
+  function definePreviewURL(newurl) {
+    setPreviewURL(() => newurl)
   }
 
   /*******************************************************************
@@ -248,14 +353,14 @@ function App() {
             {pageLayout.main &&
               (
                 <main className="card-main-wrapper" style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
-                  <RJSFBuilder schemacards={builderSchema} definePreviewSchema={definePreviewSchema} />
+                  <RJSFBuilder schemacards={builderSchema} definePreviewSchema={definePreviewSchema} definePreviewURL={definePreviewURL} />
                 </main>
               )}
 
             {pageLayout.aside &&
               (
                 <aside className="card-aside-wrapper">
-                  <AsidePanel pageLayout={pageLayout} language={initialform.language} codeId={props.codeId} previewSchema={previewSchema} />
+                  <AsidePanel pageLayout={pageLayout} language={initialform.language} codeId={props.codeId} previewSchema={previewSchema} previewURL={previewURL} />
                 </aside>
               )}
           </div>
@@ -288,6 +393,7 @@ function PageHeader() {
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/RJSFBuilder/RJSFBuilder.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/CarouselView/CarouselView.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/JSONStructureView/JSONStructureView.css' />
+    <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/DocumentPreview/DocumentPreview.css' />
     { /** Estilos dos Componentes Utilizados -- FIM */}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -306,7 +412,7 @@ function LooplexHeader() {
     </div>
   )
 }
-function AsidePanel({ pageLayout, language, previewSchema }) {
+function AsidePanel({ pageLayout, language, previewSchema, previewURL }) {
   const [panelView, setPanelView] = useState('schema')
   function updatePanelView(option) {
     setPanelView(() => option)
@@ -314,23 +420,25 @@ function AsidePanel({ pageLayout, language, previewSchema }) {
   function AsideNavigation({ pageLayout, language, panelView, updatePanelView }) {
     return (
       <div className="card-navigation">
+        {(pageLayout.aside_schema) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'schema' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('schema') }}>{(language === 'en_us') ? 'RJSF Schema' : 'RJSF Schema'}</button>)}        
         {(pageLayout.aside_preview) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'preview' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('preview') }}>{(language === 'en_us') ? 'Preview Form' : 'Prévia do Form'}</button>)}
-        {(pageLayout.aside_schema) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'schema' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('schema') }}>{(language === 'en_us') ? 'RJSF Schema' : 'RJSF Schema'}</button>)}
+        {(pageLayout.aside_docpreview) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'docpreview' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('docpreview') }}>{(language === 'en_us') ? 'Template Preview' : 'Prévia do Modelo'}</button>)}
       </div>
     )
   }
-  function AsideView({ panelView, previewSchema }) {
+  function AsideView({ panelView, previewSchema, previewURL }) {
     return (
       <div className="card-aside-view">
+        {(panelView == 'schema') && (<JSONStructureView json={previewSchema} />)}        
         {(panelView == 'preview') && (<div className="preview-form"><CarouselView schemacards={previewSchema} language="pt-br" codeId={props.codeId} /></div>)}
-        {(panelView == 'schema') && (<JSONStructureView json={previewSchema} />)}
+        {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} />)}
       </div>
     )
   }
   return (
     <>
       <AsideNavigation pageLayout={pageLayout} language={language} panelView={panelView} updatePanelView={updatePanelView} />
-      <AsideView previewSchema={previewSchema} panelView={panelView} />
+      <AsideView previewSchema={previewSchema} panelView={panelView} previewURL={previewURL}/>
     </>
   )
 }
@@ -340,14 +448,14 @@ function AsidePanel({ pageLayout, language, previewSchema }) {
  * 
  * folha de estilos: https://looplex.github.io/wf_reactcomponents/form/RJSFBuilder/RJSFBuilder.css
  */
-function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, definePreviewSchema }) {
+function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, definePreviewSchema, definePreviewURL }) {
   /**
    * Definicoes do componente
    */
   const [activeCard, setActiveCard] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isReady2Submit, setIsReady2Submit] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true);
+  const [isReady2Submit, setIsReady2Submit] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [cards, setCards] = useState(schemacards)
   const carouselRef = useRef(null);
   const activeCardRef = useRef(null);
@@ -368,7 +476,14 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   const usedDefinitions = useRef({});
   const usedAFDefinitions = useRef({});
   const usedLbDefinitions = useRef({});
-
+  const isLoadingInitialForm = useRef(false);
+  const [docxTemplate, setDocxTemplate] = useState('');
+  const [docxPreviewURL, setDocxPreviewURL] = useState('');
+  const [alertMsg, setAlertMsg] = useState({
+    title: "Aguarde...",
+    description: "Carregando..."
+  });
+  const alertRef = useRef(null);
   let payloadFormData = {};
   /** Hooks - INÍCIO */
   useEffect(() => {
@@ -538,7 +653,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         }
       }
     }
-
     availableAFDefinitions.current = {
       "cep": "CEP",
       "qsa": "Quadro de Sócios e Administradores"
@@ -627,6 +741,39 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         }
       }
     }
+    /**
+     * Carregamento do template da DB
+     */
+    if(props.embeddedData && props.embeddedData.hasOwnProperty('formId')){
+      setIsLoading(true);
+      let maxAttempts = 3;
+      let formId = props.embeddedData.formId;
+      let formTenant = props.embeddedData.formTenant;
+      for (let countAttempts = 0; countAttempts < maxAttempts; countAttempts++) {
+        if (isLoadingInitialForm.current) {
+          console.log('mounted');
+        } else {
+          console.log('mounting');
+          isLoadingInitialForm.current = true;
+          setIsLoading(true)
+          fetchInitialForm(formTenant, formId)
+            .then(res => {
+              countAttempts = maxAttempts;
+              console.log('Form loaded successfully. Attempt: ' + countAttempts)
+              setIsLoading(false);
+            })
+            .catch(err => { // Se houver erro em carregar o formulario inicial, vamos tentar de novo
+              setIsLoading(false);
+              if (countAttempts >= maxAttempts) {
+                console.log('Erro ao carregar o formulário inicial: ' + err.message)
+              }
+            });
+        }
+        if (countAttempts == maxAttempts) break;
+      }
+    }else{
+      setIsLoading(false); // Isso para não mostrarmos os cards de início caso tenhamos que carregar externamente
+    }
   }, []);
   useEffect(() => {
     activeCardRef.current?.scrollIntoView({
@@ -639,6 +786,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     // console.log('cards updated!')
     updatePreviewSchema()
   }, [cards])
+  useEffect(() => {
+    updatePreviewURL()
+  }, [docxPreviewURL])
   /** Hooks - FIM */
 
   /** Component Helpers - INICIO */
@@ -769,13 +919,6 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
    * newreferente: valor do novo elemento
    * basepath: array com o caminho para acessar a referencia
    */    
-    if(oldreference === newreference) return
-    function checkNUpdate(el, ref){
-      if(!el.hasOwnProperty(ref)) return {}
-      let nref = {...el[ref]}
-      delete el[ref]
-      return nref
-    }
     function getBasePath(el, basepath){
       for(let i=0; i<basepath.length; i++){
         if(el.hasOwnProperty(basepath[i])){
@@ -783,34 +926,255 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         }
       }
       return el
+    }  
+    if(!newreference || newreference === ''){ 
+      // Estou deletando essa propriedade, entao tenho que limpar as demais referencias
+      function deleteRefs(el, ref){
+        if(!el.hasOwnProperty(ref)) return {}
+        delete el[ref]
+      }
+      deleteRefs(getBasePath(cardInfoFormData.current, basepath), oldreference)
+      deleteRefs(getBasePath(cardConditionFormData.current, basepath), oldreference) // card conditions
+      deleteRefs(getBasePath(cardSectionFormData.current, basepath), oldreference) // sections
+      deleteRefs(getBasePath(cardFieldsFormData.current, basepath), oldreference) // fields
+      deleteRefs(getBasePath(cardDefinitionsFormData.current, basepath), oldreference) // definitions
+      deleteRefs(getBasePath(cardAutofillFormData.current, basepath), oldreference) // autofill
+      deleteRefs(getBasePath(cardAutofillMapFormData.current, basepath), oldreference) // autofill map
+      deleteRefs(getBasePath(cardLambdaFormData.current, basepath), oldreference) // lambda
+      deleteRefs(getBasePath(cardLambdaMapFormData.current, basepath), oldreference) // lambda map
+      deleteRefs(getBasePath(cardFieldsSelectionOptFormData.current, basepath), oldreference) // select options
+      deleteRefs(getBasePath(fieldConditionFormData.current, basepath), oldreference) // field conditions
+    }else{
+      if(oldreference === newreference) return
+      function checkNUpdate(el, ref){
+        if(!el.hasOwnProperty(ref)) return {}
+        let nref = {...el[ref]}
+        delete el[ref]
+        return nref
+      }
+      getBasePath(cardInfoFormData.current, basepath)[newreference]                 = checkNUpdate(getBasePath(cardInfoFormData.current, basepath), oldreference) // card
+      getBasePath(cardConditionFormData.current, basepath)[newreference]            = checkNUpdate(getBasePath(cardConditionFormData.current, basepath), oldreference) // card conditions
+      getBasePath(cardSectionFormData.current, basepath)[newreference]              = checkNUpdate(getBasePath(cardSectionFormData.current, basepath), oldreference) // sections
+      getBasePath(cardFieldsFormData.current, basepath)[newreference]               = checkNUpdate(getBasePath(cardFieldsFormData.current, basepath), oldreference) // fields
+      getBasePath(cardDefinitionsFormData.current, basepath)[newreference]          = checkNUpdate(getBasePath(cardDefinitionsFormData.current, basepath), oldreference) // definitions
+      getBasePath(cardAutofillFormData.current, basepath)[newreference]             = checkNUpdate(getBasePath(cardAutofillFormData.current, basepath), oldreference) // autofill
+      getBasePath(cardAutofillMapFormData.current, basepath)[newreference]          = checkNUpdate(getBasePath(cardAutofillMapFormData.current, basepath), oldreference) // autofill map
+      getBasePath(cardLambdaFormData.current, basepath)[newreference]               = checkNUpdate(getBasePath(cardLambdaFormData.current, basepath), oldreference) // lambda
+      getBasePath(cardLambdaMapFormData.current, basepath)[newreference]            = checkNUpdate(getBasePath(cardLambdaMapFormData.current, basepath), oldreference) // lambda map
+      getBasePath(cardFieldsSelectionOptFormData.current, basepath)[newreference]   = checkNUpdate(getBasePath(cardFieldsSelectionOptFormData.current, basepath), oldreference) // select options
+      getBasePath(fieldConditionFormData.current, basepath)[newreference]           = checkNUpdate(getBasePath(fieldConditionFormData.current, basepath), oldreference) // field conditions
     }
-    
-        getBasePath(cardInfoFormData.current, basepath)[newreference]                 = checkNUpdate(getBasePath(cardInfoFormData.current, basepath), oldreference) // card
-        getBasePath(cardConditionFormData.current, basepath)[newreference]            = checkNUpdate(getBasePath(cardConditionFormData.current, basepath), oldreference) // card conditions
-        getBasePath(cardSectionFormData.current, basepath)[newreference]              = checkNUpdate(getBasePath(cardSectionFormData.current, basepath), oldreference) // sections
-        getBasePath(cardFieldsFormData.current, basepath)[newreference]               = checkNUpdate(getBasePath(cardFieldsFormData.current, basepath), oldreference) // fields
-        getBasePath(cardDefinitionsFormData.current, basepath)[newreference]          = checkNUpdate(getBasePath(cardDefinitionsFormData.current, basepath), oldreference) // definitions
-        getBasePath(cardAutofillFormData.current, basepath)[newreference]             = checkNUpdate(getBasePath(cardAutofillFormData.current, basepath), oldreference) // autofill
-        getBasePath(cardAutofillMapFormData.current, basepath)[newreference]          = checkNUpdate(getBasePath(cardAutofillMapFormData.current, basepath), oldreference) // autofill map
-        getBasePath(cardLambdaFormData.current, basepath)[newreference]               = checkNUpdate(getBasePath(cardLambdaFormData.current, basepath), oldreference) // lambda
-        getBasePath(cardLambdaMapFormData.current, basepath)[newreference]            = checkNUpdate(getBasePath(cardLambdaMapFormData.current, basepath), oldreference) // lambda map
-        getBasePath(cardFieldsSelectionOptFormData.current, basepath)[newreference]   = checkNUpdate(getBasePath(cardFieldsSelectionOptFormData.current, basepath), oldreference) // select options
-        getBasePath(fieldConditionFormData.current, basepath)[newreference]           = checkNUpdate(getBasePath(fieldConditionFormData.current, basepath), oldreference) // field conditions
+  }
+  function initializeCardReferences(rjsfStructure){
+    for(let i=0; i< rjsfStructure.length; i++){
+      let card = rjsfStructure[i]
+      validateBasePath(cardInfoFormData.current, [card.cardId])
+      // console.log('#1', card)
+      // console.log('#2', JSON.stringify(cardInfoFormData.current, null, 2))
+      // console.log('#3', JSON.stringify(card.formData, null, 2))
+      cardInfoFormData.current[card.cardId] = card.formData
+      if(card.hasOwnProperty('cardConditionsRules')){ // card conditions
+        for(let j=0; j<card.cardConditionsRules.length; j++){
+          let conditionRule = card.cardConditionsRules[j]
+          let elConditionRule = {
+            id: conditionRule.id,
+            variable: conditionRule.variable,
+            value: conditionRule.value
+          }
+          validateBasePath(cardConditionFormData.current, [card.cardId,conditionRule.id])
+          cardConditionFormData.current[card.cardId][conditionRule.id] = elConditionRule
+        }
+      }
+      if(card.hasOwnProperty('cardSections')){ // card sections
+        for(let j=0; j<card.cardSections.length; j++){
+          let section = card.cardSections[j]
+          let elSection = {
+            id: section.id,
+            name: section.name,
+            description: section.description
+          }
+          validateBasePath(cardSectionFormData.current, [card.cardId,section.id])
+          cardSectionFormData.current[card.cardId][section.id] = elSection
+          if(section.hasOwnProperty('rows')){
+            for(let k=0; k>section.rows.length; k++){ // Cada row
+              let row = section.rows[k]
+              if(row.hasOwnProperty('type') && row.type === 'row'){
+                if(row.hasOwnProperty('fields')){ 
+                  for(let l=0; l<row.fields.length; l++){ // Cada field
+                    let field = row.fields[l]
+                    let elField = {
+                      "id": field.id,
+                      "name": field.display ? field.display : '',
+                      "description": field.description ? field.description : '',
+                      "colsize": field.colsize ? field.colsize : '12',
+                      "readonly": field.readonly ? field.readonly : false,
+                      "required": field.required ? field.required : false,
+                      "defaultvalue": field.defaultvalue ? field.defaultvalue : '',
+                      "fieldtype": field.fieldtype ? field.fieldtype : '',
+                      "fieldmask": field.fieldmask ? field.fieldmask : '',
+                      "maskvalue": field.maskvalue ? field.maskvalue : ''
+                    }
+                    validateBasePath(cardFieldsFormData.current, [card.cardId,section.id,row.id,field.id])
+                    cardFieldsFormData.current[card.cardId][section.id][row.id][field.id] = elField;
+                    if(field.hasOwnProperty('selectOptions')){
+                      let selectOptions = field.selectOptions;
+                      for(let m=0; m<selectOptions.length; m++){
+                        let option = selectOptions[m]
+                        let elOption = {
+                          "id": option.id,
+                          "value": option.value,
+                          "display": option.display
+                        }
+                        validateBasePath(cardFieldsSelectionOptFormData.current, [card.cardId, section.id, row.id, field.id, option.id])
+                        cardFieldsSelectionOptFormData.current[card.cardId][section.id][row.id][field.id][option.id] = elOption
+                      }
+                    }
+                    if(field.hasOwnProperty('fieldConditionRules')){
+                      let fieldConditionRules = field.fieldConditionRules;
+                      for(let m=0; m<fieldConditionRules.length; m++){
+                        let condition = fieldConditionRules[m]
+                        let elCondition = {
+                          "id": condition.id,
+                          "variable": condition.variable,
+                          "value": condition.value,
+                          "fieldtype": condition.fieldtype,
+                          "fieldmask": condition.fieldmask,
+                          "maskvalue": condition.maskvalue
+                        }
+                        validateBasePath(fieldConditionFormData.current, [card.cardId, section.id, row.id, field.id, condition.id])
+                        fieldConditionFormData.current[card.cardId][section.id][row.id][field.id][condition.id] = elCondition
+                      }
+                    }
+                    // TODO -- CHECAR SE NAO USAREMOS INICIALIZAÇÃO DE SUBFIELDS
+                  } // for field
+                }
+              }
+              if(row.hasOwnProperty('type') && row.type === 'definition'){
+                validateBasePath(cardFieldsFormData.current, [card.cardId,section.id,row.id])
+                cardDefinitionsFormData.current[card.cardId][section.id][row.id] = {
+                  "id": row.id,
+                  "definition": row.definition,
+                  "title": row.title,
+                  "description": row.description,
+                  "type": "definition"
+                }
+              }
+            } // for rows
+          }
+          if(section.hasOwnProperty('autofill')){
+            let autofill = section.autofill;
+            cardAutofillFormData.current[card.cardId, section.id] = {
+              "autofill": autofill.autofill,
+              "url": autofill.url,
+              "trigger": autofill.trigger,
+              "method": autofill.method,
+              "payload": autofill.payload
+            }
+            if(autofill.hasOwnProperty('map')){
+              let afmap = autofill.map
+              for(let k=0; k< afmap.length; k++){
+                let afmapitem = afmap[k]
+                let elAFMap = {
+                  "id": afmapitem.id,
+                  "remote": afmapitem.remote,
+                  "local": afmapitem.local
+                }
+                validateBasePath(cardAutofillMapFormData.current, [card.cardId,section.id,afmapitem.id])
+                cardAutofillMapFormData.current[card.cardId][section.id][afmapitem.id] = elAFMap
+              }
+            }
+          }
+          if(section.hasOwnProperty('lambda')){
+            let lambda = section.lambda;
+            cardLambdaFormData.current[card.cardId, section.id] = {
+              "lambda": lambda.lambda,
+              "code": lambda.code,
+              "trigger": lambda.trigger
+            }
+            if(lambda.hasOwnProperty('map')){
+              let lbmap = lambda.map
+              for(let k=0; k< lbmap.length; k++){
+                let lbmapitem = lbmap[k]
+                let elLBMap = {
+                  "id": lbmapitem.id,
+                  "remote": lbmapitem.remote,
+                  "local": lbmapitem.local
+                }
+                validateBasePath(cardLambdaMapFormData.current, [card.cardId,section.id,lbmapitem.id])
+                cardLambdaMapFormData.current[card.cardId][section.id][lbmapitem.id] = elLBMap
+              }
+            }
+          }
+        } // for section
+      }
+    }
   }  
-  /** 
-   * Faz uma verificação como a seguinte:
-   * if(
-   *  cardFieldsFormData.current.hasOwnProperty(cardId) && 
-      cardFieldsFormData.current[cardId].hasOwnProperty(sectionId) && 
-      cardFieldsFormData.current[cardId][sectionId].hasOwnProperty(rowId) && 
-      cardFieldsFormData.current[cardId][sectionId][rowId].hasOwnProperty(formData.conditionvar)
-    )
-
-    E o equivalente seria:
-    checkPathProperties(cardFieldsFormData.current, [cardId, sectionId, rowId, formData.conditionvar])
-
-  */
+  async function validateForm() {
+    let mergedFormData = {}
+    let mergedSchema = {};
+    let mergedSchemaDefs = {};
+    let requiredFields = [];
+    console.log('cards', cards)
+    for (let i = 0; i < cards.length; i++) {
+      let tcard = cards[i];
+      // TODO: Precisamos criar uma verificação em todos os subníveis
+      // do schema, e não apenas na raiz
+      if (tcard.schema.hasOwnProperty('required')) {
+        requiredFields.concat(tcard.schema.required)
+      }
+      mergedFormData = { ...mergedFormData, ...tcard.formData }
+      mergedSchema = { ...mergedSchema, ...tcard.schema.properties }
+      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
+    }
+    let data = {
+      command: "validateForm",
+      formData: mergedFormData,
+      schema: {
+        type: "object",
+        properties: { ...mergedSchema },
+        definitions: { ...mergedSchemaDefs },
+        required: requiredFields
+      }
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    // setTmpVisor2(JSON.stringify(config))
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao validar o formulário')
+    }
+  }
+  function callAlertModal(title, icon, message, content) {
+    let msg = {
+      icon: icon,
+      title: title,
+      description: message,
+      content: content,
+      hasCloseButton: false
+    };
+    setAlertMsg(msg);
+    alertRef.current.showModal()
+  }
   function checkPathProperties(basepath, propsArray){
+    /** 
+     * Faz uma verificação como a seguinte:
+     * if(
+     *  cardFieldsFormData.current.hasOwnProperty(cardId) && 
+     *  cardFieldsFormData.current[cardId].hasOwnProperty(sectionId) && 
+     *  cardFieldsFormData.current[cardId][sectionId].hasOwnProperty(rowId) && 
+     *  cardFieldsFormData.current[cardId][sectionId][rowId].hasOwnProperty(formData.conditionvar)
+     * )
+     *
+     * E o equivalente seria:
+     * checkPathProperties(cardFieldsFormData.current, [cardId, sectionId, rowId, formData.conditionvar])
+     */
     let isvalid = basepath.hasOwnProperty(propsArray[0]);
     if(!isvalid) return false;
     if(propsArray.length > 1){
@@ -820,37 +1184,37 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     if(!isvalid) return false;
     return true
   }
-  /**
-   * Faz a inicialização de um caminho como na seguinte:
-   * 
-    if (!fieldConditionFormData.current.hasOwnProperty(cardId)) fieldConditionFormData.current[cardId] = {}
-    if (!fieldConditionFormData.current[cardId].hasOwnProperty(sectionId)) fieldConditionFormData.current[cardId][sectionId] = {}
-    if (!fieldConditionFormData.current[cardId][sectionId].hasOwnProperty(rowId)) fieldConditionFormData.current[cardId][sectionId][rowId] = {}
-    if (!fieldConditionFormData.current[cardId][sectionId][rowId].hasOwnProperty(fieldId)) fieldConditionFormData.current[cardId][sectionId][rowId][fieldId] = {} 
-
-    E o equivalente seria:
-
-    validateBasePath(fieldConditionFormData.current, [cardId, sectionId, rowId, fieldId])
-
-   */
-    function validateBasePath(basepath, propsArray) {
-      let current = basepath; // Start with the root object
-      for (let i = 0; i < propsArray.length; i++) {
-        const key = propsArray[i];
-        if (!current.hasOwnProperty(key)) {
-          current[key] = {}; // Initialize if not exists
-        }
-        current = current[key]; // Move to the next nested level
+  function validateBasePath(basepath, propsArray) {
+    /**
+     * Faz a inicialização de um caminho como na seguinte:
+     * 
+     * if (!fieldConditionFormData.current.hasOwnProperty(cardId)) fieldConditionFormData.current[cardId] = {}
+     * if (!fieldConditionFormData.current[cardId].hasOwnProperty(sectionId)) fieldConditionFormData.current[cardId][sectionId] = {}
+     * if (!fieldConditionFormData.current[cardId][sectionId].hasOwnProperty(rowId)) fieldConditionFormData.current[cardId][sectionId][rowId] = {}
+     * if (!fieldConditionFormData.current[cardId][sectionId][rowId].hasOwnProperty(fieldId)) fieldConditionFormData.current[cardId][sectionId][rowId][fieldId] = {} 
+     *
+     * E o equivalente seria:
+     *
+     * validateBasePath(fieldConditionFormData.current, [cardId, sectionId, rowId, fieldId])
+     *
+     */
+    let current = basepath; // Start with the root object
+    for (let i = 0; i < propsArray.length; i++) {
+      const key = propsArray[i];
+      if (!current.hasOwnProperty(key)) {
+        current[key] = {}; // Initialize if not exists
       }
-      return current; // Return the last object created or accessed
+      current = current[key]; // Move to the next nested level
     }
-   /**
-   * A função validateBasePathSubfields valida e estrutura um objeto basepath de acordo com 
-   * uma hierarquia definida por propsArray. Para cada id em propsArray, verifica se 
-   * os subfields correspondentes existem no objeto basepath. Caso não existam, os 
-   * inicializa de forma sequencial, mantendo a ordem hierárquica.
-   */
+    return current; // Return the last object created or accessed
+  }
   function validateBasePathSubfields(basepath, propsArray) {
+    /**
+     * A função validateBasePathSubfields valida e estrutura um objeto basepath de acordo com 
+     * uma hierarquia definida por propsArray. Para cada id em propsArray, verifica se 
+     * os subfields correspondentes existem no objeto basepath. Caso não existam, os 
+     * inicializa de forma sequencial, mantendo a ordem hierárquica.
+     */
     // Recursive function to process and initialize subfields
     function processSubfields(obj, ids, index) {
         if (index >= ids.length) return;
@@ -888,11 +1252,42 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     tmpCards[indexesStructure[0]].cardSections[indexesStructure[1]].rows[indexesStructure[2]].fields[indexesStructure[3]] = setNested(base, remainingIndexes, subfieldsfinal);
     return tmpCards
   }
+  async function fetchInitialForm(tenant, id){
+    let data = {
+      command: "fetchSchema",
+      tenant,
+      id
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    const res = await axios(config);
+    if (res.data && res.data.output) {
+      let info = res.data.output;
+      let currentVersion = info.versions.filter(v => v.version === info.currentVersion)[0]
+      let currentTemplate = currentVersion?.template;
+      if(currentTemplate && currentTemplate.hasOwnProperty('document')){
+        let filename = currentTemplate.document.path
+        setDocxTemplate(filename)
+        setDocxPreviewURL(currentTemplate.link)
+      }
+      initializeCardReferences(currentVersion.rjsfStructure)
+      // console.log('currentVersion.rjsfStructure', currentVersion.rjsfStructure)
+      setCards(prev => {
+        let infoCard = { ...prev[0], formData: currentVersion.rjsfStructure[0].formData };
+        let tmpCards = [ infoCard, ...currentVersion.rjsfStructure.slice(1)];
+        return tmpCards
+      })
+      return true;
+    }
+  }
   /** Component Helpers - FIM*/
 
   /** Funções do Componente - INÍCIO */
-  // Essa função é utilizada para definir os cards que deverão ser exibidos
   function defineSchema(initialcards = [], cardId = '', formData = {}) {
+    // Essa função é utilizada para definir os cards que deverão ser exibidos
     let tmpcards = [];
     // Aqui vamos carregar cards que tenham sido carregados na memória (no lugar o arquivo rjsf)
     if (initialcards && initialcards.length > 0) {
@@ -993,7 +1388,22 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   /**
    * Alteracao na pagina inicial do formulario (configuracoes do Builder)
    */
-  async function handleChangeEvent(cardId, formData, fieldId) {
+  async function handleChangeConfigEvent(cardId, formData, fieldId) {
+    if (!cardId) return
+    // console.log('formData Changed!', formData)
+    cardInfoFormData.current[cardId] = formData
+    return
+  }
+  async function handleBlurConfigEvent(cardId) {
+    if (!cardId) return
+    setCards(prev => {
+      let nextState = defineSchema([...prev], cardId, cardInfoFormData.current[cardId])
+      return nextState
+    });
+    return
+  }
+  async function handleChangeFilepondEvent(formData) {
+    setDocxTemplate(formData.template)
     return
   }
   async function handleChangeCardInfoEvent(cardId, formData) {
@@ -1013,7 +1423,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       let previousCardIdx = tmpCards.indexOf(previousCard);
       previousCard.cardId = cardFD.card.id;
       tmpCards[previousCardIdx] = previousCard;
-      let nextState = defineSchema(tmpCards, cardId, cardFD)
+      let nextState = defineSchema(tmpCards, cardFD.card.id, cardFD)
       return nextState
     })
   }
@@ -1579,7 +1989,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       return tmpCards
     })
   }
-  function createNewDefinitionModal() {
+  async function createNewDefinitionModal() {
     // Exibe o modal para formato de salvar nova definição
     return
     /*
@@ -1629,6 +2039,18 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     modalRef.current.showModal();
     */
   }
+  async function treatAJVErrors(errors = []) {
+    let errorsmsg = "";
+    if (errors && errors.length > 0) {
+      for (let i = 0; i < errors.length; i++) {
+        errorsmsg += "<li><strong>" + errors[i].instancePath + ":</strong> " + errors[i].message + "</li>"
+      }
+    }
+    return errorsmsg
+  }  
+  async function runAction(action, event){
+    return;
+  }
   // -- Manipulação do form builder
   async function addNewCard2Deck() {
     let tmpCards = cards;
@@ -1662,6 +2084,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   }
   async function removeCard(card) {
     setCards(prev => {
+      updateCardReferences(card.cardId, '')
       let remainingCards = prev.filter(cd => cd.cardId !== card.cardId);
       setActiveCard((currentActive) => {
         return Math.max(0, currentActive - 1);
@@ -1749,6 +2172,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     let findCard = tmpCards.filter(cd => cd.cardId === card.cardId);
     let findCardIdx;
     if (findCard && findCard.length > 0) {
+      updateCardReferences(section.id, '', [card.cardId]);
       findCardIdx = tmpCards.indexOf(findCard[0]);
       tmpCards[findCardIdx].cardSections = findCard[0].cardSections.filter(cd => cd.id !== section.id)
       let newCards = defineSchema(tmpCards)
@@ -1934,6 +2358,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             if (findRow && findRow.length > 0) {
               let findRowIdx = sectionRows.indexOf(findRow[0]);
               if(subfieldId && subfieldId !== ''){
+                updateCardReferences(subfieldId, '', [card.cardId,section.id,row.id,field.id]);
                 let rowFields = findRow[0].fields;
                 let findField = rowFields.filter(f => f.id === field.id);
                 if (findField && findField.length > 0) {
@@ -1941,6 +2366,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                   tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields[findFieldIdx].subfields = findField[0].subfields.filter(sf => sf.id !== subfieldId);  
                 }
               }else{
+                updateCardReferences(field.id, '', [card.cardId,section.id,row.id]);
                 tmpCards[findCardIdx].cardSections[findSectionIdx].rows[findRowIdx].fields = findRow[0].fields.filter(fd => fd.id !== field.id);
               }
               let newCards = defineSchema(tmpCards)
@@ -2310,6 +2736,11 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       }
     }
   }
+  function removeFilepondTemplate(){
+    setDocxTemplate('')
+    setDocxPreviewURL('')
+    return;
+  }
   function assembleFieldStructure(sectionrows){
     let cardDefinitions = {};
     let cardDefinitionsSchema = {};
@@ -2325,7 +2756,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         for (let l = 0; l < rowfields.length; l++) {
           let fielditem = rowfields[l]
           let defaultvalue = setCorrectDefaultType(fielditem.defaultvalue, fielditem.fieldtype)
-          let fieldtype = (!fielditem.fieldtype || fielditem.fieldtype === '' || fielditem.fieldtype === 'textarea' || fielditem.fieldtype === 'selection' || fielditem.fieldtype === 'hidden' ) ? 'string' : fielditem.fieldtype
+          let fieldtype = (!fielditem.fieldtype || fielditem.fieldtype === '' || fielditem.fieldtype === 'textarea' || fielditem.fieldtype === 'selection' || fielditem.fieldtype === 'hidden' || fielditem.fieldtype === 'file') ? 'string' : fielditem.fieldtype
           let tmpfield = {};
           if(fielditem.required){
             fieldsrequired.push(fielditem.id)
@@ -2401,6 +2832,12 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               selectOptions.push(optitem)
             }                
             tmpfield[fielditem.id].anyOf = selectOptions 
+          }
+          if(fielditem.fieldtype === 'file'){
+            fieldsoptions[fielditem.id] = {
+              ...fieldsoptions[fielditem.id],
+              "ui:widget": "filepond"
+            }
           }
           fieldslayout[fielditem.id] = {
             ...fieldslayout[fielditem.id],
@@ -2515,6 +2952,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       cardDefinitions,
       cardDefinitionsSchema
     }
+  }
+  function updatePreviewURL(){
+    definePreviewURL(docxPreviewURL)
   }
   function updatePreviewSchema() {
     // Update preview Cards
@@ -2663,7 +3103,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
             <div className="mt-auto d-flex align-items-end d-space-x-4">
               <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); moveCardLeft(card); }} title="Mover Card para Esquerda"><span className="glyphicon glyphicon-arrow-left"></span></button>
               <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); moveCardRight(card); }} title="Mover Card para Direita"><span className="glyphicon glyphicon-arrow-right"></span></button>
-              <button type="button" className={`btn btn-danger`} onClick={(e) => { e.preventDefault(); removeCard(card); }} title="Remover Card"><span className="glyphicon glyphicon-trash"></span></button>            
+              <button type="button" className={`btn btn-danger`} onClick={(e) => { e.preventDefault(); removeCard(card); }} title="Remover Card"><span className="glyphicon glyphicon-trash"></span></button>
             </div>
           </div>
           <CardInfo card={card}></CardInfo>
@@ -2693,7 +3133,10 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); addNewSection2Card(card); }}>Adicionar Seção</button>
       </div>
     } else {
-      formcard = <Form {...card} onBlur={({ formData }, id) => handleChangeEvent(card.cardId, formData, id)} liveValidate />
+      formcard = <>
+        <Form {...card} onChange={({ formData }, id) => handleChangeConfigEvent(card.cardId, formData, id)} onBlur={() => handleBlurConfigEvent(card.cardId)} liveValidate />
+        <FilepondContainer card={card} />
+      </>
     }
     return formcard
   }
@@ -2777,7 +3220,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                         <CardConditions condition={condition} card={card} />
                       </div>
                       <div className="mt-auto d-flex align-items-start d-space-x-4">
-                        <button type="button" className={`btn btn-danger remove-icon-sameline`} onClick={(e) => { e.preventDefault(); removeCardCondition(card, condition); }}><span className="glyphicon glyphicon-trash"></span></button>
+                        <button type="button" className={`btn btn-danger remove-icon-sameline-hint`} onClick={(e) => { e.preventDefault(); removeCardCondition(card, condition); }}><span className="glyphicon glyphicon-trash"></span></button>
                       </div>
                     </div>
                   ))
@@ -2815,7 +3258,9 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               ],
               "title": `[${fieldVar.id}] ${fieldVar.name}`
             }
-            loadCardVariables.push(tmpoption)
+            if(fieldVar.fieldtype !== 'array' && fieldVar.fieldtype !== 'object'){
+              loadCardVariables.push(tmpoption)
+            }
           }
         }
       }  
@@ -3452,6 +3897,13 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
           "hidden"
         ],
         "title": "Oculto"
+      },
+      {
+        "type": "string",
+        "enum": [
+          "file"
+        ],
+        "title": "Arquivo"
       }
       // {
       //   "type": "string",
@@ -3590,7 +4042,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               "fieldtype": {
                 "type": "string",
                 "title": "Tipo do Campo",
-                "default": field.fieldtype ? field.fieldtype : "string",
+                "default": field.hasOwnProperty('fieldtype') ? field.fieldtype : "string",
                 "anyOf": typeoptions
               }
             },
@@ -3657,6 +4109,20 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
                         "type": "boolean",
                         "title": "Somente leitura?",
                         "default": false
+                      },
+                      "required": {
+                        "type": "boolean",
+                        "title": "Obrigatório?",
+                        "default": false
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "fieldtype": {
+                        "enum": [
+                          "file"
+                        ]
                       },
                       "required": {
                         "type": "boolean",
@@ -4175,27 +4641,252 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     let conditioncontent = <Form {...conditionSchema} onChange={({ formData }, id) => handleChangeFieldConditionsEvent(card.cardId, section.id, row.id, field.id, formData, condition.id, subfield.id)} onBlur={() => handleBlurFieldConditionsEvent(card.cardId, section.id, row.id, field.id, condition.id, subfield.id)} liveValidate />
     return conditioncontent
   }
+  function Modal({title, icon, description, content, rjsf = {}, action = "", hasCloseButton = false}) {
+    let modal =
+      <>
+        <h3 className="modal-title">
+          {
+            (icon && icon !== '') && (
+              <span className={`glyphicon ${icon}`}></span>
+            )
+          }
+          {title}
+        </h3>
+        <p className="modal-description">{description}</p>
+        {rjsf && !isObjectEmpty(rjsf) ? (
+          <>
+            <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate id="modalForm" />
+          </>
+        )
+          :
+          (
+            <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
+          )
+        }
+        {hasCloseButton && (
+          <div className="d-modal-action">
+            <form method="dialog">
+              {/* if there is a button in form, it will close the modal */}
+              <button className="d-btn">{language === 'en_us' ? 'Cancel' : 'Cancelar'}</button>
+            </form>
+          </div>
+        )}
+      </>
+    return modal
+  }
+  function FilepondContainer({card}){
+    let schema = {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "type": "string",
+            "title": "Docx do modelo a ser renderizado",
+            "description": "",
+            "default": ""
+          }
+        }
+      },
+      "uiSchema": {
+        "ui:submitButtonOptions": {
+          "norender": true
+        },
+        "ui:ObjectFieldTemplate": "layout",
+        "ui:layout": [
+            {
+                "template": {
+                    "classNames": "col-md-12"
+                }
+            }
+        ],
+        "template":{
+          "ui:widget": "filepond"
+        }
+      }
+    }
+
+    let filename = ''
+    if(docxTemplate && docxTemplate !== ''){
+      let parts = docxTemplate.split('/')
+      filename = parts.pop()
+    }
+    let container = <>
+                      {
+                        (docxTemplate && docxTemplate !== '' ) ?
+                        (
+                          <div className="filepond-wrapper">
+                            <label className="control-label">Docx do modelo a ser renderizado:</label>
+                            <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full filepond-container">
+                              <div className="mt-auto d-flex align-items-start d-space-x-4 filepond-filename">
+                                {filename}
+                              </div>
+                              <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+                              <div className="mt-auto d-flex align-items-end d-space-x-4">
+                                {/* <button type="button" className={`btn btn-info`} onClick={(e) => { e.preventDefault(); previewFilepondTemplate(); }} title="Visualizar Arquivo"><span className="glyphicon glyphicon-eye-open"></span></button> */}
+                                <button type="button" className={`btn btn-danger`} onClick={(e) => { e.preventDefault(); removeFilepondTemplate(); }} title="Remover Arquivo"><span className="glyphicon glyphicon-remove"></span></button>
+                              </div>  
+                            </div>
+                          </div>
+                        ):
+                        (
+                          <Form {...schema} onChange={({ formData }, id) => handleChangeFilepondEvent(formData)} liveValidate />
+                        )
+                      }
+                    </>
+    return container
+  }
   /** Subcomponentes - FIM */
 
+  /**
+   * Ações do Builder
+   */
+  async function saveTemplate(event){
+    // Vamos pegar os dados de formData da tela inicial 
+    // (pode ser que o submit tenha sido feito sem alterar os campos ali)
+    event.preventDefault()
+    event.stopPropagation()
+    let builder = cards[0]; 
+    // let validated = await validateForm() // TODO: CHECAR VALIDAÇÃO
+    let validated = true
+    setIsSaving(true)
+    console.log('validateForm', validated)
+    if (Array.isArray(validated)) { // Se eu tenho uma array, houve erros
+      let errors = treatAJVErrors(validated)
+      let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>" + errors + "</ul>";
+      callAlertModal("Erros no Formulário", "", "Verifique as informações encaminhadas", content)
+    } else {
+      // Form validado
+      // Salvando o Form no CosmosDB
+      let data = {
+        command: "saveTemplate",
+        id: props.embeddedData?.formId ? props.embeddedData?.formId : (builder.formData?.formInfo?.id ? builder.formData?.formInfo?.id : ''),
+        tenant: builder.formData?.formInfo?.tenant ? builder.formData?.formInfo?.tenant : 'looplex.com.br',
+        author: builder.formData?.formInfo?.form_author ? builder.formData?.formInfo?.form_author : '',
+        language: builder.formData?.formInfo?.form_language ? builder.formData?.formInfo?.form_language : 'pt_br',
+        title: builder.formData?.formInfo?.form_title ? builder.formData?.formInfo?.form_title : 'Novo Formulário',
+        version: builder.formData?.formInfo?.form_version ? builder.formData?.formInfo?.form_version : '1.0.0',
+        description: builder.formData?.formInfo?.form_description ? builder.formData?.formInfo?.form_description : '',
+        savenew: props.embeddedData?.formId ? false : true,
+        templateDocument: docxTemplate ? docxTemplate : '',
+        formPreset: builder.formData?.formProps?.formPreset ? builder.formData?.formProps?.formPreset : '',
+        asidePanel: {
+          showPreview: builder.formData?.formProps?.asidePanel?.showPreview ? builder.formData?.formProps?.asidePanel?.showPreview : false,
+          showSummary: builder.formData?.formProps?.asidePanel?.showSummary ? builder.formData?.formProps?.asidePanel?.showSummary : false,
+          showAttachments: builder.formData?.formProps?.asidePanel?.showAttachments ? builder.formData?.formProps?.asidePanel?.showAttachments : false,
+          showVersions: builder.formData?.formProps?.asidePanel?.showVersions ? builder.formData?.formProps?.asidePanel?.showVersions : false
+        },
+        targetCode: builder.formData?.formAction?.executeCode?.targetCode ? builder.formData?.formAction?.executeCode?.targetCode : '',
+        calledAction: builder.formData?.formAction?.calledAction ? builder.formData?.formAction?.calledAction : '',
+        rjsfStructure: cards
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${codeId}`,
+        data
+      }
+      try {
+        const res = await axios(config);
+        console.log('res.data', res.data)
+        setIsSaving(false)
+        if (res.data && res.data.output) {
+          callAlertModal("Modelo salvo", "", "O seu modelo de formulário foi salvo com sucesso!", "")
+          // return res.data.output;
+        }
+      } catch (e) {
+        setIsSaving(false)
+        callAlertModal("Ooops!", "", "Houve um erro ao salvar o seu modelo. Tente novamente.", "")
+        throw new Error('Falha ao salvar o modelo **** ' + JSON.stringify(e.response.data))
+      }
+    }
+    return;
+  }
+  async function generateForm(event){
+    // Vamos pegar os dados de formData da tela inicial 
+    // (pode ser que o submit tenha sido feito sem alterar os campos ali)
+    event.preventDefault()
+    event.stopPropagation()
+    setIsSaving(true)
+    let builder = cards[0]; 
+    // let validated = await validateForm() // TODO: CHECAR VALIDAÇÃO
+    let validated = true
+    console.log('validateForm', validated)
+    if (Array.isArray(validated)) { // Se eu tenho uma array, houve erros
+      let errors = treatAJVErrors(validated)
+      let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>" + errors + "</ul>";
+      callAlertModal("Erros no Formulário", "", "Verifique as informações encaminhadas", content)
+    } else {
+      // Form validado
+      // Criando os registros necessarios para o funcionamento do formulário
+      let data = {
+        command: "generateForm",
+        id: props.embeddedData?.formId ? props.embeddedData?.formId : (builder.formData?.formInfo?.id ? builder.formData?.formInfo?.id : ''),
+        tenant: builder.formData?.formInfo?.tenant ? builder.formData?.formInfo?.tenant : 'looplex.com.br',
+        author: builder.formData?.formInfo?.form_author ? builder.formData?.formInfo?.form_author : '',
+        title: builder.formData?.formInfo?.form_title ? builder.formData?.formInfo?.form_title : 'Novo Formulário',
+        language: builder.formData?.formInfo?.form_language ? builder.formData?.formInfo?.form_language : 'pt_br',
+        version: builder.formData?.formInfo?.form_version ? builder.formData?.formInfo?.form_version : '1.0.0',
+        description: builder.formData?.formInfo?.form_description ? builder.formData?.formInfo?.form_description : '',
+        templateDocument: docxTemplate ? docxTemplate : '',
+        formPreset: builder.formData?.formProps?.formPreset ? builder.formData?.formProps?.formPreset : '',
+        asidePanel: {
+          showPreview: builder.formData?.formProps?.asidePanel?.showPreview ? builder.formData?.formProps?.asidePanel?.showPreview : false,
+          showSummary: builder.formData?.formProps?.asidePanel?.showSummary ? builder.formData?.formProps?.asidePanel?.showSummary : false,
+          showAttachments: builder.formData?.formProps?.asidePanel?.showAttachments ? builder.formData?.formProps?.asidePanel?.showAttachments : false,
+          showVersions: builder.formData?.formProps?.asidePanel?.showVersions ? builder.formData?.formProps?.asidePanel?.showVersions : false
+        },
+        targetCode: builder.formData?.formAction?.executeCode?.targetCode ? builder.formData?.formAction?.executeCode?.targetCode : '',
+        calledAction: builder.formData?.formAction?.calledAction ? builder.formData?.formAction?.calledAction : '',
+        rjsfStructure: cards
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${codeId}`,
+        data
+      }
+      try {
+        const res = await axios(config);
+        console.log('res.data', res.data)
+        setIsSaving(false)
+        if (res.data && res.data.output) {
+          callAlertModal("Formulário criado", "", "O seu formulário foi salvo com sucesso!", "")
+          // return res.data.output;
+        }
+      } catch (e) {
+        setIsSaving(false)
+        throw new Error('Falha ao gerar o formulário **** ' + JSON.stringify(e.response.data))
+      }
+    }
+    return;
+  }
   let rjsfbuilder = <>
     <div className="wfcomponent rjsfbuilder">
+      <dialog id="optionsmodal" className="d-modal" ref={alertRef} >
+        <div className="d-modal-box w-11/12 max-w-5xl">
+          <Modal title={alertMsg.title} description={alertMsg.description} content={alertMsg.content} rjsf={alertMsg.rjsf} action={alertMsg.action} hasCloseButton={alertMsg.hasCloseButton} icon={alertMsg.icon} />
+        </div>
+        <form method="dialog" className="d-modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>      
       <section class="deckofcards">
         <div ref={carouselRef} className='d-carousel d-w-full'>
           {
-            (cards.length === 0 && (isLoading)) ?
+            (cards.length === 0 || (isLoading)) ?
+            (
               <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
-              : ''
-          }
-          {cards.map((card, index) => {
-            const active = index === activeCard;
-            return (
-              <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                <div className="d-w-full">
-                  <FormCard card={card} position={index}></FormCard>
-                </div>
-              </div>
-            );
-          })}
+            ) : (
+              cards.map((card, index) => {
+                const active = index === activeCard;
+                return (
+                  <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
+                    <div className="d-w-full">
+                      <FormCard card={card} position={index}></FormCard>
+                    </div>
+                  </div>
+                );
+              })
+            )
+        }
         </div>
       </section>
       <section className="navigation d-flex align-items-end flex-column">
@@ -4207,12 +4898,13 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
               <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} disabled={((activeCard + 1) >= cards.length || isLoading)} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, Object.assign({}, payloadFormData, cards[activeCard].formData), 'moveRight') }}>{(language === 'en_us') ? 'Next' : 'Próxima'}<span class="glyphicon glyphicon-chevron-right"></span></button>
             </div>
             <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-              <div className="mt-auto d-flex align-items-start d-space-x-4">
-                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); addNewCard2Deck(); }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : ((language === 'en_us') ? 'New Card' : 'Novo Card')}</button>
+              <div className="mt-auto d-flex align-items-end d-space-x-4">
+                <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSaving || isLoading) && 'disabled'}`} disabled={(!isReady2Submit || isSaving || isLoading)} onClick={(e) => { e.preventDefault(); isReady2Submit && saveTemplate(e) }}>{(isSaving || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSaving ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save' : 'Salvar'))}</button>
+                <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSaving || isLoading) && 'disabled'}`} disabled={(!isReady2Submit || isSaving || isLoading)} onClick={(e) => { e.preventDefault(); isReady2Submit && generateForm(e) }}>{(isSaving || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSaving ? ((language === 'en_us') ? 'Generating...' : 'Gerando...') : ((language === 'en_us') ? 'Generate Form' : 'Gerar Formulário'))}</button>
               </div>
               <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
               <div className="mt-auto d-flex align-items-end d-space-x-4">
-                <button type="button" className={`btn btn-primary ${(!isReady2Submit || isSubmitting || isLoading) && 'disabled'}`} disabled={(!isReady2Submit || isSubmitting || isLoading)} onClick={(e) => { e.preventDefault(); isReady2Submit && handleSubmit(e, false) }}>{(isSubmitting || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+                <button type="button" className={`btn btn-secondary`} onClick={(e) => { e.preventDefault(); addNewCard2Deck(); }}>{(isSaving || isLoading) && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : ((language === 'en_us') ? 'Add Card' : 'Adicionar Card')}</button>
               </div>
             </div>
           </>
@@ -4622,7 +5314,7 @@ function CarouselView({ schemacards, language = 'pt-br', codeId }) {
         <div ref={carouselRef} className='d-carousel d-w-full'>
           {
             (cards.length === 0) ?
-              <span>Prévia indisponível</span>
+              <div className="d-flex align-items-start preview-warning d-p-4">Prévia indisponível</div>
               : ''
           }
           {cards.map((card, index) => {
@@ -4711,4 +5403,31 @@ function JSONStructureView({ json }) {
     </div>
   </div>
   return jsonview
+}
+/**
+ * DocumentPreview - Pré-visualização de um docx
+ * 
+ * folha de estilos: https://looplex.github.io/wf_reactcomponents/form/DocumentPreview/DocumentPreview.css
+ */
+function DocumentPreview({ url }) {
+  let docpreview = <>
+                  {
+                    (url && url!=='') ?
+                    (
+                      <div className="wfcomponent document-preview d-flex flex-row d-w-full">
+                        <iframe
+                          id='preview'
+                          name='preview'
+                          width='100%'
+                          height='100%'
+                          frameBorder='0'
+                          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
+                        ></iframe>
+                      </div>                      
+                    ) : (
+                      <div className="d-flex align-items-start preview-warning d-p-4">Prévia indisponível</div>
+                    )
+                  }
+                  </>
+  return docpreview
 }
