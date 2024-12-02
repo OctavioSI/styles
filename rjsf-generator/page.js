@@ -78,11 +78,13 @@ function App() {
               },              
               "form_title": {
                 "type": "string",
-                "title": "Título do Formulário"
+                "title": "Título do Formulário",
+                "default": ""
               },
               "form_description": {
                 "type": "string",
-                "title": "Descrição do Formulário"
+                "title": "Descrição do Formulário",
+                "default": ""
               }
             },
             "required": [
@@ -242,7 +244,7 @@ function App() {
                     "properties": {
                       "calledAction": {
                         "enum": [
-                          "Salvar como Nova Versão"
+                          "saveAsNewVersion"
                         ]
                       }
                     }
@@ -251,7 +253,7 @@ function App() {
                     "properties": {
                       "calledAction": {
                         "enum": [
-                          "Criar um Novo Documento"
+                          "createNewDocument"
                         ]
                       }
                     }
@@ -260,7 +262,7 @@ function App() {
                     "properties": {
                       "calledAction": {
                         "enum": [
-                          "Apenas Renderizar o Documento"
+                          "justRender"
                         ]
                       }
                     }
@@ -457,6 +459,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   const [isReady2Submit, setIsReady2Submit] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [cards, setCards] = useState(schemacards)
+  const [targetCards, setTargetCards] = useState([])
   const carouselRef = useRef(null);
   const activeCardRef = useRef(null);
   const cardInfoFormData = useRef({});
@@ -477,7 +480,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
   const usedAFDefinitions = useRef({});
   const usedLbDefinitions = useRef({});
   const isLoadingInitialForm = useRef(false);
-  const [docxTemplate, setDocxTemplate] = useState('');
+  const [docxTemplate, setDocxTemplate] = useState({});
   const [docxPreviewURL, setDocxPreviewURL] = useState('');
   const [alertMsg, setAlertMsg] = useState({
     title: "Aguarde...",
@@ -787,6 +790,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     updatePreviewSchema()
   }, [cards])
   useEffect(() => {
+    // console.log('Preview Updated!')
     updatePreviewURL()
   }, [docxPreviewURL])
   /** Hooks - FIM */
@@ -1263,14 +1267,17 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       url: `/api/code/${codeId}`,
       data
     }
+    console.log('Fetching initial form...')
     const res = await axios(config);
     if (res.data && res.data.output) {
       let info = res.data.output;
       let currentVersion = info.versions.filter(v => v.version === info.currentVersion)[0]
       let currentTemplate = currentVersion?.template;
       if(currentTemplate && currentTemplate.hasOwnProperty('document')){
-        let filename = currentTemplate.document.path
-        setDocxTemplate(filename)
+        setDocxTemplate({
+          docpath: currentTemplate.document.path,
+          presigned: currentTemplate.link
+        })
         setDocxPreviewURL(currentTemplate.link)
       }
       initializeCardReferences(currentVersion.rjsfStructure)
@@ -1403,7 +1410,10 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     return
   }
   async function handleChangeFilepondEvent(formData) {
-    setDocxTemplate(formData.template)
+    // console.log('changing Filepond field...')
+    if(formData.template && formData.template !== ''){
+      setDocxTemplate({ docpath: formData.template, presigned: '' })
+    }
     return
   }
   async function handleChangeCardInfoEvent(cardId, formData) {
@@ -2737,7 +2747,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     }
   }
   function removeFilepondTemplate(){
-    setDocxTemplate('')
+    setDocxTemplate({})
     setDocxPreviewURL('')
     return;
   }
@@ -3084,6 +3094,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
       };
       newschema.push(newCCard);
     }
+    setTargetCards(newschema);
     definePreviewSchema(newschema)
   }
   /** Funções do Componente - FIM*/
@@ -4706,13 +4717,13 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
     }
 
     let filename = ''
-    if(docxTemplate && docxTemplate !== ''){
-      let parts = docxTemplate.split('/')
+    if(docxTemplate && docxTemplate.hasOwnProperty('docpath') && docxTemplate.docpath !== ''){
+      let parts = docxTemplate.docpath.split('/')
       filename = parts.pop()
     }
     let container = <>
                       {
-                        (docxTemplate && docxTemplate !== '' ) ?
+                        (docxTemplate && docxTemplate.hasOwnProperty('docpath') && docxTemplate.docpath !== '') ?
                         (
                           <div className="filepond-wrapper">
                             <label className="control-label">Docx do modelo a ser renderizado:</label>
@@ -4767,7 +4778,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         version: builder.formData?.formInfo?.form_version ? builder.formData?.formInfo?.form_version : '1.0.0',
         description: builder.formData?.formInfo?.form_description ? builder.formData?.formInfo?.form_description : '',
         savenew: props.embeddedData?.formId ? false : true,
-        templateDocument: docxTemplate ? docxTemplate : '',
+        templateDocument: docxTemplate ? docxTemplate : {},
         formPreset: builder.formData?.formProps?.formPreset ? builder.formData?.formProps?.formPreset : '',
         asidePanel: {
           showPreview: builder.formData?.formProps?.asidePanel?.showPreview ? builder.formData?.formProps?.asidePanel?.showPreview : false,
@@ -4826,7 +4837,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         language: builder.formData?.formInfo?.form_language ? builder.formData?.formInfo?.form_language : 'pt_br',
         version: builder.formData?.formInfo?.form_version ? builder.formData?.formInfo?.form_version : '1.0.0',
         description: builder.formData?.formInfo?.form_description ? builder.formData?.formInfo?.form_description : '',
-        templateDocument: docxTemplate ? docxTemplate : '',
+        templateDocument: docxTemplate ? docxTemplate : {},
         formPreset: builder.formData?.formProps?.formPreset ? builder.formData?.formProps?.formPreset : '',
         asidePanel: {
           showPreview: builder.formData?.formProps?.asidePanel?.showPreview ? builder.formData?.formProps?.asidePanel?.showPreview : false,
@@ -4836,19 +4847,21 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         },
         targetCode: builder.formData?.formAction?.executeCode?.targetCode ? builder.formData?.formAction?.executeCode?.targetCode : '',
         calledAction: builder.formData?.formAction?.calledAction ? builder.formData?.formAction?.calledAction : '',
-        rjsfStructure: cards
+        rjsfStructureInfo: cards[0],
+        rjsfStructure: targetCards
       };
       let config = {
         method: 'post',
         url: `/api/code/${codeId}`,
         data
       }
+      console.log('AAAA', data)
       try {
         const res = await axios(config);
         console.log('res.data', res.data)
         setIsSaving(false)
         if (res.data && res.data.output) {
-          callAlertModal("Formulário criado", "", "O seu formulário foi salvo com sucesso!", "")
+          callAlertModal("Formulário criado", "", "O seu formulário foi salvo com sucesso!", "Você pode acessar o seu formulário no seguinte endereço: <a href=\""+ res.data.output+"\">Link do Fomulário</a>")
           // return res.data.output;
         }
       } catch (e) {
