@@ -373,6 +373,7 @@ async function saveTemplateService(inputs) {
       if(templateDocument && templateDocument.hasOwnProperty('docpath') && templateDocument.docpath !== ''){
 
         uploaded = await treatFilepondFile(templateDocument, 'looplex.com.br', 'workflows') // path temporario
+        return uploaded
         // Aqui já fiz o upload do arquivo que subi no form. Vamos montar o registro de anexos.
           let file = uploaded.docpath
           let filenametmp = (file.split('/').pop()).split('.')
@@ -599,7 +600,7 @@ async function generateFormService(inputs) {
                                   "created_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
                                   "updated_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
                                   "title": title,
-                                  "base_filename": "",
+                                  "base_filename": "file.docx",
                                   "template": "https://looplex-ged.s3.us-east-1.amazonaws.com/"+template?.document?.path
                               }
             let docdata = {
@@ -674,6 +675,7 @@ async function uploadDocumentService(inputs) {
       data
     }
     // console.log('config', config)
+    // return config
     let res = await axios(config);
     return res.data.output;
   } catch (e) {

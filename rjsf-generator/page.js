@@ -4796,6 +4796,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         data
       }
       try {
+        console.log('config', config)
         const res = await axios(config);
         console.log('res.data', res.data)
         setIsSaving(false)
@@ -4855,7 +4856,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         url: `/api/code/${codeId}`,
         data
       }
-      console.log('AAAA', data)
+      // console.log('AAAA', data)
       try {
         const res = await axios(config);
         console.log('res.data', res.data)
