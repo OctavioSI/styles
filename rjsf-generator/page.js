@@ -4862,7 +4862,7 @@ function RJSFBuilder({ schemacards, language = 'pt-br', codeId = props.codeId, d
         console.log('res.data', res.data)
         setIsSaving(false)
         if (res.data && res.data.output) {
-          callAlertModal("Formulário criado", "", "O seu formulário foi salvo com sucesso!", "Você pode acessar o seu formulário no seguinte endereço: <a href=\""+ res.data.output+"\">Link do Fomulário</a>")
+          callAlertModal("Formulário criado", "", "O seu formulário foi salvo com sucesso!", "Você pode acessar o seu formulário no seguinte endereço: <a href=\""+ res.data.output+"\" target=\"_blank\">Link do Fomulário</a>")
           // return res.data.output;
         }
       } catch (e) {

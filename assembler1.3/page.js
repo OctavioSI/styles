@@ -422,7 +422,7 @@
         url: `/api/code/${props.codeId}`,
         data
       }
-      console.log('fetchDocDetails', config)
+      // console.log('fetchDocDetails', config)
       setIsLoadingDocumentDetails(true);
       const res = await axios(config);
 
@@ -434,12 +434,12 @@
         }
         // Criando o link de download das versões anteriores
         for (let i = 0; i < documentdetails.versions.length; i++) {
-          if(documentdetails.versions[i]?.document?.path && documentdetails.versions[i]?.document?.path !== ''){
+          if (documentdetails.versions[i]?.document?.path && documentdetails.versions[i]?.document?.path !== '') {
             documentdetails.versions[i].link = await downloadFile(documentdetails.versions[i].document.path);
           }
         }
-        console.log('setDocumentDetailsVersionsLoaded', documentdetails)
-        console.log('allLoadedCards in DOCDETAILS', allLoadedCards)
+        // console.log('setDocumentDetailsVersionsLoaded', documentdetails)
+        // console.log('allLoadedCards in DOCDETAILS', allLoadedCards)
         setDocumentDetails(documentdetails);
         setDocumentDetailsVersionsLoaded(true);
         setIsLoadingDocumentDetails(false);
@@ -740,7 +740,7 @@
       formDataComplete = currentVersion[0].formData;
     }
     // console.log('formDataComplete', formDataComplete)
-    console.log('allLoadedCards', allLoadedCards)
+    // console.log('allLoadedCards', allLoadedCards)
     let priorDataCards = allLoadedCards.map((card) => {
       // Para cada schema no card, vou montar o objeto de prior correspondente
       let priorData = {}
@@ -989,6 +989,7 @@
       url: `/api/code/${props.codeId}`,
       data
     }
+    console.log('config Render', config)
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
