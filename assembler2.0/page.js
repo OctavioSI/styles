@@ -2,9 +2,9 @@
 function App() {
   let pageLayout = {
     main: true,
-    aside: false,
-    aside_summary: false,
-    aside_docpreview: false,
+    aside: true,
+    aside_summary: true,
+    aside_docpreview: true,
     aside_previousversions: false,
     aside_attachments: false
   }
@@ -280,15 +280,268 @@ function App() {
     }
   ]
   const [formData, setFormData] = useState({})
-  const [docDetails, setDocDetails] = useState({})
-
+  const [docDetails, setDocDetails] = useState({
+    "id": "teste001",
+    "partitionKey": "looplex.com.br",
+    "versions": [
+      {
+        "version": "1.0.0",
+        "author": "Octavio Ietsugu",
+        "date": "2024-07-02T21:23:05",
+        "description": "Versão Inicial",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1719955377211_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "strContratada": {
+            "nome": "Octavio Ietsugu",
+            "cnpj": "01.002.122/0001-16"
+          },
+          "strContrato": {
+            "prazoAvisoVolume": 5,
+            "inicioVigencia": "01/12/2024",
+            "fimVigencia": "31/12/2024",
+            "prazoPagamento": 7,
+            "dataExp": "02 de julho de 2024"
+          }
+        }
+      },
+      {
+        "version": "2.0.0",
+        "author": "Looplex",
+        "date": "2024-07-04T19:25:59",
+        "description": "Testando FilePond",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720121149486_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "strContratada": {
+            "nome": "Octavio Ietsugu",
+            "cnpj": "01.002.122/0001-16"
+          },
+          "anexo": "Temp/7_nUDCL_-hl9e12F53Ac_/Screenshot from 2024-07-04 14-48-48.png",
+          "strContrato": {
+            "prazoAvisoVolume": 5,
+            "inicioVigencia": "01/12/2024",
+            "fimVigencia": "31/12/2024",
+            "prazoPagamento": 7,
+            "dataExp": "02 de julho de 2024"
+          }
+        }
+      },
+      {
+        "version": "3.0.0",
+        "author": "Looplex",
+        "date": "2024-07-04T19:34:04",
+        "description": "Teste novo AAA",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720121634126_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "strContratada": {
+            "nome": "Octavio Ietsugu",
+            "cnpj": "01.002.122/0001-16"
+          },
+          "anexo": "Temp/NP_ItCMX4P54QsHl4aCXy/Screenshot from 2024-07-04 14-48-48.png",
+          "strContrato": {
+            "prazoAvisoVolume": 5,
+            "inicioVigencia": "01/12/2024",
+            "fimVigencia": "31/12/2024",
+            "prazoPagamento": 7,
+            "dataExp": "02 de julho de 2024"
+          }
+        }
+      },
+      {
+        "version": "2.1.1",
+        "author": "Looplex",
+        "date": "2024-07-04T19:36:51",
+        "description": "Agora com documento",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720121795051_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "strContratada": {
+            "nome": "Octavio Ietsugu",
+            "cnpj": "01.002.122/0001-16"
+          },
+          "anexo": "Temp/RDVvE6OtisA2RF1C8P0vI/1720047459663_fornecimentoprodutos.docx",
+          "strContrato": {
+            "prazoAvisoVolume": 5,
+            "inicioVigencia": "01/12/2024",
+            "fimVigencia": "31/12/2024",
+            "prazoPagamento": 7,
+            "dataExp": "02 de julho de 2024"
+          }
+        }
+      },
+      {
+        "version": "2.2.2",
+        "author": "Looplex",
+        "date": "2024-07-04T20:38:27",
+        "description": "Teste com anexo",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720125494762_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "strContratada": {
+            "nome": "Erick Kitada",
+            "cnpj": "01.002.122/0001-16"
+          },
+          "anexo": "Temp/ke-Fie48-THvGVEF5l4ID/Collaço Gallotti & Petry (1).pdf",
+          "strContrato": {
+            "prazoAvisoVolume": 5,
+            "inicioVigencia": "01/12/2024",
+            "fimVigencia": "31/12/2024",
+            "prazoPagamento": 7,
+            "dataExp": "02 de julho de 2024"
+          }
+        }
+      },
+      {
+        "version": "3.3.3",
+        "author": "Looplex",
+        "date": "2024-07-04T20:39:53",
+        "description": "Testando filepond",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720125583593_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "strContratada": {
+            "nome": "Erick Kitada",
+            "cnpj": "01.002.122/0001-16"
+          },
+          "anexo": "Temp/EsWvkhix6tSZHUKIW6PAw/comparison_1720125042161.docx",
+          "strContrato": {
+            "prazoAvisoVolume": 5,
+            "inicioVigencia": "01/12/2024",
+            "fimVigencia": "31/12/2024",
+            "prazoPagamento": 7,
+            "dataExp": "02 de julho de 2024"
+          }
+        }
+      },
+      {
+        "version": "OMcwP",
+        "author": "Looplex",
+        "date": "2024-07-22T22:35:50",
+        "description": "Versão Inicial",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1721687742775_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "selecionado": "primeiro",
+          "primeiro_selecionado": "Octavio OK"
+        }
+      },
+      {
+        "version": "2",
+        "author": "Looplex",
+        "date": "2024-09-19T20:30:12",
+        "description": "ok ok ok",
+        "document": {
+          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1726777805573_fornecimentoprodutos.docx"
+        },
+        "formData": {
+          "requester": {
+            "emailAddress": "kitada.erick@gmail.com",
+            "name": "Erick Takahama Kitada"
+          },
+          "caseReference": {
+            "caseId": "123"
+          },
+          "deliverable": {
+            "productDeliverable": "Gerar Solicitação de Proposta ou Solicitação de Cotação (RFP/RFQ)"
+          }
+        }
+      }
+    ],
+    "attachments": [
+      {
+        "title": "Relatório Interno",
+        "description": "Relatório de uso interno",
+        "date": "2024-06-13T10:00:00",
+        "document": {
+          "path": "looplex.com.br/daiani/porretinho.png",
+          "filename": "acordo_sigilo",
+          "type": "docx"
+        }
+      },
+      {
+        "title": "Screenshot from 2024-07-04 14-48-48",
+        "description": "Screenshot from 2024-07-04 14-48-48",
+        "date": "2024-07-04T19:25:59",
+        "document": {
+          "path": "looplex.com.br/Screenshot from 2024-07-04 14-48-48.png",
+          "filename": "Screenshot from 2024-07-04 14-48-48",
+          "type": "png"
+        }
+      },
+      {
+        "title": "Screenshot from 2024-07-04 14-48-48",
+        "description": "Screenshot from 2024-07-04 14-48-48",
+        "date": "2024-07-04T19:34:04",
+        "document": {
+          "path": "looplex.com.br/Screenshot from 2024-07-04 14-48-48.png",
+          "filename": "Screenshot from 2024-07-04 14-48-48",
+          "type": "png"
+        }
+      },
+      {
+        "title": "1720047459663_fornecimentoprodutos",
+        "description": "1720047459663_fornecimentoprodutos",
+        "date": "2024-07-04T19:36:51",
+        "document": {
+          "path": "looplex.com.br/1720047459663_fornecimentoprodutos.docx",
+          "filename": "1720047459663_fornecimentoprodutos",
+          "type": "docx"
+        }
+      },
+      {
+        "title": "comparison_1720125042161",
+        "description": "comparison_1720125042161",
+        "date": "2024-07-04T20:39:53",
+        "document": {
+          "path": "looplex.com.br/comparison_1720125042161.docx",
+          "filename": "comparison_1720125042161",
+          "type": "docx"
+        }
+      }
+    ],
+    "currentVersion": "2",
+    "author": "Octavio Ietsugu",
+    "description": "Contrato de Fornecimento de Produtos",
+    "created_at": "2024-06-13T10:00:00",
+    "updated_at": "2024-09-19T20:30:12",
+    "title": "Contrato de Fornecimento de Produtos",
+    "base_filename": "fornecimentoprodutos.docx",
+    "template": "https://looplex-workflows.s3.sa-east-1.amazonaws.com/webinar/testes/Plastipak-template.docx",
+    "_rid": "wpJvAJ+K6eUBAAAAAAAAAA==",
+    "_self": "dbs/wpJvAA==/colls/wpJvAJ+K6eU=/docs/wpJvAJ+K6eUBAAAAAAAAAA==/",
+    "_etag": "\"0200c002-0000-0200-0000-66ec89d50000\"",
+    "_attachments": "attachments/",
+    "_ts": 1726777813
+  })
+  const [previewSchema, setPreviewSchema] = useState([]);
+  const [previewURL, setPreviewURL] = useState('https://looplex-workflows.s3.sa-east-1.amazonaws.com/templates/docs/proposta_ajustada_ietsugu.docx');
+  const [documentRendered, setDocumentRendered] = useState({});
+  const [activeCard, setActiveCard] = useState(0);
+  
   function defineFormData(fd) {
     setFormData(() => fd)
   }
   function defineDocDetails(dd) {
     setDocDetails(() => dd)
   }
-
+  function definePreview(newurl) {
+    setPreviewURL(() => newurl)
+  }
+  function definePreviewSchema(sch) {
+    setPreviewSchema(() => sch)
+  }
+  function defineActiveCard(ac){
+    setActiveCard(() => ac)
+  }
   /*******************************************************************
    * Renderização da Tela
    * 
@@ -307,10 +560,16 @@ function App() {
             {pageLayout.main &&
               (
                 <main className="card-main-wrapper" style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
-                  <CarouselForm schemacards={cards} language={(initialform.language ? initialform.language : "pt-br")} codeId={props.codeId} initialform={initialform} defineFormData={defineFormData} defineDocDetails={defineDocDetails} />
+                  <CarouselForm schemacards={cards} language={(initialform.language ? initialform.language : "pt-br")} codeId={props.codeId} initialform={initialform} defineFormData={defineFormData} defineDocDetails={defineDocDetails} definePreviewSchema={definePreviewSchema} defineActiveCard={defineActiveCard} />
                 </main>
               )}
 
+            {pageLayout.aside &&
+              (
+                <aside className="card-aside-wrapper">
+                  <AsidePanel pageLayout={pageLayout} language={initialform.language} documentDetails={docDetails} previewSchema={previewSchema} activeCard={activeCard} initialform={initialform} previewURL={previewURL} definePreview={definePreview} documentRendered={documentRendered} />
+                </aside>
+              )}
           </div>
         </form>
       </div>
@@ -361,7 +620,7 @@ function LooplexHeader({title = 'Looplex Form'}) {
     </div>
   )
 }
-function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {}, defineFormData, defineDocDetails }) {
+function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {}, defineFormData, defineDocDetails, definePreviewSchema, defineActiveCard }) {
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState([])
   const [preloadedCards, setPreloadedCards] = useState([])
@@ -372,6 +631,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   const isLoadingRemoteSchema = useRef(false);
   const isLoadingDocumentDetails = useRef(false);
   const cardsFormData = useRef({});
+  const lastTouchedField = useRef('');
   const documentDetails = useRef({});
 
   /** Hooks - INÍCIO */
@@ -411,7 +671,9 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     fetchRemote(remoteList)
   }, [])
   useEffect(() => {
+    console.log('cards changed!')
     defineFormData(cardsFormData.current)
+    definePreviewSchema(cards)
   }, [cards])
   useEffect(() => {
     console.log('Preloading cards...', preloadedCards)
@@ -439,6 +701,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
       block: "start",
       inline: "nearest"
     });
+    defineActiveCard(activeCard)
   }, [activeCard]);
   /** Hooks - FIM */
 
@@ -787,6 +1050,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   }
   async function handleClickEvent(cardId, cardTargetIdx) {
     // Chamado sempre que o botão de próxima ou anterior for clicado
+    setCards(setSchema(allLoadedCards.current))
     if (cards.length > 1) {
       let moveLeft = Math.max(0, activeCard - 1);
       let moveRight = Math.min(cards.length - 1, activeCard + 1);
@@ -794,18 +1058,15 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     }
   }
   // Chamado sempre que o formulário for alterado
-  async function handleChangeEvent(cardId, formData) {
+  async function handleChangeEvent(cardId, formData, id) {
     if (!cardsFormData.current.hasOwnProperty(cardId)) cardsFormData.current[cardId] = {}
     cardsFormData.current[cardId] = formData;
+    lastTouchedField.current = cardId + '.' + (id.replace('root_', '').replaceAll('_', '.'))
   }
-  async function handleBlurEvent(cardId, fieldId) {
+  async function handleBlurEvent(cardId) {
     let cd = cards.filter(c => c.cardId === cardId)[0]
-    console.log('cd.formData', cd.formData)
-    console.log('cardsFormData.current[cardId]', cardsFormData.current[cardId])
     if (JSON.stringify(cd.formData) === JSON.stringify(cardsFormData.current[cardId])) return // Se nao mudei meu form, nao faço nada
-    console.log('Ok, lets check...')
-    let field = cardId + '.' + (fieldId.replace('root_', '').replaceAll('_', '.'));
-    checkDMN(cardId, field)
+    let ck = await checkDMN(cardId, lastTouchedField.current)
     setCards(setSchema(allLoadedCards.current))
   }
   /** Funções do Componente - FIM*/
@@ -824,7 +1085,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
             return (
               <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
                 <div className="d-w-full">
-                  <Form {...card} onChange={({ formData }, id) => handleChangeEvent(card.cardId, formData, id)} onBlur={(fieldId) => handleBlurEvent(card.cardId, fieldId)} liveValidate />
+                  <Form {...card} onChange={({ formData }, id) => handleChangeEvent(card.cardId, formData, id)} onBlur={() => handleBlurEvent(card.cardId)} liveValidate />
                 </div>
               </div>
             );
@@ -841,4 +1102,258 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     </div>
   </>
   return carousel
+}
+function AsidePanel({ pageLayout, language, documentDetails, previewSchema, activeCard, initialform, previewURL, definePreview, documentRendered }) {
+  const [panelView, setPanelView] = useState('summary')
+  function updatePanelView(option) {
+    setPanelView(() => option)
+  }
+  function AsideNavigation({ pageLayout, language, panelView, updatePanelView }) {
+    return (
+      <div className="card-navigation">
+        {(pageLayout.aside_summary) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('summary') }}>{(language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}        
+        {(pageLayout.aside_docpreview) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'docpreview' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('docpreview') }}>{(language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
+        {(pageLayout.aside_previousversions) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'previousversions' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('previousversions') }}>{(language === 'en_us') ? 'Previous Versions' : 'Versões Anteriores'}</button>)}
+        {(pageLayout.aside_attachments) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('attachments') }}>{(language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
+      </div>
+    )
+  }
+  function AsideView({ panelView, language, documentDetails, previewSchema, activeCard, initialform, previewURL, definePreview, documentRendered }) {
+    return (
+      <div className="card-aside-view">
+        {(panelView == 'summary') && (<SummaryView documentDetails={documentDetails} cards={previewSchema} activeCard={activeCard} initialform={initialform} />)}
+        {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} definePreview={definePreview}/>)}
+        {/*{(panelView == 'previousversions') && (<PreviousVersionsView documentDetails={documentDetails} documentRendered={documentRendered} language={language} />)}
+        {(panelView == 'attachments') && (<AttachmentsView attachments={documentDetails.attachments} language={language}/>)} */}
+      </div>
+    )
+  }
+  return (
+    <>
+      <AsideNavigation pageLayout={pageLayout} language={language} panelView={panelView} updatePanelView={updatePanelView} />
+      <AsideView previewSchema={previewSchema} language={language} panelView={panelView} documentDetails={documentDetails} activeCard={activeCard} initialform={initialform} previewURL={previewURL} definePreview={definePreview} documentRendered={documentRendered} />
+    </>
+  )
+}
+function SummaryView({documentDetails, cards, activeCard, initialform}) {
+  /** Component Helpers - INÍCIO */
+  function formatUTCDate(utcdate) {
+    // Formata uma data em UTC para a visualização correta e na timezone local
+    let d = new Date(utcdate)
+    let utc = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear() + " " + ("0" + (new Date(utc).getHours())).slice(-2) + ":" + ("0" + (new Date(utc).getMinutes())).slice(-2) + ":" + ("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
+  /** Component Helpers - FIM */
+
+  /** Subcomponentes - INÍCIO */
+  function Description({ description }) {
+    // Descrição do documento que está sendo construído. No painel de 
+    // sumário ele aparece como "Informações Gerais"      
+    return (
+      <div >
+        <a class="btn btn-summary" data-toggle="collapse" href="#overview" role="button" aria-expanded="false" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className="glyphicon glyphicon-triangle-right right-margin-5px"></span>Informações Gerais</a>
+        <div class="collapse" id="overview">
+          <table class="table table-hover table-sm table-bordered">
+            <tbody>
+              <tr>
+                <td className="table-highlight col-xs-4" colspan="1">
+                  Versão atual
+                </td>
+                <td className="col-xs-8" colspan="2">
+                  {description.version}
+                </td>
+              </tr>
+              <tr>
+                <td className="table-highlight col-xs-4" colspan="1">
+                  Autor
+                </td>
+                <td className="col-xs-8" colspan="2">
+                  {description.author}
+                </td>
+              </tr>
+              <tr>
+                <td className="table-highlight col-xs-4" colspan="1">
+                  Data de criação
+                </td>
+                <td className="col-xs-8" colspan="2">
+                  {(description.created_at && description.created_at !== '') ? (formatUTCDate(description.created_at)) : ''}
+                </td>
+              </tr>
+              <tr>
+                <td className="table-highlight col-xs-4" colspan="1">
+                  Última Atualização
+                </td>
+                <td className="col-xs-8" colspan="2">
+                  {(description.updated_at && description.updated_at !== '') ? (formatUTCDate(description.updated_at)) : ''}
+                </td>
+              </tr>
+              <tr>
+                <td className="table-highlight col-xs-4" colspan="1">
+                  Descrição
+                </td>
+                <td className="col-xs-8" colspan="2">
+                  {description.description}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div >
+      </div >
+    )
+  }
+  function Summary({ cards, activeCard, initialform }) {
+    function tableBuilder(schema, previewFormData = {}, currentFormData = {}, sublevel = 0) {
+      let items = []
+      // Quando em nosso RJSF temos uma subseção, colocaremos o elemento 
+      // a seguir para indicar que as linhas seguintes dizem respeito 
+      // a essa subseção usando um subtítulo
+      function TableRow({ rows, subtitle, sublevel }) {
+        let table =
+          <>
+            <tr className={"table-subtitle"}>
+              <td className={"table-subtitle"} colspan="3">{Array(sublevel).fill(<span className="right-margin-5px">•</span>)}{subtitle}</td>
+            </tr>
+            {rows}
+          </>
+        return table
+      }
+      // Cada uma das linhas com o conteúdo que estamos populando.
+      // Ele indica que há um valor original e o destaca com o valor atual
+      // que é trazido no formulario
+      function Row({ title, priorValue, currentValue }) {
+        let row =
+          <tr className={priorValue == currentValue ? "table-default" : "table-changed"}>
+            <td style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight col-xs-4" colspan="1">{title}</td>
+            <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-4" colspan="1">{priorValue}</td>
+            <td style={{ wordBreak: "break-all", minWidth: "200px" }} className="col-xs-4" colspan="1">{currentValue}</td>
+          </tr>
+        return row
+      }
+      if (schema.hasOwnProperty('properties') && schema.properties && Object.keys(schema.properties).length > 0) {
+        // Se o sublevel for zero, essa primeira camada de properties será o das seções do formulario
+        if(sublevel === 0){
+          for (let i = 0; i < Object.keys(schema.properties).length; i++) { // Para cada secao
+            let key = Object.keys(schema.properties)[i]
+            let formItem = schema.properties[key]
+            if(formItem.hasOwnProperty('properties') && Object.keys(formItem.properties).length > 0){
+              for (let j = 0; j < Object.keys(formItem.properties).length; j++) { // Para cada item da secao
+                let keyInside = Object.keys(formItem.properties)[j]
+                let formItemInside = formItem.properties[keyInside]
+                let typeInside = formItemInside.type
+                if (typeInside == 'object') {
+                  let row = <TableRow rows={tableBuilder(formItemInside, previewFormData[key] && previewFormData[key][keyInside] ? previewFormData[key][keyInside] : {}, currentFormData[key] && currentFormData[key][keyInside] ? currentFormData[key][keyInside] : {}, sublevel + 1)} subtitle={formItemInside.title} sublevel={sublevel + 1} />
+                  items.push(row)
+                }else{
+                  let row = <Row title={formItemInside.title ? formItemInside.title : ""} priorValue={previewFormData[key] && previewFormData[key][keyInside] ? previewFormData[key][keyInside] : ""} currentValue={currentFormData[key] && currentFormData[key][keyInside] ? currentFormData[key][keyInside] : ""} />                  
+                  items.push(row)
+                }
+              }
+            }
+          }
+        }else{
+          for (let i = 0; i < Object.keys(schema.properties).length; i++) {
+            let key = Object.keys(schema.properties)[i]
+            let formItem = schema.properties[key]
+            let type = formItem.type
+            if (type == 'string') {
+              let row = <Row title={formItem.title ? formItem.title : ""} priorValue={previewFormData[key] ? previewFormData[key] : ""} currentValue={currentFormData[key] ? currentFormData[key] : ""} />
+              items.push(row)
+            }
+            if (type == 'object') {
+              let row = <TableRow rows={tableBuilder(formItem, previewFormData[key] ? previewFormData[key] : {}, currentFormData[key] ? currentFormData[key] : {}, sublevel + 1)} subtitle={formItem.title} sublevel={sublevel + 1} />
+              items.push(row)
+            }
+          }
+        }
+      }
+      return items
+    } // tableBuilder
+    // Cada uma das seções do sumário
+    function Section({ table, title, id, isCurrentCard, initialform }) {
+      let section = <div style={{
+        width: "100%", height: "100%", backgroundColor: "white"
+      }} >
+        <a class="btn btn-summary" data-toggle="collapse" href={`#${id}`} role="button" aria-expanded="true" aria-controls="card1" style={{ margin: '0px 0px 5px 0px' }}><span className={(isCurrentCard ? "glyphicon glyphicon-hand-right right-margin-5px" : "glyphicon glyphicon-triangle-right right-margin-5px")}></span>{title}</a>
+        <div className={isCurrentCard ? "collapse show" : "collapse"} id={id}>
+          <table class="table table-hover table-sm table-bordered">
+            <thead class="thead-light">
+              <tr className="table-title">
+                <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Field' : 'Campo'}</th>
+                <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Prior Value' : 'Valor Anterior'}</th>
+                <th className="table-title col-xs-4" scope="col">{initialform.language === 'en_us' ? 'Current Value' : 'Valor Atual'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {table}
+            </tbody>
+          </table>
+        </div>
+      </div >
+      return section
+    }
+    let sections = []
+    let currentCard = cards[activeCard];
+    for (let i = 0; i < cards.length; i++) {
+      let card = cards[i]
+      let title = card.schema?.title ? card.schema?.title : card.cardId
+      let cardSchema = card.schema
+      let cardPriorFormData = card.priorFormData ? card.priorFormData : {}
+      let cardCurrentFormData = card.formData ? card.formData : {}
+      let table = tableBuilder(cardSchema, cardPriorFormData, cardCurrentFormData)
+      sections.push(<Section table={table} title={title} id={card.cardId} isCurrentCard={currentCard === card} initialform={initialform} />)
+    }
+    return (
+      <div>
+        {sections}
+      </div>
+    )
+  } // Summary
+  /** Subcomponentes - FIM */
+  let summaryview = (documentDetails && documentDetails.currentVersion) ?
+    (
+      <div className="wfcomponent summary-view">
+        <Description description={{
+          "version": documentDetails.currentVersion,
+          "author": documentDetails.author,
+          "created_at": documentDetails.created_at,
+          "updated_at": documentDetails.updated_at,
+          "description": documentDetails.description
+        }} />
+        <Summary cards={cards} activeCard={activeCard} initialform={initialform} />
+      </div>
+    )
+    :
+    (
+      <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando...</span>
+    )
+  return summaryview
+}
+function DocumentPreview({ url, definePreview }) {
+  function updatePreview() {
+    definePreview()
+  }
+
+  let docpreview = <>
+                  {
+                    (url && url!=='') ?
+                    (
+                      <div className="wfcomponent document-preview d-flex flex-row d-w-full">
+                        <iframe
+                          id='preview'
+                          name='preview'
+                          width='100%'
+                          height='100%'
+                          frameBorder='0'
+                          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
+                        ></iframe>
+                        <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); updatePreview() }}>
+                          <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
+                        </button>
+                      </div>                      
+                    ) : (
+                      <div className="d-flex align-items-start preview-warning d-p-4">Prévia indisponível</div>
+                    )
+                  }
+                  </>
+  return docpreview
 }
