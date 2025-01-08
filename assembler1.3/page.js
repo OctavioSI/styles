@@ -907,7 +907,6 @@
           setIsSubmitting(true)
           await send2Code();
           setIsSubmitting(false)
-          // alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
         }
       }
     }

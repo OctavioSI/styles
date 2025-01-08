@@ -5,8 +5,8 @@ function App() {
     aside: true,
     aside_summary: true,
     aside_docpreview: true,
-    aside_previousversions: false,
-    aside_attachments: false
+    aside_previousversions: true,
+    aside_attachments: true
   }
   let initialform = {
     language: 'pt-br'
@@ -91,7 +91,10 @@ function App() {
                 "description": "",
                 "default": ""
               }
-            }
+            },
+            "required": [
+              "nome"
+            ]
           }
         }
       },
@@ -536,6 +539,9 @@ function App() {
   function definePreview(newurl) {
     setPreviewURL(() => newurl)
   }
+  function defineDocRendered(doc) {
+    setDocumentRendered(() => doc)
+  }
   function definePreviewSchema(sch) {
     setPreviewSchema(() => sch)
   }
@@ -560,7 +566,8 @@ function App() {
             {pageLayout.main &&
               (
                 <main className="card-main-wrapper" style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
-                  <CarouselForm schemacards={cards} language={(initialform.language ? initialform.language : "pt-br")} codeId={props.codeId} initialform={initialform} defineFormData={defineFormData} defineDocDetails={defineDocDetails} definePreviewSchema={definePreviewSchema} defineActiveCard={defineActiveCard} />
+                  <CarouselForm language={(initialform.language ? initialform.language : "pt-br")} initialform={initialform} codeId={props.codeId} schemacards={cards} defineFormData={defineFormData} defineDocDetails={defineDocDetails} definePreviewSchema={definePreviewSchema} defineActiveCard={defineActiveCard} hasActionPanel={true}/>
+                  <ActionPanel language={(initialform.language ? initialform.language : "pt-br")} initialform={initialform} codeId={props.codeId} previewSchema={previewSchema} documentDetails={docDetails} definePreview={definePreview}  defineDocRendered={defineDocRendered} />
                 </main>
               )}
 
@@ -602,6 +609,7 @@ function PageHeader({title = 'Looplex Form'}) {
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/DocumentPreview/DocumentPreview.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/PreviousVersionsView/PreviousVersionsView.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/AttachmentsView/AttachmentsView.css' />
+    <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/ActionPanel/ActionPanel.css' />
     { /** Estilos dos Componentes Utilizados -- FIM */}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -620,7 +628,7 @@ function LooplexHeader({title = 'Looplex Form'}) {
     </div>
   )
 }
-function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {}, defineFormData, defineDocDetails, definePreviewSchema, defineActiveCard }) {
+function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {}, defineFormData, defineDocDetails, definePreviewSchema, defineActiveCard, hasActionPanel = false }) {
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState([])
   const [preloadedCards, setPreloadedCards] = useState([])
@@ -1072,7 +1080,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   /** Funções do Componente - FIM*/
 
   let carousel = <>
-    <div className="wfcomponent carousel">
+    <div className={(hasActionPanel ? "wfcomponent carousel has-actionpanel" : "wfcomponent carousel")}>
       <section class="deckofcards">
         <div ref={carouselRef} className='d-carousel d-w-full'>
           {
@@ -1113,8 +1121,8 @@ function AsidePanel({ pageLayout, language, documentDetails, previewSchema, acti
       <div className="card-navigation">
         {(pageLayout.aside_summary) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'summary' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('summary') }}>{(language === 'en_us') ? 'Summary' : 'Sumário'}</button>)}        
         {(pageLayout.aside_docpreview) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'docpreview' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('docpreview') }}>{(language === 'en_us') ? 'Preview' : 'Prévia'}</button>)}
-        {(pageLayout.aside_previousversions) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'previousversions' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('previousversions') }}>{(language === 'en_us') ? 'Previous Versions' : 'Versões Anteriores'}</button>)}
         {(pageLayout.aside_attachments) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'attachments' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('attachments') }}>{(language === 'en_us') ? 'Attachments' : 'Anexos'}</button>)}
+        {(pageLayout.aside_previousversions) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'previousversions' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('previousversions') }}>{(language === 'en_us') ? 'Previous Versions' : 'Versões Anteriores'}</button>)}
       </div>
     )
   }
@@ -1123,8 +1131,8 @@ function AsidePanel({ pageLayout, language, documentDetails, previewSchema, acti
       <div className="card-aside-view">
         {(panelView == 'summary') && (<SummaryView documentDetails={documentDetails} cards={previewSchema} activeCard={activeCard} initialform={initialform} />)}
         {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} definePreview={definePreview}/>)}
-        {/*{(panelView == 'previousversions') && (<PreviousVersionsView documentDetails={documentDetails} documentRendered={documentRendered} language={language} />)}
-        {(panelView == 'attachments') && (<AttachmentsView attachments={documentDetails.attachments} language={language}/>)} */}
+        {(panelView == 'previousversions') && (<PreviousVersionsView documentDetails={documentDetails} documentRendered={documentRendered} language={language} />)}
+        {(panelView == 'attachments') && (<AttachmentsView attachments={documentDetails.attachments} language={language}/>)}
       </div>
     )
   }
@@ -1134,6 +1142,326 @@ function AsidePanel({ pageLayout, language, documentDetails, previewSchema, acti
       <AsideView previewSchema={previewSchema} language={language} panelView={panelView} documentDetails={documentDetails} activeCard={activeCard} initialform={initialform} previewURL={previewURL} definePreview={definePreview} documentRendered={documentRendered} />
     </>
   )
+}
+function ActionPanel({ language, initialform, documentDetails, previewSchema, codeId, definePreview, defineDocRendered }){
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const alertRef = useRef(null)
+  const [alert, setAlert] = useState({
+    title: "Título",
+    description: "Descrição do Alerta"
+  })
+  function updatePreview(prev) {
+    definePreview(prev)
+  }
+  function updateDocRendered(doc) {
+    defineDocRendered(doc)
+  }
+  /** Helpers */
+  function treatAJVErrors(errors = []) {
+    // Formata os erros recebidos na validação para exibição na tela
+    function translateError(err){
+      let errstr, translatederr;
+      // Abaixo definimos cada uma das hipóteses de erro seguindo o mesmo formato
+      errstr = "must have required property"
+      translatederr = "deve conter o campo obrigatório"
+      if(err.includes(errstr)) return err.replace(errstr, translatederr)
+
+      return ""
+    }
+    let errorsmsg = "";
+    if (errors && errors.length > 0) {
+      for (let i = 0; i < errors.length; i++) {
+        let errortmp = translateError(errors[i].message)
+        errorsmsg += "<li><strong>" + errors[i].instancePath + ":</strong> " + errortmp + "</li>"
+      }
+    }
+    return errorsmsg
+  }
+  function isObjectEmpty(objectName) {
+    return JSON.stringify(objectName) === '{}'
+  }
+  function initializeFormData(schema, initializefields = false){
+    let fd = {}
+    for (const card in schema) { // cada card
+      fd[card] = {}
+      let eachcard = schema[card]
+      for (const section in eachcard.properties) {
+        fd[card][section] = {}
+        if(initializefields){
+          let eachsection = eachcard.properties[section]
+          for (const field in eachsection.properties) {
+            let eachfield = eachsection.properties[field]
+            switch(eachfield.type){
+              case 'number':
+                fd[card][section][field] = 0;
+                break;
+              case 'object': 
+                fd[card][section][field] = {};
+                break;
+              case 'array':
+                fd[card][section][field] = [];
+                break;
+              default:
+                fd[card][section][field] = "";
+                break;
+            }
+          }  
+        }
+      }
+    }
+    // console.log('fd', JSON.stringify(fd))
+    return fd
+  }
+  /** Funções do Componente */
+  async function validateForm() {
+    let mergedFormData = {}
+    let mergedSchema = {};
+    let mergedSchemaDefs = {};
+    for (let i = 0; i < previewSchema.length; i++) {
+      let tcard = previewSchema[i];
+      mergedSchema[tcard.cardId] = { 
+        type: 'object',
+        properties: { ...tcard.schema.properties }
+      }
+      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
+    }
+    mergedFormData = initializeFormData(mergedSchema, false)
+    // console.log('mergedTreated', mergedFormData)
+    for (let i = 0; i < previewSchema.length; i++) {
+      let tcard = previewSchema[i];
+      mergedFormData[tcard.cardId] = { ...mergedFormData[tcard.cardId], ...tcard.formData } // populando formData
+    }
+    let data = {
+      command: "validateForm",
+      formData: mergedFormData,
+      schema: {
+        type: "object",
+        properties: { ...mergedSchema },
+        definitions: { ...mergedSchemaDefs }
+      }
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    console.log('config', JSON.stringify(config))
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao validar o formulário')
+    }
+    return
+  }
+  async function renderDocument() {
+    setIsSubmitting(true);
+    let mergedSchema = {};
+    let mergedSchemaDefs = {};
+    let mergedFormData = {};
+    for (let i = 0; i < previewSchema.length; i++) {
+      let tcard = previewSchema[i];
+      mergedSchema[tcard.cardId] = { 
+        type: 'object',
+        properties: { ...tcard.schema.properties }
+      }
+      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
+    }
+    mergedFormData = initializeFormData(mergedSchema, true)
+    for (let i = 0; i < previewSchema.length; i++) {
+      let tcard = previewSchema[i];
+      mergedFormData[tcard.cardId] = { ...mergedFormData[tcard.cardId], ...tcard.formData } // populando formData
+    }
+    let datacontent = {
+      command: "renderDocument",
+      datasource: mergedFormData,
+      templateDocument: documentDetails.template,
+      documentName: new Date().getTime() + '_' + documentDetails.base_filename,
+      tenant: initialform.tenant
+    };
+    let data = {
+      command: "renderDocument",
+      datacontent
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        setIsSubmitting(false);
+        return res.data.output;
+      }
+    } catch (e) {
+      setIsSubmitting(false);
+      throw new Error('Falha ao gerar o Render')
+    }
+  }
+  async function handleSubmit(event, justrender) {
+    event.preventDefault()
+    event.stopPropagation()
+    console.log('Submitting...')
+    let validated = await validateForm()
+    if (Array.isArray(validated)) { // Se eu tenho uma array, houve erros
+      let errors = treatAJVErrors(validated)
+      let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>" + errors + "</ul>";
+      alertModal("Erros no Formulário", "", "Verifique as informações encaminhadas", content)
+    } else {
+      if (justrender) {
+        console.log('Renderizando...')
+        let render = await renderDocument();
+        console.log('render', render)
+        updatePreview(render.documentUrl);
+        updateDocRendered(render);
+      } else {
+        switch (initialform.onSubmitAction) {
+          case 'saveAsNewDocument':
+            setIsSubmitting(true)
+            await saveNewVersion(makeid(5), "Versão Inicial");
+            setIsSubmitting(false)
+            alertModal("Obrigado!", "glyphicon-ok", "O formulário foi enviado com sucesso.", "")
+            break;
+          case 'justRender':
+            setIsSubmitting(true)
+            let render = await renderDocument();
+            setPreviewDocURL(render.documentUrl);
+            setDocumentRendered(render);
+            setIsSubmitting(false);
+            break;
+          default:
+            submitNewVersion()
+            break;
+        }
+        if (initialform.codeDestination && initialform.codeDestination !== '') {
+          setIsSubmitting(true)
+          await send2Code();
+          setIsSubmitting(false)
+          // alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
+        }
+      }
+    }
+    return;
+  }
+  function alertModal(title, icon, message, content) {
+    // Exibe o modal em formato de alerta
+    let alert = {
+      icon: icon,
+      title: title,
+      description: message,
+      content: content,
+      hasCloseButton: false
+    };
+    console.log('Alerting...', alert)
+    setAlert(alert)
+    alertRef.current.showModal()
+  }
+  function submitNewVersion() {
+    // Exibe o modal para formato de salvar nova versão
+    let modal = {
+      title: "Nova versão",
+      description: "Deseja criar uma nova versão deste documento?",
+      rjsf: {
+        "schema": {
+          "type": "object",
+          "required": [
+            "version",
+            "description"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "title": "Versão"
+            },
+            "description": {
+              "type": "string",
+              "title": "Descrição"
+            }
+          }
+        },
+        "uiSchema": {
+          "ui:submitButtonOptions": {
+            "norender": false,
+            "submitText": "Enviar"
+          },
+          "description": {
+            "ui:widget": "textarea",
+            "ui:placeholder": "Forneça uma breve descrição para esta versão do documento",
+            "ui:options": {
+              "rows": 5
+            }
+          }
+        }
+      },
+      action: "createNewDocumentVersion"
+    }
+    setModal(modal);
+    modalRef.current.showModal();
+  }
+  async function runAction(action, inputs) {
+    return
+  }
+  /** Subcomponentes */
+  function Modal({ title = "", icon = "", description = "", content = "", rjsf = {}, action = "", language = "pt-br", hasCloseButton = false}){
+    let modal =
+      <>
+        <h3 className="modal-title">
+          {
+            (icon && icon !== '') && (
+              <span className={`glyphicon ${icon}`}></span>
+            )
+          }
+          {title}
+        </h3>
+        <p className="modal-description">{description}</p>
+        {rjsf && !isObjectEmpty(rjsf) ? (
+          <>
+            <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate id="modalForm" />
+          </>
+        )
+          :
+          (
+            <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
+          )
+        }
+        {hasCloseButton && (
+          <div className="d-modal-action">
+            <form method="dialog">
+              {/* if there is a button in form, it will close the modal */}
+              <button className="d-btn">{language === 'en_us' ? 'Cancel' : 'Cancelar'}</button>
+            </form>
+          </div>
+        )}
+      </>
+    return modal
+  }
+
+  let panel = <>
+    <div className="wfcomponent action-panel">
+      <dialog id="optionsmodal" className="d-modal" ref={alertRef} >
+        <div className="d-modal-box w-11/12 max-w-5xl">
+          <Modal title={alert.title} description={alert.description} content={alert.content} rjsf={alert.rjsf} action={alert.action} hasCloseButton={alert.hasCloseButton} icon={alert.icon} language={language} />
+        </div>
+        <form method="dialog" className="d-modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
+      <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+        <div className="mt-auto d-flex align-items-start d-space-x-4">
+          <button type="button" className={`btn btn-primary ${isLoading && 'disabled'}`} onClick={(e) => handleSubmit(e, true)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+        </div>
+        <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+        <div className="mt-auto d-flex align-items-end d-space-x-4">
+          <button type="button" className={`btn btn-primary ${isLoading && 'disabled'}`} onClick={(e) => handleSubmit(e, false)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+        </div>
+      </div>
+    </div>
+  </>
+  return panel
 }
 function SummaryView({documentDetails, cards, activeCard, initialform}) {
   /** Component Helpers - INÍCIO */
@@ -1356,4 +1684,247 @@ function DocumentPreview({ url, definePreview }) {
                   }
                   </>
   return docpreview
+}
+function AttachmentsView({ attachments, language = 'pt_br' }) {
+  /** Component Helpers - INÍCIO */
+  function formatUTCDate(utcdate) {
+    // Formata uma data em UTC para a visualização correta e na timezone local
+    let d = new Date(utcdate)
+    let utc = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear() + " " + ("0" + (new Date(utc).getHours())).slice(-2) + ":" + ("0" + (new Date(utc).getMinutes())).slice(-2) + ":" + ("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
+  
+  /** Component Helpers - FIM */
+
+  // Componente de Tabela deste componente
+  function tableBuilder(currentAttachment) {
+    const [attachment, setAttachment] = useState(currentAttachment)
+    const [isLoading, setIsLoading] = useState(false);
+
+    async function generateDownloadLink(attachment) {
+      if(!attachment || !attachment.hasOwnProperty('document') || !attachment.document.hasOwnProperty('path')) return
+      let data = {
+        command: "downloadDocument",
+        path: attachment.document.path
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${props.codeId}`,
+        data
+      }
+      try {
+        setIsLoading(true)
+        const res = await axios(config);
+        if (res.data && res.data.output) {
+          setAttachment(prev => {
+            prev.link = res.data.output
+            setIsLoading(false)
+            return prev
+          })
+        }
+      } catch (e) {
+        setIsLoading(false)
+        throw new Error('Falha ao baixar o arquivo')
+      }
+    }
+
+    let attachmenttable =
+      <div className="attachment-table">
+        <table class="table table-sm table-bordered">
+          <tbody>
+            <tr class="table-subtitle">
+              <td class="table-subtitle col-xs-4" colspan="1">{attachment.title}</td>
+              <td class="table-subtitle col-xs-8" colspan="2">
+                {
+                  (attachment.hasOwnProperty('link') && attachment.link !== '')  ?
+                    (
+                      <a href={attachment.link} download target="_blank">
+                        <button type="button" className={"btn btn-link"}>{language === 'en_us' ? 'Download' : 'Baixar'}</button>
+                      </a>
+                    ):
+                    (
+                      <button type="button" className={"btn btn-link"} onClick={(e) => generateDownloadLink(attachment)}>{isLoading && (<><span className="d-loading d-loading-spinner d-loading-md"></span> Aguarde...</>)}{!isLoading && ((language === 'en_us') ? 'Get link' : 'Obter link')}</button>
+                    )
+                }
+              </td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle col-xs-4">{language === 'en_us' ? 'Description' : 'Descrição'}</td>
+              <td colspan="2" style={{ wordBreak: "break-all" }} className="table-highlight col-xs-8">{attachment.description}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle col-xs-4">{language === 'en_us' ? 'Date' : 'Data'}</td>
+              <td colspan="2" className="table-highlight col-xs-8">{formatUTCDate(attachment.date)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    return attachmenttable;
+  }
+  let sections = []
+
+  if (attachments && attachments.length > 0) {
+    for (let i = 0; i < attachments.length; i++) {
+      sections.push(tableBuilder(attachments[i]))
+    }
+  } else {
+    sections.push(
+      <>{language === 'en_us' ? 'No attachments available' : 'Sem anexos disponíveis'}</>
+    )
+  }
+  return (
+    <div className="wfcomponent attachments">
+      {sections}
+    </div>
+  )
+}
+function PreviousVersionsView({ documentDetails, documentRendered, language = 'pt_br' }) {
+  /** Component Helpers - INÍCIO */
+  function formatUTCDate(utcdate) {
+    // Formata uma data em UTC para a visualização correta e na timezone local
+    let d = new Date(utcdate)
+    let utc = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toUTCString();
+    return ("0" + (new Date(utc).getDate())).slice(-2) + "/" + ("0" + (new Date(utc).getMonth() + 1)).slice(-2) + "/" + new Date(utc).getFullYear() + " " + ("0" + (new Date(utc).getHours())).slice(-2) + ":" + ("0" + (new Date(utc).getMinutes())).slice(-2) + ":" + ("0" + (new Date(utc).getSeconds())).slice(-2)
+  }
+  // Roda a comparação da versão atual com uma versão anterior
+  // compareDocuments -- precisa do endpoint no post.js
+  async function compareVersions(baseversion, renderedVersion) {
+    // setTmpVisor(JSON.stringify(renderedVersion))
+    let data = {
+      command: "compareDocuments",
+      original: baseversion.document.path,
+      final: renderedVersion.resPresigned.data.info.docpath
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    // setTmpVisor2(JSON.stringify(config))
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao comparar versões **** ' + JSON.stringify(e.response.data))
+    }
+    return;
+  }
+  /** Component Helpers - FIM */
+
+  // Componente de Tabela deste componente
+  function TableBuilder(currentVersion, docrendered, versionidx) {
+    const [version, setVersion] = useState(currentVersion)
+    const [isLoading, setIsLoading] = useState(false);
+
+    const [isComparing, setIsComparing] = useState(false)
+    const [isComparingError, setIsComparingError] = useState(false)
+    const [comparisonLink, setComparisonLink] = useState(false)
+
+    async function triggerCompareVersions(version, docrendered, versionidx) {
+      setIsComparing(true);
+      setIsComparingError(false);
+      try {
+        let comparisondoc = await compareVersions(version, docrendered);
+        setIsComparing(false);
+        setIsComparingError(false);
+        setComparisonLink(() => comparisondoc)
+        return true;
+      } catch (e) {
+        setIsComparing(false);
+        setIsComparingError(true);
+        setComparisonLink('')
+        return;
+      }
+    }
+
+    async function generateDownloadLink(version) {
+      if(!version || !version.hasOwnProperty('document') || !version.document.hasOwnProperty('path')) return
+      let data = {
+        command: "downloadDocument",
+        path: version.document.path
+      };
+      let config = {
+        method: 'post',
+        url: `/api/code/${props.codeId}`,
+        data
+      }
+      try {
+        setIsLoading(true)
+        const res = await axios(config);
+        if (res.data && res.data.output) {
+          setVersion(prev => {
+            prev.link = res.data.output
+            setIsLoading(false)
+            return prev
+          })
+        }
+      } catch (e) {
+        setIsLoading(false)
+        throw new Error('Falha ao baixar o arquivo')
+      }
+    }
+
+    let versiontable =
+      <div className="version-table">
+        <table class="table table-sm table-bordered">
+          <tbody>
+            <tr class="table-subtitle">
+              <td class="table-subtitle" colspan="1">{language === 'en_us' ? 'Version' : 'Versão'} {version.version}</td>
+              <td class="table-subtitle" colspan="2">{language === 'en_us' ? 'Date:' : 'Data:'} {formatUTCDate(version.date)}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">{language === 'en_us' ? 'Author' : 'Autor'}</td>
+              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.author}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle">{language === 'en_us' ? 'Description' : 'Descrição'}</td>
+              <td colspan="2" style={{ wordBreak: "break-all", minWidth: "100px" }} className="table-highlight">{version.description}</td>
+            </tr>
+            <tr className="table-default">
+              <td colspan="1" className="table-subtitle col-xs-4">{language === 'en_us' ? 'Actions' : 'Ações'}</td>
+              <td className="table-subtitle col-xs-8" colspan="2">
+                {
+                  (version.hasOwnProperty('link') && version.link !== '')  ?
+                    (
+                      <a href={version.link} download target="_blank">
+                        <button type="button" className={"btn btn-link"}>{language === 'en_us' ? 'Download' : 'Baixar'}</button>
+                      </a>
+                    ):
+                    (
+                      <button type="button" className={"btn btn-link"} onClick={(e) => generateDownloadLink(version)}>{isLoading && (<><span className="d-loading d-loading-spinner d-loading-md"></span> Aguarde...</>)}{!isLoading && ((language === 'en_us') ? 'Get link' : 'Obter link')}</button>
+                    )
+                }
+                {(docrendered && docrendered.hasOwnProperty('documentUrl')) && (
+                  <button type="button" className={`btn btn-outline-secondary right-margin-5px ${(isComparing ? 'disabled' : '')}`} onClick={async (e) => { e.preventDefault(); triggerCompareVersions(version, docrendered, versionidx); }} >{isComparingError && (<span class="glyphicon glyphicon-exclamation-sign right-margin-5px" title="Falha na comparação"></span>)} {isComparing && (<span class="spinner-border right-margin-5px"></span>)} {(isComparing ? ((language === 'en_us') ? 'Comparing...' : 'Comparando...') : ((language === 'en_us') ? 'Compare' : 'Comparar'))}</button>
+                )}
+                {(comparisonLink && comparisonLink !== '') && (
+                  <a href={comparisonLink} download target="_blank">
+                    <button type="button" className={"btn btn-outline-secondary"}>{language === 'en_us' ? 'Check Comparison' : 'Ver Comparação'}</button>
+                  </a>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    return versiontable;
+  }
+  let versions = documentDetails.versions
+  let sections = []
+  if (versions && versions.length > 0) {
+    for (let i = 0; i < versions.length; i++) {
+      sections.push(TableBuilder(versions[i], documentRendered, i))
+    }
+  } else {
+    sections.push(
+      <>{language === 'en_us' ? 'No previous versions.' : 'Sem versões anteriores.'}</>
+    )
+  }
+  return (
+    <div className="wfcomponent previous-versions">
+      {sections}
+    </div>
+  )
 }
