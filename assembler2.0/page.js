@@ -518,7 +518,7 @@ function App() {
     "updated_at": "2024-09-19T20:30:12",
     "title": "Contrato de Fornecimento de Produtos",
     "base_filename": "fornecimentoprodutos.docx",
-    "template": "https://looplex-workflows.s3.sa-east-1.amazonaws.com/webinar/testes/Plastipak-template.docx",
+    "template": "https://looplex-workflows.s3.sa-east-1.amazonaws.com/webinar/testes/template-teste.docx",
     "_rid": "wpJvAJ+K6eUBAAAAAAAAAA==",
     "_self": "dbs/wpJvAA==/colls/wpJvAJ+K6eU=/docs/wpJvAJ+K6eUBAAAAAAAAAA==/",
     "_etag": "\"0200c002-0000-0200-0000-66ec89d50000\"",
@@ -1329,8 +1329,8 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
           case 'justRender':
             setIsSubmitting(true)
             let render = await renderDocument();
-            setPreviewDocURL(render.documentUrl);
-            setDocumentRendered(render);
+            updatePreview(render.documentUrl);
+            updateDocRendered(render);
             setIsSubmitting(false);
             break;
           default:
