@@ -9,7 +9,8 @@ function App() {
     aside_attachments: true
   }
   let initialform = {
-    language: 'pt-br'
+    language: 'pt-br',
+    onSubmitAction: 'saveAsNewVersion'
   }
   let cards = [
     {
@@ -548,6 +549,7 @@ function App() {
   function defineActiveCard(ac){
     setActiveCard(() => ac)
   }
+
   /*******************************************************************
    * Renderização da Tela
    * 
@@ -574,7 +576,7 @@ function App() {
             {pageLayout.aside &&
               (
                 <aside className="card-aside-wrapper">
-                  <AsidePanel pageLayout={pageLayout} language={initialform.language} documentDetails={docDetails} previewSchema={previewSchema} activeCard={activeCard} initialform={initialform} previewURL={previewURL} definePreview={definePreview} documentRendered={documentRendered} />
+                  <AsidePanel pageLayout={pageLayout} language={initialform.language} documentDetails={docDetails} codeId={props.codeId} previewSchema={previewSchema} activeCard={activeCard} initialform={initialform} previewURL={previewURL} documentRendered={documentRendered} definePreview={definePreview} defineDocRendered={defineDocRendered}  />
                 </aside>
               )}
           </div>
@@ -1111,7 +1113,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   </>
   return carousel
 }
-function AsidePanel({ pageLayout, language, documentDetails, previewSchema, activeCard, initialform, previewURL, definePreview, documentRendered }) {
+function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSchema, activeCard, initialform, previewURL, documentRendered, definePreview, defineDocRendered }) {
   const [panelView, setPanelView] = useState('summary')
   function updatePanelView(option) {
     setPanelView(() => option)
@@ -1130,8 +1132,8 @@ function AsidePanel({ pageLayout, language, documentDetails, previewSchema, acti
     return (
       <div className="card-aside-view">
         {(panelView == 'summary') && (<SummaryView documentDetails={documentDetails} cards={previewSchema} activeCard={activeCard} initialform={initialform} />)}
-        {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} definePreview={definePreview}/>)}
-        {(panelView == 'previousversions') && (<PreviousVersionsView documentDetails={documentDetails} documentRendered={documentRendered} language={language} />)}
+        {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} previewSchema={previewSchema} codeId={codeId} initialform={initialform} documentDetails={documentDetails} documentRendered={documentRendered} language={language} definePreview={definePreview} defineDocRendered={defineDocRendered}/>)}
+        {(panelView == 'previousversions') && (<PreviousVersionsView codeId={codeId} documentDetails={documentDetails} documentRendered={documentRendered} language={language} />)}
         {(panelView == 'attachments') && (<AttachmentsView attachments={documentDetails.attachments} language={language}/>)}
       </div>
     )
@@ -1150,6 +1152,11 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
   const [alert, setAlert] = useState({
     title: "Título",
     description: "Descrição do Alerta"
+  })
+  const modalRef = useRef(null)
+  const [modal, setModal] = useState({
+    title: "Título",
+    description: "Descrição do Modal"
   })
   function updatePreview(prev) {
     definePreview(prev)
@@ -1213,6 +1220,7 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
     // console.log('fd', JSON.stringify(fd))
     return fd
   }
+  
   /** Funções do Componente */
   async function validateForm() {
     let mergedFormData = {}
@@ -1246,7 +1254,7 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
       url: `/api/code/${codeId}`,
       data
     }
-    console.log('config', JSON.stringify(config))
+    // console.log('config', JSON.stringify(config))
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
@@ -1326,15 +1334,15 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
             setIsSubmitting(false)
             alertModal("Obrigado!", "glyphicon-ok", "O formulário foi enviado com sucesso.", "")
             break;
-          case 'justRender':
+          case 'saveAsNewVersion':
+            submitNewVersion()
+            break;
+          default: // Render only
             setIsSubmitting(true)
             let render = await renderDocument();
             updatePreview(render.documentUrl);
             updateDocRendered(render);
             setIsSubmitting(false);
-            break;
-          default:
-            submitNewVersion()
             break;
         }
         if (initialform.codeDestination && initialform.codeDestination !== '') {
@@ -1359,6 +1367,11 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
     console.log('Alerting...', alert)
     setAlert(alert)
     alertRef.current.showModal()
+  }
+  function handleCancelDialog(event) {
+    event.preventDefault();
+    console.log('closed', event)
+    return false
   }
   function submitNewVersion() {
     // Exibe o modal para formato de salvar nova versão
@@ -1450,13 +1463,18 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
           <button>close</button>
         </form>
       </dialog>
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog}>
+        <div className="d-modal-box w-11/12 max-w-5xl">
+          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} language={language} />
+        </div>
+      </dialog>
       <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
         <div className="mt-auto d-flex align-items-start d-space-x-4">
-          <button type="button" className={`btn btn-primary ${isLoading && 'disabled'}`} onClick={(e) => handleSubmit(e, true)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, true)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
         </div>
         <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
         <div className="mt-auto d-flex align-items-end d-space-x-4">
-          <button type="button" className={`btn btn-primary ${isLoading && 'disabled'}`} onClick={(e) => handleSubmit(e, false)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, false)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
         </div>
       </div>
     </div>
@@ -1656,9 +1674,101 @@ function SummaryView({documentDetails, cards, activeCard, initialform}) {
     )
   return summaryview
 }
-function DocumentPreview({ url, definePreview }) {
-  function updatePreview() {
-    definePreview()
+function DocumentPreview({ language, url, previewSchema, codeId, initialform, documentDetails, definePreview, defineDocRendered }) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  function updatePreview(prev) {
+    definePreview(prev)
+  }
+  function updateDocRendered(prev) {
+    defineDocRendered(prev)
+  }
+  /** Funcoes do Componente */
+  function initializeFormData(schema, initializefields = false){
+    let fd = {}
+    for (const card in schema) { // cada card
+      fd[card] = {}
+      let eachcard = schema[card]
+      for (const section in eachcard.properties) {
+        fd[card][section] = {}
+        if(initializefields){
+          let eachsection = eachcard.properties[section]
+          for (const field in eachsection.properties) {
+            let eachfield = eachsection.properties[field]
+            switch(eachfield.type){
+              case 'number':
+                fd[card][section][field] = 0;
+                break;
+              case 'object': 
+                fd[card][section][field] = {};
+                break;
+              case 'array':
+                fd[card][section][field] = [];
+                break;
+              default:
+                fd[card][section][field] = "";
+                break;
+            }
+          }  
+        }
+      }
+    }
+    // console.log('fd', JSON.stringify(fd))
+    return fd
+  }
+  async function renderDocument() {
+    setIsSubmitting(true);
+    let mergedSchema = {};
+    let mergedSchemaDefs = {};
+    let mergedFormData = {};
+    for (let i = 0; i < previewSchema.length; i++) {
+      let tcard = previewSchema[i];
+      mergedSchema[tcard.cardId] = { 
+        type: 'object',
+        properties: { ...tcard.schema.properties }
+      }
+      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
+    }
+    mergedFormData = initializeFormData(mergedSchema, true)
+    for (let i = 0; i < previewSchema.length; i++) {
+      let tcard = previewSchema[i];
+      mergedFormData[tcard.cardId] = { ...mergedFormData[tcard.cardId], ...tcard.formData } // populando formData
+    }
+    let datacontent = {
+      command: "renderDocument",
+      datasource: mergedFormData,
+      templateDocument: documentDetails.template,
+      documentName: new Date().getTime() + '_' + documentDetails.base_filename,
+      tenant: initialform.tenant
+    };
+    let data = {
+      command: "renderDocument",
+      datacontent
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        setIsSubmitting(false);
+        return res.data.output;
+      }
+    } catch (e) {
+      setIsSubmitting(false);
+      throw new Error('Falha ao gerar o Render')
+    }
+  }
+  async function handleSubmit(event) {
+    event.preventDefault()
+    event.stopPropagation()
+    console.log('Updating...')
+    let render = await renderDocument();
+    console.log('render', render)
+    updatePreview(render.documentUrl);
+    updateDocRendered(render);
   }
 
   let docpreview = <>
@@ -1674,9 +1784,7 @@ function DocumentPreview({ url, definePreview }) {
                           frameBorder='0'
                           src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
                         ></iframe>
-                        <button className="btn btn-reload-preview btn-outline-secondary" onClick={(e) => { e.preventDefault(); updatePreview() }}>
-                          <span class="glyphicon glyphicon-repeat right-margin-5px"></span>Atualizar Prévia
-                        </button>
+                        <button type="button" className={`btn btn-reload-preview btn-outline-secondary ${isSubmitting && 'disabled'}`} onClick={(e) => handleSubmit(e)}><span class="glyphicon glyphicon-repeat right-margin-5px"></span>{(isSubmitting ? ((language === 'en_us') ? 'Updating...' : 'Atualizando...') : ((language === 'en_us') ? 'Update Preview' : 'Atualizar Prévia'))}</button>
                       </div>                      
                     ) : (
                       <div className="d-flex align-items-start preview-warning d-p-4">Prévia indisponível</div>
@@ -1778,7 +1886,7 @@ function AttachmentsView({ attachments, language = 'pt_br' }) {
     </div>
   )
 }
-function PreviousVersionsView({ documentDetails, documentRendered, language = 'pt_br' }) {
+function PreviousVersionsView({ documentDetails, documentRendered, codeId, language = 'pt_br' }) {
   /** Component Helpers - INÍCIO */
   function formatUTCDate(utcdate) {
     // Formata uma data em UTC para a visualização correta e na timezone local
@@ -1793,14 +1901,14 @@ function PreviousVersionsView({ documentDetails, documentRendered, language = 'p
     let data = {
       command: "compareDocuments",
       original: baseversion.document.path,
-      final: renderedVersion.resPresigned.data.info.docpath
+      final: renderedVersion.resPresigned.docpath
     };
     let config = {
       method: 'post',
-      url: `/api/code/${props.codeId}`,
+      url: `/api/code/${codeId}`,
       data
     }
-    // setTmpVisor2(JSON.stringify(config))
+    console.log(`config`, config)
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
@@ -1825,6 +1933,9 @@ function PreviousVersionsView({ documentDetails, documentRendered, language = 'p
     async function triggerCompareVersions(version, docrendered, versionidx) {
       setIsComparing(true);
       setIsComparingError(false);
+      console.log(`version`, version)
+      console.log(`docrendered`, docrendered)
+      console.log(`versionidx`, versionidx)
       try {
         let comparisondoc = await compareVersions(version, docrendered);
         setIsComparing(false);

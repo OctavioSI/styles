@@ -635,14 +635,14 @@ async function renderDocumentService(inputs) {
       subscription_key: secrets.APIM_SUBSCRIPTIONKEY,
       path_has_escaped_chars: true,
       upload_file: base64document,
-      path: `looplex.com.br/shared/workflows/teste/uploadedDocuments/${datacontent.tenant}/${datacontent.documentName}`
+      path: `looplex.com.br/shared/workflows/teste/uploadedDocuments/${datacontent.tenant ? datacontent.tenant : `looplex.com.br`}/${datacontent.documentName}`
     };
     const getPresignedDocument = await uploadFileService(inputsS3);
     // console.log('getPresignedDocument', getPresignedDocument)
     const output = {
-      documentUrl: getPresignedDocument.presigned
+      documentUrl: getPresignedDocument.presigned,
       // resDocumentRender: documentRender,
-      // resPresigned: getPresignedDocument
+      resPresigned: getPresignedDocument
     };
     return output;
   } catch (e) {
@@ -912,6 +912,10 @@ async function compareDocumentsService(inputs) {
       data
     }
     // console.log('config', config)
+    /**
+     * Aspose vem apresentando erro 401 em chamadas de comparação padrao.
+     * TODO: Checar com Nagao se houve alguma alteração na função aspose() do code
+     */
     const res = await axios(config);
     return res.data.output;
   } catch (e) {
