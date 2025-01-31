@@ -65,7 +65,6 @@ function formatDate(x, y) {
     return x.getFullYear().toString().slice(-v.length);
   });
 }
-
 async function getS3Object(Bucket, Key) {
   return new Promise(async (resolve, reject) => {
     const getObjectCommand = new s3.GetObjectCommand({ Bucket, Key })
@@ -96,7 +95,6 @@ async function getS3Object(Bucket, Key) {
     }
   })
 }
-
 async function getBufferFromFile(bucket = 'looplex-ged', file) {
   let buf;
   var base64regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
@@ -109,7 +107,6 @@ async function getBufferFromFile(bucket = 'looplex-ged', file) {
     return res;
   }
 }
-
 async function uploadFilepondFile(file2save, path2save) {
   console.log(file2save)
   console.log(path2save)
@@ -117,10 +114,9 @@ async function uploadFilepondFile(file2save, path2save) {
   let uploading = await uploadDocumentService({ path: path2save, uploadFile: document.toString('base64') })
   return uploading
 }
-
-// Recebe o formData, identifica arquivos do Filepond e os transfere
-// para o caminho permanente (path)
 async function treatFilepondFiles(formData, base_path, path = '') {
+  // Recebe o formData, identifica arquivos do Filepond e os transfere
+  // para o caminho permanente (path)
   let retorno = [];
   for (const property in formData) {
     if (typeof formData[property] === 'object' && !Array.isArray(formData[property]) && formData[property] !== null) { // checando se é um objeto
@@ -152,7 +148,6 @@ async function treatFilepondFiles(formData, base_path, path = '') {
   }
   return retorno;
 }
-
 async function easyDocsRender(inputs) {
   const { templateDocument, datasource } = inputs;
   // action
@@ -241,7 +236,6 @@ async function uploadFileService(inputs) {
     }
   }
 }
-
 async function uploadS3(inputs) {
   const { documentName, tenant, base64Document } = inputs;
 
@@ -270,6 +264,17 @@ async function uploadS3(inputs) {
   } catch (e) {
     throw new Error(e);
   }
+}
+function makeid(length) {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
 }
 // --[ actions ]---------------------------------------------------------------
 async function fetchSchema(payload) {
@@ -359,14 +364,16 @@ async function saveNewVersion(payload) {
       id: { type: 'string' },
       author: { type: 'string' },
       title: { type: 'string' },
-      version: { type: 'string' },
+      version: { type: 'integer' },
       description: { type: 'string' },
       savenew: { type: 'boolean' },
-      datacontent: { type: 'object' }
+      datasource: { type: 'object' },
+      rendered: { type: 'object' },
+      documentName: { type: 'string' },
+      templateDocument: { type: 'string' }
     },
     required: [
-      'version',
-      'datacontent'
+      'version'
     ],
     additionalProperties: false
   }
@@ -380,11 +387,14 @@ async function saveNewVersion(payload) {
     tenant: payload.tenant ? payload.tenant : 'looplex.com.br',
     id: payload.id ? payload.id : '',
     author: payload.author ? payload.author : 'Não informado',
-    title: payload.title,
-    version: payload.version,
+    title: payload.title ? payload.title : 'Sem título',
+    version: payload.version ? payload.version : 1,
     description: payload.description ? payload.description : 'Sem descrição',
     savenew: payload.savenew ? payload.savenew : false,
-    datacontent: payload.datacontent
+    datasource: payload.datasource ? payload.datasource : {},
+    rendered: payload.rendered ? payload.rendered : {},
+    documentName: payload.documentName ? payload.documentName : 'document.docx',
+    templateDocument: payload.templateDocument ? payload.templateDocument : "https://looplex-workflows.s3.sa-east-1.amazonaws.com/webinar/testes/template-teste.docx"
   };
 
   // execute
@@ -396,6 +406,7 @@ async function send2Code(payload) {
     type: 'object',
     properties: {
       codeId: { type: 'string' },
+      codeCommand: { type: 'string' },
       formId: { type: 'string' },
       documentId: { type: 'string' },
       tenant: { type: 'string' },
@@ -403,7 +414,6 @@ async function send2Code(payload) {
     },
     required: [
       'codeId',
-      'formId',
       'formData'
     ],
     additionalProperties: false
@@ -416,11 +426,14 @@ async function send2Code(payload) {
 
   let inputs = {
     codeId: payload.codeId,
-    formId: payload.formId,
+    formId: payload.formId ? payload.formId : '',
     documentId: payload.documentId ? payload.documentId : '',
     tenant: payload.tenant ? payload.tenant : 'looplex.com.br',
     formData: payload.formData
   };
+  if(payload.codeCommand && payload.codeCommand !== ''){
+    inputs.codeCommand = payload.codeCommand
+  }
 
   // execute
   return await Actions.send2CodeService(inputs)
@@ -651,67 +664,58 @@ async function renderDocumentService(inputs) {
 };
 
 async function saveNewVersionService(inputs) {
-  const { title, version, description, tenant, id, author, savenew, datacontent } = inputs;
+  const { title, version, description, tenant, id, author, savenew, datasource, rendered, templateDocument, documentName } = inputs;
   try {
     // Primeiro renderizamos a nova versão
     let headers = {
       'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
     }
-    let config = {
-      method: 'post',
-      url: `${APIM_URL}${RENDER_ENDPOINT}`,
-      headers,
-      data: datacontent
-    }
-    // console.log('config', config)
-    const render = await axios(config);
-    if (render.data && render.data.output) {
-      // Aqui, com o documento gerado, vamos criar o registro da nova versão no Cosmos
+    // Aqui vamos criar o registro da nova versão no Cosmos
 
-      // Mas antes, vamos gravar quaisquer arquivos do filepond que temos no formData 
-      // recebido em um caminho permanente (já que ele grava em pasta temporária)
+    // Mas antes, vamos gravar quaisquer arquivos do filepond que temos no formData 
+    // recebido em um caminho permanente (já que ele grava em pasta temporária)
 
-      // Tratamento para filepond: apesar de não ser o ideal, 
-      // vamos considerar que valores de string que tiverem o 
-      // começo "Temp/" são arquivos salvos pelo filepond
-      // Isso simplifica a lógica para identificar os arquivos 
-      // que foram encaminhados
-      let uploaded = await treatFilepondFiles(datacontent.datasource, 'looplex.com.br', '')
-      // Vamos limpar registros vazios
-      let uploadedfiles = []
-      uploaded.forEach(up => {
-        if (typeof up === 'object' && !Array.isArray(up) && up !== null) {
-          uploadedfiles.push(up)
-        }
-      })
-      // Aqui já fiz o upload dos arquivos que subi no form. Vamos montar o registro de anexos.
-      let attachments = [];
-      for (let i = 0; i < uploadedfiles.length; i++) {
-        let file = uploadedfiles[i].docpath
-        let filenametmp = (file.split('/').pop()).split('.')
-        let extension = filenametmp.pop()
-        let filename = filenametmp.join('.')
-        let att = {
-          "title": filename,
-          "description": filename,
-          "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
-          "document": {
-            "path": file,
-            "filename": filename,
-            "type": extension
-          },
-          "link": uploadedfiles[i].presigned
-        }
-        attachments.push(att)
+    // Tratamento para filepond: apesar de não ser o ideal, 
+    // vamos considerar que valores de string que tiverem o 
+    // começo "Temp/" são arquivos salvos pelo filepond
+    // Isso simplifica a lógica para identificar os arquivos 
+    // que foram encaminhados
+    let uploaded = await treatFilepondFiles(datasource, 'looplex.com.br', '')
+    // Vamos limpar registros vazios
+    let uploadedfiles = []
+    uploaded.forEach(up => {
+      if (typeof up === 'object' && !Array.isArray(up) && up !== null) {
+        uploadedfiles.push(up)
       }
+    })
+    // Aqui já fiz o upload dos arquivos que subi no form. Vamos montar o registro de anexos.
+    let attachments = [];
+    for (let i = 0; i < uploadedfiles.length; i++) {
+      let file = uploadedfiles[i].docpath
+      let filenametmp = (file.split('/').pop()).split('.')
+      let extension = filenametmp.pop()
+      let filename = filenametmp.join('.')
+      let att = {
+        "title": filename,
+        "description": filename,
+        "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+        "document": {
+          "path": file,
+          "filename": filename,
+          "type": extension
+        },
+        "link": uploadedfiles[i].presigned
+      }
+      attachments.push(att)
+    }
 
-
-      let data = {};
-      let content = {};
-      let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
+    let data = {};
+    let content = {};
+    let newid = id
+    let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
       if (!id || id == '' || savenew) {
         // Não tenho ID, então preciso gravar um novo registro na DB
-        let newid = crypto.randomUUID() // gerando um novo ID
+        newid = crypto.randomUUID() // gerando um novo ID
         content = {
           "versions": [
             {
@@ -720,20 +724,20 @@ async function saveNewVersionService(inputs) {
               "date": updateddate,
               "description": description,
               "document": {
-                "path": render.data.output.resPresigned.data.info.docpath
+                "path": rendered.resPresigned.docpath
               },
-              "formData": datacontent.datasource
+              "formData": datasource,
+              "attachments": attachments
             }
           ],
-          "attachments": attachments,
           "currentVersion": version,
           "author": author,
           "description": description,
           "created_at": updateddate,
           "updated_at": updateddate,
           "title": title,
-          "base_filename": "testeoctavio.docx",
-          "template": datacontent.templateDocument
+          "base_filename": documentName,
+          "template": templateDocument
         };
         data = {
           "command": "write",
@@ -748,26 +752,26 @@ async function saveNewVersionService(inputs) {
         };
       } else {
         // Já tenho um ID, então apenas preciso atualizar o campo correspondente
+        attachments.forEach(att => {
+          let tmpatt = { ...att }
+          delete tmpatt.link
+        })        
         content = {
           "version": version,
           "author": author,
           "date": updateddate,
           "description": description,
           "document": {
-            "path": render.data.output.resPresigned.data.info.docpath
+            "path": rendered.resPresigned.docpath
           },
-          "formData": datacontent.datasource
+          "formData": datasource,
+          "attachments": attachments
         }
         let operations = [
           { "op": "add", "path": "/versions/-", "value": content },
           { "op": "set", "path": "/currentVersion", "value": version },
           { "op": "set", "path": "/updated_at", "value": updateddate }
         ];
-        attachments.forEach(att => {
-          let tmpatt = { ...att }
-          delete tmpatt.link
-          operations.push({ "op": "add", "path": "/attachments/-", "value": tmpatt })
-        })
         data = {
           "command": "partialUpdate",
           "config": {
@@ -790,30 +794,30 @@ async function saveNewVersionService(inputs) {
       const res = await axios(config);
       if (res.data && res.data.output) {
         return {
+          "id": newid,
+          "partitionKey": tenant,
           "newversion": {
             "version": version,
             "author": author,
             "date": updateddate,
             "description": description,
-            "link": render.data.output.documentUrl,
+            "link": rendered.documentUrl,
             "document": {
-              "path": render.data.output.resPresigned.data.info.docpath
-            }
-          },
-          "newattachments": attachments,
-          "docrendered": render.data.output
+              "path": rendered.resPresigned.docpath
+            },
+            "formData": datasource,
+            "attachments": attachments
+          }
         }
       }
       // return res.data.output;
-
-    }
   } catch (e) {
     throw new Error('Error saving new version: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 
 async function send2CodeService(inputs) {
-  const { codeId, formId, documentId, tenant, formData } = inputs;
+  const { codeId, formId, documentId, tenant, formData, codeCommand } = inputs;
   try {
     // Primeiro renderizamos a nova versão
     let headers = {
@@ -824,6 +828,9 @@ async function send2CodeService(inputs) {
       formId,
       documentId,
       tenant
+    }
+    if(codeCommand && codeCommand !== ''){
+      data.codeCommand = codeCommand
     }
     let config = {
       method: 'post',

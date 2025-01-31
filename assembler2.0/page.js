@@ -1,539 +1,197 @@
 
+/*******************************************************************
+* Carousel Padrão Flows
+* 
+* STATUS: Em teste
+* 
+* CHANGELOG
+*
+* v. 2.0
+*   - Modularização:  Alterado o código do Formulario para modularização do Carousel, com cada parte do código
+*                     criada como componente no repositório wf_reactcomponents
+*   - onSubmitAction: Removido o parametro de input onSubmitAction. Agora as ações são
+*                     controladas diretamente no botão da interface, não sendo necessário customizar
+*
+*
+* v. 1.2
+*   - send2Code:      Alteração no onSubmitActions para possibilitar que um code seja sempre
+*                     enviado desde que exista um codeDestination no payload. Se você desejar
+*                     apenas chamar o code sem criar nova versão ou novo documento, vc deve definir 
+*                     no onSubmitAction como "justRender". Removemos assim a opção "send2Code" no
+*                     onSubmitAction
+*
+* v. 1.1
+*   - Page:           Reorganização do documento e comentários adicionais para 
+*                     facilitar a leitura e entendimento
+*   - Login:          Autenticação utilizando o sistema de login do LawOffice. 
+*                     O acesso ao formulário é gerenciado pelo registro existente 
+*                     no CosmosDB (trabalho em progresso)
+*   - formLayout:     Agora é possível selecionar no registro do CosmosDB quais as 
+*                     telas estão disponíveis para esta visualização. 
+*   - saveAsNewDoc:   Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
+*                     utilizado para criar um novo documento (por exemplo, quando usamos
+*                     um WorkRequest que é uma nova solicitação e não tem versões 
+*                     anteriores) ou para criar uma nova versão de um documento existente
+*   - send2Code:      Agora o payload recebe um parâmetro onSubmitAction, que pode ser 
+*                     utilizado para disparar um outro Code. Para isso, você deve passar
+*                     no payload também um parâmetro codeDestination com o ID do code que
+*                     será chamado
+*   - preloaded:      Agora é possível pré-carregar cards remotos logo na inicialização
+*                     do formulário
+*
+* v. 1.0
+*   - Carousel:       Formulário pode ser usado com cards, sendo possível 
+*                     passar os cards no arquivo rjsf na pasta ou montar
+*                     os cards no cosmosDB (container Workflows > rjsf-schema).
+*                     No cosmosDB agora é possível também passar apenas 1 card
+*                     ou o array cards[]
+*   - Layout:         Este formulário agora tem o Layout atualizado em linha
+*                     com o design definido para o Cases. O formulário é 
+*                     renderizado do lado esquerdo e o painel com propriedades
+*                     e outras funções fica do lado direito.
+*   - Aspose:         Na guia de versões anteriores é possível fazer a 
+*                     comparação do documento renderizado autualmente com 
+*                     versões salvas anteriormente. Usamos o Aspose para isso
+*   - Versões:        Versões anteriores são salvas no cosmosDB, com o formData
+*                     utilizado. É possível baixar o documento da versão e
+*                     realizar comparação com a versão renderizada atualmente.
+*   - Modal:          Foi implementado modal para ações específicas -- você
+*                     usar o modal como popup para alertas ou como popup de 
+*                     interação, que recebe um RJSF próprio.
+*   - Anexos:         Anexos enviados no formulário usando o Filepond são
+*                     salvos em pastas definitivas e com o link disponibilizado
+*                     na guia de Anexos do painel lateral
+*
+* BUG FIXES
+*
+*   - Proxima/Anterior: Arrumado problema de botão habilitado quando não há outra página
+*                       antes ou depois.
+*
+* KNOWN ISSUES
+*
+*   - Aspose não funciona sempre para a comparação. Por vezes, 
+*     a depender do documento que está sendo comparado, recebemos um
+*     erro 400 na chamada. 
+* 
+********************************************************************/
+
 function App() {
-  let pageLayout = {
+  /********************************************************************
+   * # Configurações
+   * 
+   * Este Carousel foi projetado para ser o único endpoint necessário
+   * para a utilização de formulários na Looplex.
+   * 
+   * Para tanto, você deverá informar os seguintes parâmetros no 
+   * payload JSON, codificado no seguinte endereço:
+   * 
+   * https://evolved-functions.vercel.app/api/jwt/sign
+   * 
+    O payload JSON tem o seguinte formato:
+
+    {
+      "payload": {
+          "language": "pt-br", // idioma do formulário (en_us ou pt_br)
+          "codeDestination": {
+            "id": "E4CDFEE0-AB30-11EF-9A54-F19C6F0C4082", // ID do Code de destino, caso um code seja chamado após o envio do form
+            "command": "testeAction" // comando que será chamado no code. O formData também é enviado no payload.
+          },
+          "initialFormId": "octavio-novoUI-v2.0", // schema inicial que está no Workflows/rjsf-schemas
+          "initialFormTenant": "looplex.com.br", // tenant to schema inicial
+          "initialDocumentId": "teste001-v2.0", // documento com configurações básicas e onde será salvo o doc, em Workflows/assembler
+          "initialDocumentTenant": "looplex.com.br" // tenant to documento inicial
+      },
+      "privateKey": "A_PRIVATE_KEY_VAI_AQUI" // Private key para gerar o payload
+    }
+
+   * Após gerar acima, passamos no formulário como parâmetro payload, dessa forma:
+
+    https://actions.looplex.com/code/1B2D0301-03BA-48D2-99BB-900C9503CCA0?payload=eyJhbGciOiJSUzI1NiIsIn....[restante do payload gerado aqui]
+
+   * 
+
+    ## formLayout
+
+    No registro do cosmosDB que contém o schema indicado no initialformId acima, é possível incluir
+    uma propriedade formLayout, que indica quais as seções que estarão disponíveis ou não
+    ao carregar o formulário nesta página. O formato é o seguinte:
+
+    "formLayout": {
+        "main": true,
+        "aside": true,
+        "aside_summary": true,
+        "aside_docpreview": true,
+        "aside_attachments": true,
+        "aside_previousversions": true
+    }
+
+
+    ## preloaded:
+
+    No registro do cosmosDB que contém o schema indicado no initialformId acima, é possível incluir
+    uma propriedade preloaded_cards, que indica quais os cards deverão ser pré-carregados
+    no início do formulário nesta página. O formato é o seguinte:
+
+    "preloaded_cards": [
+        {
+            "cardID": "terceiro",
+            "scope": "",
+            "card_conditions": ""
+        }
+    ]
+
+    ## login
+
+    No registro do cosmosDB que contém o schema, podemos ainda habilitar o login para esta página.
+    Para isso, colocamos o parâmetro loginRequired (true ou false) e o parâmetro loginAccess, que define qual
+    usuário terá acesso ao formulário, dentro de um domain. Se todos os usuários daquele domain tiverem acesso, 
+    podemos usar o valor 'all' para liberar a todos daquele grupo. O formato é o seguinte:
+
+    "loginRequired": false,
+    "loginAccess": {
+        "FLOWABLE": [
+            "all"
+        ]
+    }
+    
+
+   *
+   ********************************************************************/
+
+  let initialform = {
+    language: props.embeddedData.language ? props.embeddedData.language : 'pt_br',
+    codeDestination: props.embeddedData.codeDestination ? props.embeddedData.codeDestination : { "id": "", "command": ""},
+    initialFormId: props.embeddedData.initialFormId ? props.embeddedData.initialFormId : '',
+    initialFormTenant: props.embeddedData.initialFormTenant ? props.embeddedData.initialFormTenant : 'looplex.com.br',
+    initialDocumentId: props.embeddedData.initialDocumentId ? props.embeddedData.initialDocumentId : '',
+    initialDocumentTenant: props.embeddedData.initialDocumentTenant ? props.embeddedData.initialDocumentTenant : 'looplex.com.br'
+  }
+  let cards = props.rjsf.hasOwnProperty('cards') ? props.rjsf.cards : []
+  const [docDetails, setDocDetails] = useState({
+    "id": "",
+    "partitionKey": "looplex.com.br",
+    "versions": [],
+    "currentVersion": 1,
+    "author": "Looplex",
+    "description": "",
+    "created_at": "2024-06-13T10:00:00",
+    "updated_at": "2024-09-19T20:30:12",
+    "title": "",
+    "base_filename": "document.docx",
+    "template": "https://looplex-workflows.s3.sa-east-1.amazonaws.com/webinar/testes/template-teste.docx"
+  })
+  const [previewSchema, setPreviewSchema] = useState([]);
+  const [previewURL, setPreviewURL] = useState('https://looplex-workflows.s3.sa-east-1.amazonaws.com/templates/docs/proposta_ajustada_ietsugu.docx');
+  const [documentRendered, setDocumentRendered] = useState({});
+  const [activeCard, setActiveCard] = useState(0);
+  const [pageLayout, setPageLayout] = useState({
     main: true,
     aside: true,
     aside_summary: true,
     aside_docpreview: true,
     aside_previousversions: true,
     aside_attachments: true
-  }
-  let initialform = {
-    language: 'pt-br',
-    onSubmitAction: 'saveAsNewVersion'
-  }
-  let cards = [
-    {
-      "cardId": "outorgante",
-      "card_conditions": {},
-      "schema": {
-        "title": "Outorgante",
-        "type": "object",
-        "description": "",
-        "definitions": {},
-        "properties": {
-          "qualificacao": {
-            "title": "Qualificação",
-            "type": "object",
-            "description": "",
-            "properties": {
-              "nome": {
-                "type": "string",
-                "title": "Nome",
-                "description": "",
-                "default": ""
-              },
-              "endereco": {
-                "type": "string",
-                "title": "Endereço",
-                "description": "",
-                "default": ""
-              },
-              "numero": {
-                "type": "number",
-                "title": "nº",
-                "description": "",
-                "default": 0
-              },
-              "bairro": {
-                "type": "string",
-                "title": "Bairro",
-                "description": "",
-                "default": ""
-              },
-              "cidade": {
-                "type": "string",
-                "title": "Cidade",
-                "description": "",
-                "default": ""
-              },
-              "uf": {
-                "type": "string",
-                "title": "UF",
-                "description": "",
-                "default": "",
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": [
-                      ""
-                    ],
-                    "title": "-- Selecione --"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "SP"
-                    ],
-                    "title": "São Paulo"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "RJ"
-                    ],
-                    "title": "Rio de Janeiro"
-                  }
-                ]
-              },
-              "cep": {
-                "type": "string",
-                "title": "CEP",
-                "description": "",
-                "default": ""
-              }
-            },
-            "required": [
-              "nome"
-            ]
-          }
-        }
-      },
-      "uiSchema": {
-        "ui:submitButtonOptions": {
-          "norender": true
-        },
-        "qualificacao": {
-          "ui:ObjectFieldTemplate": "layout",
-          "ui:layout": [
-            {
-              "nome": {
-                "classNames": "col-md-12"
-              },
-              "endereco": {
-                "classNames": "col-md-9"
-              },
-              "numero": {
-                "classNames": "col-md-3"
-              },
-              "bairro": {
-                "classNames": "col-md-4"
-              },
-              "cidade": {
-                "classNames": "col-md-4"
-              },
-              "uf": {
-                "classNames": "col-md-2"
-              },
-              "cep": {
-                "classNames": "col-md-2"
-              }
-            }
-          ],
-          "cep": {
-            "ui:widget": "masked",
-            "ui:options": {
-              "mask": "99.999-999",
-              "type": "code"
-            }
-          },
-          "ui:field": "autofill",
-          "ui:autofill": {
-            "requestConfig": {
-              "method": "POST",
-              "url": "/api/code/7C1E4940-A12B-11EF-AA4C-AD8F75759CDD",
-              "data": {
-                "cep": "{{{cep}}}"
-              }
-            },
-            "responseMap": {
-              "output.street": "endereco",
-              "output.neighborhood": "bairro",
-              "output.city": "cidade",
-              "output.state": "uf"
-            },
-            "trigger": "cep"
-          }
-        }
-      },
-      "formData": {},
-      "priorFormData": {},
-      "tagName": "div"
-    },
-    {
-      "cardId": "outorgado",
-      "card_conditions": {},
-      "dmnStructure": {
-        "id": "dmn-octavio-novoUI-v2.0",
-        "tenant": "looplex.com.br",
-        "map": {
-          "document": "qualificacao.nome"
-        }
-      },
-      "schema": {
-        "type": "object",
-        "title": "Outorgado",
-        "description": "",
-        "definitions": {},
-        "properties": {
-          "qualificacao": {
-            "type": "object",
-            "title": "Qualificação",
-            "description": "",
-            "properties": {
-              "nome": {
-                "type": "string",
-                "title": "Nome",
-                "description": "",
-                "default": ""
-              }
-            }
-          }
-        }
-      },
-      "uiSchema": {
-        "ui:submitButtonOptions": {
-          "norender": true
-        },
-        "qualificacao": {
-          "ui:ObjectFieldTemplate": "layout",
-          "ui:layout": [
-            {
-              "nome": {
-                "classNames": "col-md-12"
-              }
-            }
-          ]
-        }
-      },
-      "formData": {},
-      "priorFormData": {},
-      "tagName": "div"
-    },
-    {
-      "cardId": "poderes",
-      "card_conditions": {
-        "outorgado.qualificacao.nome": "Erick"
-      },
-      "schema": {
-        "type": "object",
-        "title": "Poderes",
-        "description": "",
-        "definitions": {},
-        "properties": {
-          "lista_poderes": {
-            "type": "object",
-            "title": "Lista de Poderes",
-            "description": "",
-            "properties": {
-              "poderes": {
-                "type": "array",
-                "title": "Poderes",
-                "description": "",
-                "default": "",
-                "items": {
-                  "type": "object",
-                  "title": "",
-                  "properties": {
-                    "poder": {
-                      "type": "string",
-                      "title": "Poder",
-                      "description": "",
-                      "default": ""
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "uiSchema": {
-        "ui:submitButtonOptions": {
-          "norender": true
-        },
-        "lista_poderes": {
-          "ui:ObjectFieldTemplate": "layout",
-          "ui:layout": [
-            {
-              "poderes": {
-                "classNames": "col-md-12"
-              }
-            }
-          ],
-          "poderes": {
-            "items": {
-              "poder": {
-                "ui:widget": "textarea"
-              },
-              "ui:ObjectFieldTemplate": "layout",
-              "ui:layout": [
-                {
-                  "poder": {
-                    "classNames": "col-md-12"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      },
-      "formData": {},
-      "priorFormData": {},
-      "tagName": "div"
-    }
-  ]
-  const [formData, setFormData] = useState({})
-  const [docDetails, setDocDetails] = useState({
-    "id": "teste001",
-    "partitionKey": "looplex.com.br",
-    "versions": [
-      {
-        "version": "1.0.0",
-        "author": "Octavio Ietsugu",
-        "date": "2024-07-02T21:23:05",
-        "description": "Versão Inicial",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1719955377211_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "strContratada": {
-            "nome": "Octavio Ietsugu",
-            "cnpj": "01.002.122/0001-16"
-          },
-          "strContrato": {
-            "prazoAvisoVolume": 5,
-            "inicioVigencia": "01/12/2024",
-            "fimVigencia": "31/12/2024",
-            "prazoPagamento": 7,
-            "dataExp": "02 de julho de 2024"
-          }
-        }
-      },
-      {
-        "version": "2.0.0",
-        "author": "Looplex",
-        "date": "2024-07-04T19:25:59",
-        "description": "Testando FilePond",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720121149486_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "strContratada": {
-            "nome": "Octavio Ietsugu",
-            "cnpj": "01.002.122/0001-16"
-          },
-          "anexo": "Temp/7_nUDCL_-hl9e12F53Ac_/Screenshot from 2024-07-04 14-48-48.png",
-          "strContrato": {
-            "prazoAvisoVolume": 5,
-            "inicioVigencia": "01/12/2024",
-            "fimVigencia": "31/12/2024",
-            "prazoPagamento": 7,
-            "dataExp": "02 de julho de 2024"
-          }
-        }
-      },
-      {
-        "version": "3.0.0",
-        "author": "Looplex",
-        "date": "2024-07-04T19:34:04",
-        "description": "Teste novo AAA",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720121634126_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "strContratada": {
-            "nome": "Octavio Ietsugu",
-            "cnpj": "01.002.122/0001-16"
-          },
-          "anexo": "Temp/NP_ItCMX4P54QsHl4aCXy/Screenshot from 2024-07-04 14-48-48.png",
-          "strContrato": {
-            "prazoAvisoVolume": 5,
-            "inicioVigencia": "01/12/2024",
-            "fimVigencia": "31/12/2024",
-            "prazoPagamento": 7,
-            "dataExp": "02 de julho de 2024"
-          }
-        }
-      },
-      {
-        "version": "2.1.1",
-        "author": "Looplex",
-        "date": "2024-07-04T19:36:51",
-        "description": "Agora com documento",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720121795051_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "strContratada": {
-            "nome": "Octavio Ietsugu",
-            "cnpj": "01.002.122/0001-16"
-          },
-          "anexo": "Temp/RDVvE6OtisA2RF1C8P0vI/1720047459663_fornecimentoprodutos.docx",
-          "strContrato": {
-            "prazoAvisoVolume": 5,
-            "inicioVigencia": "01/12/2024",
-            "fimVigencia": "31/12/2024",
-            "prazoPagamento": 7,
-            "dataExp": "02 de julho de 2024"
-          }
-        }
-      },
-      {
-        "version": "2.2.2",
-        "author": "Looplex",
-        "date": "2024-07-04T20:38:27",
-        "description": "Teste com anexo",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720125494762_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "strContratada": {
-            "nome": "Erick Kitada",
-            "cnpj": "01.002.122/0001-16"
-          },
-          "anexo": "Temp/ke-Fie48-THvGVEF5l4ID/Collaço Gallotti & Petry (1).pdf",
-          "strContrato": {
-            "prazoAvisoVolume": 5,
-            "inicioVigencia": "01/12/2024",
-            "fimVigencia": "31/12/2024",
-            "prazoPagamento": 7,
-            "dataExp": "02 de julho de 2024"
-          }
-        }
-      },
-      {
-        "version": "3.3.3",
-        "author": "Looplex",
-        "date": "2024-07-04T20:39:53",
-        "description": "Testando filepond",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1720125583593_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "strContratada": {
-            "nome": "Erick Kitada",
-            "cnpj": "01.002.122/0001-16"
-          },
-          "anexo": "Temp/EsWvkhix6tSZHUKIW6PAw/comparison_1720125042161.docx",
-          "strContrato": {
-            "prazoAvisoVolume": 5,
-            "inicioVigencia": "01/12/2024",
-            "fimVigencia": "31/12/2024",
-            "prazoPagamento": 7,
-            "dataExp": "02 de julho de 2024"
-          }
-        }
-      },
-      {
-        "version": "OMcwP",
-        "author": "Looplex",
-        "date": "2024-07-22T22:35:50",
-        "description": "Versão Inicial",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1721687742775_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "selecionado": "primeiro",
-          "primeiro_selecionado": "Octavio OK"
-        }
-      },
-      {
-        "version": "2",
-        "author": "Looplex",
-        "date": "2024-09-19T20:30:12",
-        "description": "ok ok ok",
-        "document": {
-          "path": "looplex.com.br/shared/workflows/teste/uploadedDocuments/looplex.com.br/1726777805573_fornecimentoprodutos.docx"
-        },
-        "formData": {
-          "requester": {
-            "emailAddress": "kitada.erick@gmail.com",
-            "name": "Erick Takahama Kitada"
-          },
-          "caseReference": {
-            "caseId": "123"
-          },
-          "deliverable": {
-            "productDeliverable": "Gerar Solicitação de Proposta ou Solicitação de Cotação (RFP/RFQ)"
-          }
-        }
-      }
-    ],
-    "attachments": [
-      {
-        "title": "Relatório Interno",
-        "description": "Relatório de uso interno",
-        "date": "2024-06-13T10:00:00",
-        "document": {
-          "path": "looplex.com.br/daiani/porretinho.png",
-          "filename": "acordo_sigilo",
-          "type": "docx"
-        }
-      },
-      {
-        "title": "Screenshot from 2024-07-04 14-48-48",
-        "description": "Screenshot from 2024-07-04 14-48-48",
-        "date": "2024-07-04T19:25:59",
-        "document": {
-          "path": "looplex.com.br/Screenshot from 2024-07-04 14-48-48.png",
-          "filename": "Screenshot from 2024-07-04 14-48-48",
-          "type": "png"
-        }
-      },
-      {
-        "title": "Screenshot from 2024-07-04 14-48-48",
-        "description": "Screenshot from 2024-07-04 14-48-48",
-        "date": "2024-07-04T19:34:04",
-        "document": {
-          "path": "looplex.com.br/Screenshot from 2024-07-04 14-48-48.png",
-          "filename": "Screenshot from 2024-07-04 14-48-48",
-          "type": "png"
-        }
-      },
-      {
-        "title": "1720047459663_fornecimentoprodutos",
-        "description": "1720047459663_fornecimentoprodutos",
-        "date": "2024-07-04T19:36:51",
-        "document": {
-          "path": "looplex.com.br/1720047459663_fornecimentoprodutos.docx",
-          "filename": "1720047459663_fornecimentoprodutos",
-          "type": "docx"
-        }
-      },
-      {
-        "title": "comparison_1720125042161",
-        "description": "comparison_1720125042161",
-        "date": "2024-07-04T20:39:53",
-        "document": {
-          "path": "looplex.com.br/comparison_1720125042161.docx",
-          "filename": "comparison_1720125042161",
-          "type": "docx"
-        }
-      }
-    ],
-    "currentVersion": "2",
-    "author": "Octavio Ietsugu",
-    "description": "Contrato de Fornecimento de Produtos",
-    "created_at": "2024-06-13T10:00:00",
-    "updated_at": "2024-09-19T20:30:12",
-    "title": "Contrato de Fornecimento de Produtos",
-    "base_filename": "fornecimentoprodutos.docx",
-    "template": "https://looplex-workflows.s3.sa-east-1.amazonaws.com/webinar/testes/template-teste.docx",
-    "_rid": "wpJvAJ+K6eUBAAAAAAAAAA==",
-    "_self": "dbs/wpJvAA==/colls/wpJvAJ+K6eU=/docs/wpJvAJ+K6eUBAAAAAAAAAA==/",
-    "_etag": "\"0200c002-0000-0200-0000-66ec89d50000\"",
-    "_attachments": "attachments/",
-    "_ts": 1726777813
   })
-  const [previewSchema, setPreviewSchema] = useState([]);
-  const [previewURL, setPreviewURL] = useState('https://looplex-workflows.s3.sa-east-1.amazonaws.com/templates/docs/proposta_ajustada_ietsugu.docx');
-  const [documentRendered, setDocumentRendered] = useState({});
-  const [activeCard, setActiveCard] = useState(0);
-  
-  function defineFormData(fd) {
-    setFormData(() => fd)
-  }
   function defineDocDetails(dd) {
     setDocDetails(() => dd)
   }
@@ -548,6 +206,9 @@ function App() {
   }
   function defineActiveCard(ac){
     setActiveCard(() => ac)
+  }
+  function definePageLayout(pl){
+    setPageLayout(() => pl)
   }
 
   /*******************************************************************
@@ -568,8 +229,8 @@ function App() {
             {pageLayout.main &&
               (
                 <main className="card-main-wrapper" style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
-                  <CarouselForm language={(initialform.language ? initialform.language : "pt-br")} initialform={initialform} codeId={props.codeId} schemacards={cards} defineFormData={defineFormData} defineDocDetails={defineDocDetails} definePreviewSchema={definePreviewSchema} defineActiveCard={defineActiveCard} hasActionPanel={true}/>
-                  <ActionPanel language={(initialform.language ? initialform.language : "pt-br")} initialform={initialform} codeId={props.codeId} previewSchema={previewSchema} documentDetails={docDetails} definePreview={definePreview}  defineDocRendered={defineDocRendered} />
+                  <CarouselForm language={(initialform.language ? initialform.language : "pt-br")} initialform={initialform} codeId={props.codeId} schemacards={cards} defineDocDetails={defineDocDetails} definePreviewSchema={definePreviewSchema} defineActiveCard={defineActiveCard} definePageLayout={definePageLayout} hasActionPanel={true}/>
+                  <ActionPanel language={(initialform.language ? initialform.language : "pt-br")} formId={initialform.formId} codeId={props.codeId} codeDestination={initialform.codeDestination} previewSchema={previewSchema} documentDetails={docDetails} definePreview={definePreview}  defineDocRendered={defineDocRendered} defineDocDetails={defineDocDetails}/>
                 </main>
               )}
 
@@ -630,7 +291,7 @@ function LooplexHeader({title = 'Looplex Form'}) {
     </div>
   )
 }
-function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {}, defineFormData, defineDocDetails, definePreviewSchema, defineActiveCard, hasActionPanel = false }) {
+function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {}, defineDocDetails, definePreviewSchema, defineActiveCard, definePageLayout, hasActionPanel = false }) {
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState([])
   const [preloadedCards, setPreloadedCards] = useState([])
@@ -643,6 +304,21 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   const cardsFormData = useRef({});
   const lastTouchedField = useRef('');
   const documentDetails = useRef({});
+  const modalRef = useRef(null);
+  const modalFormData = useRef({});
+  const [isSubmittingModal, setIsSubmittingModal] = useState(false);
+  const [loginRequired, setLoginRequired] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [alert, setModal] = useState({
+    title: "Título",
+    description: "Descrição do Alerta"
+  })
+
+  const loginUser = useRef({
+    user: "",
+    domain: ""
+  })
+  const loginAccessRules = useRef({})
 
   /** Hooks - INÍCIO */
   useEffect(() => { // Roda uma vez no início
@@ -652,11 +328,11 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
         switch (item.type) {
           case 'docdetails':
             console.log(`Loading Remote Document Details (${item.id})...`)
-            await loadDocumentDetails(item.id, item.tenant, true)
+            await loadDocumentDetails(item.id, item.tenant)
             break;
           default://schema
             console.log(`Loading Remote Schema (${item.id})...`)
-            await loadRemoteSchema(item.id, item.tenant)
+            await loadRemoteSchema(item.id, item.tenant, item.card_conditions)
             break;
         }
       }
@@ -682,7 +358,6 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   }, [])
   useEffect(() => {
     console.log('cards changed!')
-    defineFormData(cardsFormData.current)
     definePreviewSchema(cards)
   }, [cards])
   useEffect(() => {
@@ -690,7 +365,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     async function fetchRemote(remoteList) {
       for (let i = 0; i < remoteList.length; i++) {
         let item = remoteList[i]
-        await loadRemoteSchema(item.id, item.tenant)
+        await loadRemoteSchema(item.id, item.tenant, item.card_conditions)
       }
     }
     /**
@@ -918,7 +593,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
         isLoadingRemoteSchema.current = true;
         try {
           setIsLoading(true)
-          let tmpCards = allLoadedCards.current;
+          let tmpCards = allLoadedCards.current ? allLoadedCards.current : [];
           let config = {
             method: 'post',
             url: `/api/code/${codeId}`,
@@ -939,9 +614,9 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
                 iSchema = tmpcardsarray[i];
                 newCard = {
                   cardId: iSchema.cardId,
-                  partitionKey: iSchema.partitionKey,
+                  partitionKey: iSchema.partitionKey ? iSchema.partitionKey : 'looplex.com.br',
                   card_conditions: { ...iSchema.card_conditions, ...card_conditions },
-                  dmnStructure: iSchema.dmnStructure,
+                  dmnStructure: iSchema.dmnStructure ? iSchema.dmnStructure : [],
                   schema: iSchema.schema,
                   uiSchema: iSchema.uiSchema ? iSchema.uiSchema : {},
                   formData: iSchema.formData ? iSchema.formData : {},
@@ -953,9 +628,9 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
               iSchema = res.data.output;
               newCard = {
                 cardId: iSchema.id,
-                partitionKey: iSchema.partitionKey,
+                partitionKey: iSchema.partitionKey ? iSchema.partitionKey : 'looplex.com.br',
                 card_conditions: { ...iSchema.card_conditions, ...card_conditions },
-                dmnStructure: iSchema.dmnStructure,
+                dmnStructure: iSchema.dmnStructure ? iSchema.dmnStructure : [],
                 schema: iSchema.schema,
                 uiSchema: iSchema.uiSchema ? iSchema.uiSchema : {},
                 formData: iSchema.formData ? iSchema.formData : {},
@@ -964,12 +639,22 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
               tmpCards.push(newCard);
             }
             allLoadedCards.current = tmpCards // atualizando o allLoadedCards com essas inclusões
-            setCards(() => setSchema(loadPriorFormData(true)))
-            console.log('allLoadedCards', allLoadedCards.current)
-            let preloaded_cards = res.data.output.preloaded_cards ? res.data.output.preloaded_cards : [];
-            setPreloadedCards(preloaded_cards)
+            setCards(() => setSchema(loadPriorFormData()))
+            if(res.data.output.hasOwnProperty('formLayout') && !isObjectEmpty(res.data.output.formLayout)){
+              definePageLayout(res.data.output.formLayout);
+            }
+            if(res.data.output.hasOwnProperty('preloaded_cards') && res.data.output.preloaded_cards.length > 0){
+              let preloaded_cards = res.data.output.preloaded_cards ? res.data.output.preloaded_cards : [];
+              setPreloadedCards(preloaded_cards)
+            }
             setIsLoading(false)
             isLoadingRemoteSchema.current = false;
+            if (res.data.output.hasOwnProperty('loginRequired') && res.data.output.loginRequred && !isObjectEmpty(res.data.output.loginAccess)) { // Para acessar esse form é necessário um login antes
+              console.log('Login is required to access this form...')
+              setLoginRequired(true)
+              submitOpenModal('loginModal')
+              loginAccessRules.current = res.data.output.loginAccess
+            }
             return true
           }
         } catch (e) {
@@ -986,7 +671,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     }
     return await fetchRemoteSchema(id, tenant, card_conditions, 3, 5000)
   }
-  async function loadDocumentDetails(id, tenant = 'looplex.com.br', firstload = false) {
+  async function loadDocumentDetails(id, tenant = 'looplex.com.br') {
     async function fetchDocumentDetails(retries = 0, delay = 5000) {
       if (!isLoadingDocumentDetails.current) {
         isLoadingDocumentDetails.current = true;
@@ -1007,7 +692,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
             defineDocDetails(documentDetails.current)
             setIsLoading(false)
             isLoadingDocumentDetails.current = false;
-            setCards(() => setSchema(loadPriorFormData(!firstload))) // se for um firstload, vamos popular o form com dados da ultima versao
+            setCards(() => setSchema(loadPriorFormData()))
             return true
           }
         } catch (e) {
@@ -1025,7 +710,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     }
     return await fetchDocumentDetails(3, 5000)
   }
-  function loadPriorFormData(keepFormData = false) {
+  function loadPriorFormData(){
     // Busca o formData que será exibido como valor anterior    
     let priorDataCards = allLoadedCards.current;
     if (documentDetails.current && documentDetails.current.hasOwnProperty('versions') && documentDetails.current.versions.length > 0) {
@@ -1037,17 +722,25 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
       priorDataCards = allLoadedCards.current.map((card) => {
         // Para cada schema no card, vou montar o objeto de prior correspondente
         let priorData = {}
+        // Primeiro, se houver o registro já no formData global, vamos usar
+        if (card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')) {
+          for (const property in card.schema.properties) {
+            if (cardsFormData.current.hasOwnProperty(card.cardId) && cardsFormData.current[card.cardId].hasOwnProperty(property)) priorData[property] = cardsFormData.current[card.cardId][property];
+          }
+        }
+        // E agora vamos popular o registro com o valor que está no formData da versao atual
         if (card.hasOwnProperty('schema') && card.schema.hasOwnProperty('properties')) {
           for (const property in card.schema.properties) {
             if (formDataComplete.hasOwnProperty(card.cardId) && formDataComplete[card.cardId].hasOwnProperty(property)) priorData[property] = formDataComplete[card.cardId][property];
           }
         }
         let loadedFormData = priorData
-        if (keepFormData) {
-          let loadedcard = cards.filter(cd => cd.cardId === card.cardId);
-          if (loadedcard && loadedcard.length > 0)
-            loadedFormData = loadedcard[0].formData
-        }
+        // essa condicao abaixo era um parametro que definia se deveria manter o formData do deck ou nao -- reavaliar se faremos ou nao
+        // if (keepFormData) { 
+        //   let loadedcard = cards.filter(cd => cd.cardId === card.cardId);
+        //   if (loadedcard && loadedcard.length > 0)
+        //     loadedFormData = loadedcard[0].formData
+        // }
         cardsFormData.current[card.cardId] = loadedFormData
         return {
           ...card,
@@ -1079,42 +772,258 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
     let ck = await checkDMN(cardId, lastTouchedField.current)
     setCards(setSchema(allLoadedCards.current))
   }
+  async function submitOpenModal(action){
+    // Exibe o modal para formato de salvar nova versão
+    let modal = {}
+
+    switch (action) {
+      case 'loginModal':
+        modal = {
+          title: "Login",
+          description: "É necessária a autenticação para acessar este formulário",
+          rjsf: {
+            "schema": {
+              "type": "object",
+              "required": [
+                "user",
+                "pwd",
+                "domain"
+              ],
+              "properties": {
+                "user": {
+                  "type": "string",
+                  "title": "Usuário"
+                },
+                "pwd": {
+                  "type": "string",
+                  "title": "Senha"
+                },
+                "domain": {
+                  "type": "string",
+                  "title": "Escritório"
+                }
+              }
+            },
+            "uiSchema": {
+              "ui:submitButtonOptions": {
+                "norender": true,
+                "submitText": "Enviar"
+              },
+              "pwd": {
+                "ui:widget": "password"
+              }
+            }
+          },
+          action: "loginCases",
+          hasCloseButton: false
+        }
+        break;
+      default: 
+        break;
+    }
+    setModal(modal);
+    modalRef.current.showModal();
+    return
+  }
+  // executa a chamada que faz o salvamento de uma nova versão
+  async function loginCases(username, password, domain) {
+    let data = {
+      command: "loginCases",
+      user: username,
+      pwd: password,
+      domain: domain
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        loginUser.current = {
+          user: username,
+          domain: domain
+        }
+
+        return res.data.output;
+      }
+    } catch (e) {
+      let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
+      alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content, true)
+      throw new Error('Falha ao realizar o login **** ' + JSON.stringify(e.response.data))
+    }
+  }
+  function checkCanLogin(username, domain) {
+    if (isObjectEmpty(loginAccessRules.current)) return true;
+    // Temos regras a observar
+    if (!loginAccessRules.current.hasOwnProperty(domain)) return false; // Não tem o domain necessario
+    return loginAccessRules.current[domain].includes(username) || loginAccessRules.current[domain].includes('all') // se eu tenho 'all', então todo user desse domain pode usar
+  }
+  function alertModal(title, icon, message, content, hasCloseButton = false) {
+    // Exibe o modal em formato de alerta
+    let alert = {
+      icon: icon,
+      title: title,
+      description: message,
+      content: content,
+      hasCloseButton
+    };
+    console.log('Alerting...', alert)
+    setModal(alert)
+    modalRef.current.showModal()
+  }
+  // Roda ações definidas no Modal
+  async function runAction(e, action) {
+    e.preventDefault()
+    e.stopPropagation()
+    dismissModal()
+    switch (action) {
+      case 'loginCases':
+        setIsSubmittingModal(true)
+        let username = modalFormData.current.user;
+        let password = modalFormData.current.pwd;
+        let domain = modalFormData.current.domain;
+        // primeiro vamos checar se esse usuario pode se logar no domain fornecido
+        let canLogin = await checkCanLogin(username, domain);
+        if (!canLogin) {
+          let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
+          alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content, true)
+        } else {
+          let login = await loginCases(username, password, domain);
+          console.log('login', login)
+          if (login && login.hasOwnProperty('Profile') && login['Profile'] != '' && login['Profile'] != "Login_Failed") { // Login bem sucedido
+            setIsAuthenticated(true)
+            alertModal("Login efetuado", "", "Login efetuado com sucesso", "", true)
+          } else {
+            let content = "Não foi possível realizar a sua autenticação:<br /><br/><div class='errormsg'>Usuário, senha ou escritório incorreto ou ainda sem acesso a este formulário</div>";
+            alertModal("Erro na Autenticação", "", "Verifique as credenciais encaminhadas", content, true)
+          }
+          setIsSubmittingModal(false)
+          modalRef.current.close()
+        }
+        break;
+      default:
+        return;
+    }
+  }
+  function handleCancelDialog(event) {
+    event.preventDefault();
+    console.log('closed', event)
+    return false
+  }
+  function dismissModal(){
+    modalRef.current.close()
+  }
   /** Funções do Componente - FIM*/
+
+  /** Subcomponentes */
+  function Modal({ title = "", icon = "", description = "", content = "", rjsf = {}, action = "", language = "pt-br", hasCloseButton = false}){
+    function handleChangeEvent(formData){
+      modalFormData.current = formData;
+    }
+    let modal =
+      <>
+        <h3 className="modal-title">
+          {
+            (icon && icon !== '') && (
+              <span className={`glyphicon ${icon}`}></span>
+            )
+          }
+          {title}
+        </h3>
+        <p className="modal-description">{description}</p>
+        {rjsf && !isObjectEmpty(rjsf) ? (
+          <>
+            <Form {...rjsf} onChange={({ formData }, id) => handleChangeEvent(formData)} liveValidate id="modalForm" />
+            <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+            <div className="mt-auto d-flex align-items-start d-space-x-4">
+              <button type="button" className={`btn btn-default ${(isLoading || isSubmittingModal) && 'disabled'}`} onClick={(e) => dismissModal()}>{((language === 'en_us') ? 'Cancel' : 'Cancelar')}</button>
+            </div>
+            <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+              <div className="mt-auto d-flex align-items-end d-space-x-4">
+                <button type="button" className={`btn btn-primary ${(isLoading || isSubmittingModal) && 'disabled'}`} onClick={(e) => runAction(e, action)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmittingModal ? ((language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+              </div>
+            </div>
+          </>
+          )
+          :
+          (
+            <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
+          )
+        }
+        {hasCloseButton && (
+          <div className="d-modal-action">
+            <form method="dialog">
+              {/* if there is a button in form, it will close the modal */}
+              <button className="d-btn">{language === 'en_us' ? 'Close' : 'Fechar'}</button>
+            </form>
+          </div>
+        )}
+      </>
+    return modal
+  }
+
+  /** Subcomponentes -- FIM */
 
   let carousel = <>
     <div className={(hasActionPanel ? "wfcomponent carousel has-actionpanel" : "wfcomponent carousel")}>
-      <section class="deckofcards">
-        <div ref={carouselRef} className='d-carousel d-w-full'>
-          {
-            (cards.length === 0) ?
-              <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando formulário, aguarde...</span>
-              : ''
-          }
-          {cards.map((card, index) => {
-            const active = index === activeCard;
-            return (
-              <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
-                <div className="d-w-full">
-                  <Form {...card} onChange={({ formData }, id) => handleChangeEvent(card.cardId, formData, id)} onBlur={() => handleBlurEvent(card.cardId)} liveValidate />
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog}>
+        <div className="d-modal-box w-11/12 max-w-5xl">
+          <Modal title={alert.title} description={alert.description} content={alert.content} rjsf={alert.rjsf} action={alert.action} hasCloseButton={alert.hasCloseButton} icon={alert.icon} />
+        </div>
+      </dialog>
+      {(!isAuthenticated && loginRequired) ?
+          (
+            <section className={`deckofcards`}>
+                <div className="d-flex align-items-center flex-column">
+                  <div className="mt-auto d-flex align-items-center flex-column login-spacer">
+                    <h1 className="login-spacer">Login necessário</h1>
+                    <p>Esta página tem acesso restrito.</p>
+                    <p>Clique no botão abaixo para realizar o login.</p>
+                  </div>
+                  <div className="mt-auto d-flex align-items-center">
+                    <button type="button" className={`btn btn-primary`} onClick={(e) => { e.preventDefault(); modalRef.current.showModal(); }}>Login</button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-      <section className="navigation d-flex align-items-end flex-column">
-        <div className="d-flex d-space-x-4 align-items-center">
-          <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} disabled={((activeCard - 1) < 0 || isLoading)} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{isLoading && (<><span className="d-loading d-loading-spinner d-loading-md"></span> Aguarde...</>)}{!isLoading && ((language === 'en_us') ? 'Previous' : 'Anterior')}</button>
-          <span class="glyphicon glyphicon-option-horizontal"></span>
-          <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} disabled={((activeCard + 1) >= cards.length || isLoading)} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, 'moveRight') }}>{isLoading && (<><span className="d-loading d-loading-spinner d-loading-md"></span> Aguarde...</>)}{!isLoading && ((language === 'en_us') ? 'Next' : 'Próxima')} <span class="glyphicon glyphicon-chevron-right"></span></button>
-        </div>
-      </section>
+            </section>
+          ) : (
+            <>
+              <section class="deckofcards">
+                <div ref={carouselRef} className='d-carousel d-w-full'>
+                  {
+                    (cards.length === 0) ?
+                      <span><span className="d-loading d-loading-spinner d-loading-md"></span> Carregando formulário, aguarde...</span>
+                      : ''
+                  }
+                  {cards.map((card, index) => {
+                    const active = index === activeCard;
+                    return (
+                      <div id={`card_${index}`} key={`card_${index}`} className='d-carousel-item d-w-full' ref={active ? activeCardRef : null}>
+                        <div className="d-w-full">
+                          <Form {...card} onChange={({ formData }, id) => handleChangeEvent(card.cardId, formData, id)} onBlur={() => handleBlurEvent(card.cardId)} liveValidate />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+              <section className="navigation d-flex align-items-end flex-column">
+                <div className="d-flex d-space-x-4 align-items-center">
+                  <button className={`btn btn-outline-secondary btn-navigation ${((activeCard - 1) < 0 || isLoading) && 'disabled'}`} disabled={((activeCard - 1) < 0 || isLoading)} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, 'moveLeft') }}><span class="glyphicon glyphicon-chevron-left"></span>{isLoading && (<><span className="d-loading d-loading-spinner d-loading-md"></span> Aguarde...</>)}{!isLoading && ((language === 'en_us') ? 'Previous' : 'Anterior')}</button>
+                  <span class="glyphicon glyphicon-option-horizontal"></span>
+                  <button type="button" className={`btn btn-outline-secondary btn-navigation ${((activeCard + 1) >= cards.length || isLoading) && 'disabled'}`} disabled={((activeCard + 1) >= cards.length || isLoading)} onClick={(e) => { e.preventDefault(); handleClickEvent(cards[activeCard].cardId, 'moveRight') }}>{isLoading && (<><span className="d-loading d-loading-spinner d-loading-md"></span> Aguarde...</>)}{!isLoading && ((language === 'en_us') ? 'Next' : 'Próxima')} <span class="glyphicon glyphicon-chevron-right"></span></button>
+                </div>
+              </section>
+              </>
+        )}
     </div>
   </>
   return carousel
 }
 function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSchema, activeCard, initialform, previewURL, documentRendered, definePreview, defineDocRendered }) {
   const [panelView, setPanelView] = useState('summary')
+
   function updatePanelView(option) {
     setPanelView(() => option)
   }
@@ -1128,51 +1037,66 @@ function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSche
       </div>
     )
   }
-  function AsideView({ panelView, language, documentDetails, previewSchema, activeCard, initialform, previewURL, definePreview, documentRendered }) {
+  function AsideView({ panelView, language, documentDetails, attachments, previewSchema, activeCard, initialform, previewURL, definePreview, documentRendered }) {
     return (
       <div className="card-aside-view">
         {(panelView == 'summary') && (<SummaryView documentDetails={documentDetails} cards={previewSchema} activeCard={activeCard} initialform={initialform} />)}
         {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} previewSchema={previewSchema} codeId={codeId} initialform={initialform} documentDetails={documentDetails} documentRendered={documentRendered} language={language} definePreview={definePreview} defineDocRendered={defineDocRendered}/>)}
         {(panelView == 'previousversions') && (<PreviousVersionsView codeId={codeId} documentDetails={documentDetails} documentRendered={documentRendered} language={language} />)}
-        {(panelView == 'attachments') && (<AttachmentsView attachments={documentDetails.attachments} language={language}/>)}
+        {(panelView == 'attachments') && (<AttachmentsView attachments={attachments} language={language}/>)}
       </div>
     )
   }
+
+  let currentVersion = documentDetails.versions.filter(v => v.version === documentDetails.currentVersion);
+  let attachments = []
+  if(currentVersion && currentVersion.length > 0){
+    attachments = currentVersion[0].hasOwnProperty('attachments') ? currentVersion[0].attachments : []
+  }
+
   return (
     <>
       <AsideNavigation pageLayout={pageLayout} language={language} panelView={panelView} updatePanelView={updatePanelView} />
-      <AsideView previewSchema={previewSchema} language={language} panelView={panelView} documentDetails={documentDetails} activeCard={activeCard} initialform={initialform} previewURL={previewURL} definePreview={definePreview} documentRendered={documentRendered} />
+      <AsideView previewSchema={previewSchema} language={language} panelView={panelView} documentDetails={documentDetails} activeCard={activeCard} initialform={initialform} previewURL={previewURL} definePreview={definePreview} documentRendered={documentRendered} attachments={attachments}/>
     </>
   )
 }
-function ActionPanel({ language, initialform, documentDetails, previewSchema, codeId, definePreview, defineDocRendered }){
+function ActionPanel({ language, formId, documentDetails, previewSchema, codeId, codeDestination, definePreview, defineDocRendered, defineDocDetails }){
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const alertRef = useRef(null)
-  const [alert, setAlert] = useState({
+  const [isSubmittingModal, setIsSubmittingModal] = useState(false)
+  const modalRef = useRef(null)
+  const modalFormData = useRef({})
+  const [alert, setModal] = useState({
     title: "Título",
     description: "Descrição do Alerta"
   })
-  const modalRef = useRef(null)
-  const [modal, setModal] = useState({
-    title: "Título",
-    description: "Descrição do Modal"
-  })
+  const docRendered = useRef({})
   function updatePreview(prev) {
     definePreview(prev)
   }
   function updateDocRendered(doc) {
+    docRendered.current = doc
     defineDocRendered(doc)
+  }
+  function updateDocDetails(doc) {
+    defineDocDetails(doc)
   }
   /** Helpers */
   function treatAJVErrors(errors = []) {
     // Formata os erros recebidos na validação para exibição na tela
     function translateError(err){
-      let errstr, translatederr;
+      let errstr, translatederr, errstr2, translatederr2;
       // Abaixo definimos cada uma das hipóteses de erro seguindo o mesmo formato
       errstr = "must have required property"
       translatederr = "deve conter o campo obrigatório"
       if(err.includes(errstr)) return err.replace(errstr, translatederr)
+
+      errstr = "must NOT have fewer than"
+      translatederr = "deve ter no mínimo"
+      errstr2 = "characters"
+      translatederr2 = "caracteres"
+      if(err.includes(errstr)) return err.replace(errstr, translatederr).replace(errstr2, translatederr2)
 
       return ""
     }
@@ -1220,7 +1144,29 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
     // console.log('fd', JSON.stringify(fd))
     return fd
   }
-  
+  function mergeSchema(schema){
+    let mergedSchema = {};
+    let mergedSchemaDefs = {};
+    let mergedFormData = {};
+    for (let i = 0; i < schema.length; i++) {
+      let tcard = schema[i];
+      mergedSchema[tcard.cardId] = { 
+        type: 'object',
+        properties: { ...tcard.schema.properties }
+      }
+      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
+    }
+    mergedFormData = initializeFormData(mergedSchema, true)
+    for (let i = 0; i < schema.length; i++) {
+      let tcard = schema[i];
+      mergedFormData[tcard.cardId] = { ...mergedFormData[tcard.cardId], ...tcard.formData } // populando formData
+    }
+    return {
+      mergedSchema,
+      mergedSchemaDefs,
+      mergedFormData
+    }
+  }
   /** Funções do Componente */
   async function validateForm() {
     let mergedFormData = {}
@@ -1267,28 +1213,13 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
   }
   async function renderDocument() {
     setIsSubmitting(true);
-    let mergedSchema = {};
-    let mergedSchemaDefs = {};
-    let mergedFormData = {};
-    for (let i = 0; i < previewSchema.length; i++) {
-      let tcard = previewSchema[i];
-      mergedSchema[tcard.cardId] = { 
-        type: 'object',
-        properties: { ...tcard.schema.properties }
-      }
-      mergedSchemaDefs = { ...mergedSchemaDefs, ...tcard.schema.definitions }
-    }
-    mergedFormData = initializeFormData(mergedSchema, true)
-    for (let i = 0; i < previewSchema.length; i++) {
-      let tcard = previewSchema[i];
-      mergedFormData[tcard.cardId] = { ...mergedFormData[tcard.cardId], ...tcard.formData } // populando formData
-    }
+    let { mergedFormData } = mergeSchema(previewSchema);
     let datacontent = {
       command: "renderDocument",
       datasource: mergedFormData,
       templateDocument: documentDetails.template,
       documentName: new Date().getTime() + '_' + documentDetails.base_filename,
-      tenant: initialform.tenant
+      tenant: documentDetails.partitionKey
     };
     let data = {
       command: "renderDocument",
@@ -1302,6 +1233,8 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
+        updatePreview(res.data.output.documentUrl);
+        updateDocRendered(res.data.output);
         setIsSubmitting(false);
         return res.data.output;
       }
@@ -1310,116 +1243,254 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
       throw new Error('Falha ao gerar o Render')
     }
   }
-  async function handleSubmit(event, justrender) {
+  // executa a chamada que faz o salvamento de uma nova versão
+  async function saveNewVersion(newdoc = false) {
+    console.log('formData', modalFormData.current)
+    let { mergedFormData } = mergeSchema(previewSchema);
+    let newversion = parseInt(documentDetails.currentVersion) + 1 || 1;
+    let data = {
+      command: "saveNewVersion",
+      title: newdoc ? modalFormData.current.title : documentDetails.title,
+      version: newversion,
+      description: modalFormData.current.description ? modalFormData.current.description : '',
+      id: documentDetails.id ? documentDetails.id : '',
+      tenant: documentDetails.partitionKey ? documentDetails.partitionKey : 'looplex.com.br',
+      author: documentDetails.author ? documentDetails.author : 'Looplex',
+      savenew: newdoc,
+      datasource: mergedFormData,
+      rendered: docRendered.current,
+      templateDocument: documentDetails.template,
+      documentName: new Date().getTime() + '_' + documentDetails.base_filename
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    // console.log('config', config)
+
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        // Vamos atualizar o documentDetails relevante
+        let docdetails = documentDetails;
+        docdetails.id = res.data.output.id;
+        docdetails.partitionKey = res.data.output.partitionKey;
+        docdetails.title = (newdoc ? modalFormData.current.title : documentDetails.title);
+        if(!docdetails.hasOwnProperty('versions') || docdetails.versions.length === 0){
+          docdetails.versions = []  
+        }
+        docdetails.versions.push(res.data.output.newversion)
+        docdetails.currentVersion = newversion;
+        docdetails.description = modalFormData.current.description;
+        docdetails.created_at = docdetails.created_at ? docdetails.created_at : res.data.output.newversion.date;
+        docdetails.updated_at = res.data.output.newversion.date;
+        if(newdoc){
+          // TODO: Fizemos o update do documento. Porém, se estivermos criando um novo
+          // documento, teríamos que alterar o initialform tb para refletir isso.
+          // Como lidar com isso? Podemos simplesmente alterar o initialform usando um useRef,
+          // mas se a tela for atualizada, o payload iria recarregar o valor do documento original
+        }
+        return docdetails
+      }
+    } catch (e) {
+      throw new Error('Falha ao salvar nova versão **** ' + JSON.stringify(e.response.data))
+    }
+  }
+  async function handleSubmit(event, action) {
     event.preventDefault()
     event.stopPropagation()
     console.log('Submitting...')
+    if(action === 'justrender'){
+      // Independente de qualquer escolha, vamos renderizar o documento
+      let render = await renderDocument();
+      console.log('render', render)
+      return;
+    }
     let validated = await validateForm()
+    console.log('validated', validated)
     if (Array.isArray(validated)) { // Se eu tenho uma array, houve erros
       let errors = treatAJVErrors(validated)
       let content = "Os seguintes erros foram encontrados no processamento do formulário enviado:<br /><br/><ul class='errorlist'>" + errors + "</ul>";
       alertModal("Erros no Formulário", "", "Verifique as informações encaminhadas", content)
     } else {
-      if (justrender) {
-        console.log('Renderizando...')
-        let render = await renderDocument();
-        console.log('render', render)
-        updatePreview(render.documentUrl);
-        updateDocRendered(render);
-      } else {
-        switch (initialform.onSubmitAction) {
-          case 'saveAsNewDocument':
-            setIsSubmitting(true)
-            await saveNewVersion(makeid(5), "Versão Inicial");
-            setIsSubmitting(false)
-            alertModal("Obrigado!", "glyphicon-ok", "O formulário foi enviado com sucesso.", "")
-            break;
-          case 'saveAsNewVersion':
-            submitNewVersion()
-            break;
-          default: // Render only
-            setIsSubmitting(true)
-            let render = await renderDocument();
-            updatePreview(render.documentUrl);
-            updateDocRendered(render);
-            setIsSubmitting(false);
-            break;
-        }
-        if (initialform.codeDestination && initialform.codeDestination !== '') {
-          setIsSubmitting(true)
-          await send2Code();
-          setIsSubmitting(false)
-          // alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
-        }
-      }
+      // Independente de qualquer escolha, vamos renderizar o documento
+      let render = await renderDocument();
+      console.log('render', render)
+      await submitOpenModal(action)
     }
     return;
   }
-  function alertModal(title, icon, message, content) {
+  function alertModal(title, icon, message, content, hasCloseButton = false) {
     // Exibe o modal em formato de alerta
     let alert = {
       icon: icon,
       title: title,
       description: message,
       content: content,
-      hasCloseButton: false
+      hasCloseButton
     };
     console.log('Alerting...', alert)
-    setAlert(alert)
-    alertRef.current.showModal()
+    setModal(alert)
+    modalRef.current.showModal()
   }
-  function handleCancelDialog(event) {
-    event.preventDefault();
-    console.log('closed', event)
-    return false
-  }
-  function submitNewVersion() {
+  async function submitOpenModal(action){
     // Exibe o modal para formato de salvar nova versão
-    let modal = {
-      title: "Nova versão",
-      description: "Deseja criar uma nova versão deste documento?",
-      rjsf: {
-        "schema": {
-          "type": "object",
-          "required": [
-            "version",
-            "description"
-          ],
-          "properties": {
-            "version": {
-              "type": "string",
-              "title": "Versão"
+    let modal = {}
+
+    switch (action) {
+      case 'saveAsNewDocument':
+        modal = {
+          title: "Salvar como novo documento",
+          description: "Criando um novo documento a partir da estrutura atual. Preencha abaixo os dados solicitados.",
+          rjsf: {
+            "schema": {
+              "type": "object",
+              "required": [
+                "title",
+                "description"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "title": "Título"
+                },
+                "description": {
+                  "type": "string",
+                  "title": "Descrição"
+                }
+              }
             },
-            "description": {
-              "type": "string",
-              "title": "Descrição"
+            "uiSchema": {
+              "ui:submitButtonOptions": {
+                "norender": true
+              },
+              "title": {
+                "ui:placeholder": "Forneça um título o novo documento",
+              },
+              "description": {
+                "ui:widget": "textarea",
+                "ui:placeholder": "Forneça uma breve descrição para o novo documento",
+                "ui:options": {
+                  "rows": 5
+                }
+              }
             }
-          }
-        },
-        "uiSchema": {
-          "ui:submitButtonOptions": {
-            "norender": false,
-            "submitText": "Enviar"
           },
-          "description": {
-            "ui:widget": "textarea",
-            "ui:placeholder": "Forneça uma breve descrição para esta versão do documento",
-            "ui:options": {
-              "rows": 5
-            }
-          }
+          action: "createNewDocument"
         }
-      },
-      action: "createNewDocumentVersion"
+        break;
+      case 'saveAsNewVersion':
+        modal = {
+          title: "Nova versão",
+          description: "Criando uma nova versão do documento atual. Preencha abaixo os dados solicitados.",
+          rjsf: {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "title": "Descrição"
+                }
+              }
+            },
+            "uiSchema": {
+              "ui:submitButtonOptions": {
+                "norender": true
+              },
+              "description": {
+                "ui:widget": "textarea",
+                "ui:placeholder": "Forneça uma breve descrição para esta versão do documento",
+                "ui:options": {
+                  "rows": 5
+                }
+              }
+            }
+          },
+          action: "createNewDocumentVersion"
+        }
+        break;
+      default: 
+        break;
     }
+
     setModal(modal);
     modalRef.current.showModal();
-  }
-  async function runAction(action, inputs) {
     return
+  }
+  async function runAction(event, action) {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log('docDetails', documentDetails)
+    console.log('action', action)
+    setIsSubmittingModal(true)
+    let newversion = {};
+    switch(action){
+      case 'createNewDocumentVersion':
+        newversion = await saveNewVersion()
+        console.log('newversion', newversion)
+        dismissModal()
+        alertModal("Nova Versão Salva", "", "Uma nova versão do documento (v."+newversion.currentVersion+") foi salva no sistema com sucesso!", "")
+        updateDocDetails(newversion)
+        break;
+      case 'createNewDocument':
+        newversion = await saveNewVersion(true)
+        dismissModal()
+        // TODO: Temos que atualizar os dados do documento atual para o novo documento criado
+        alertModal("Novo Documento Salvo", "", "O documento atual foi criado no sistema como um novo arquivo!", "")
+        updateDocDetails(newversion)
+        break;
+        
+    }
+    // Depois de rodar a ação, vamos executar o code se houver
+    if (codeDestination && !isObjectEmpty(codeDestination)) {
+      let sendCode = await send2Code(codeDestination);
+      console.log('sendCode', sendCode)
+      // alertModal("Obrigado!", "glyphicon-ok", "", "O formulário foi enviado com sucesso.")
+    }
+    setIsSubmittingModal(false)
+    return
+  }
+  // executa a chamada que faz o salvamento de uma nova versão
+  async function send2Code(codeDestination) {
+    if (!codeDestination || isObjectEmpty(codeDestination) || !codeDestination.hasOwnProperty('id') || codeDestination.id == '') return
+    let { mergedFormData } = mergeSchema(previewSchema);
+
+    let data = {
+      command: "send2Code",
+      codeId: codeDestination.id,
+      codeCommand: codeDestination.command,
+      formId: formId,
+      documentId: documentDetails.id ? documentDetails.id : '',
+      tenant: documentDetails.partitionKey ? documentDetails.partitionKey : 'looplex.com.br',
+      formData: mergedFormData
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${props.codeId}`,
+      data
+    }
+    // console.log('config', config)
+    // setTmpVisor(JSON.stringify(config))
+    try {
+      const res = await axios(config);
+      // console.log(res.data.output)
+      if (res.data && res.data.output) {
+        // setTmpVisor(JSON.stringify(res.data.output))
+        return res.data.output;
+      }
+    } catch (e) {
+      throw new Error('Falha ao enviar para o Code ' + codeDestination + ' **** ' + JSON.stringify(e.response.data))
+    }
+  }
+  function dismissModal(){
+    modalRef.current.close();
   }
   /** Subcomponentes */
   function Modal({ title = "", icon = "", description = "", content = "", rjsf = {}, action = "", language = "pt-br", hasCloseButton = false}){
+    function handleChangeEvent(formData){
+      modalFormData.current = formData;
+    }
     let modal =
       <>
         <h3 className="modal-title">
@@ -1433,9 +1504,18 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
         <p className="modal-description">{description}</p>
         {rjsf && !isObjectEmpty(rjsf) ? (
           <>
-            <Form {...rjsf} onSubmit={(event) => runAction(action, event)} liveValidate id="modalForm" />
+            <Form {...rjsf} onChange={({ formData }, id) => handleChangeEvent(formData)} liveValidate id="modalForm" />
+            <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+            <div className="mt-auto d-flex align-items-start d-space-x-4">
+              <button type="button" className={`btn btn-default ${(isLoading || isSubmittingModal) && 'disabled'}`} onClick={(e) => dismissModal()}>{((language === 'en_us') ? 'Cancel' : 'Cancelar')}</button>
+            </div>
+            <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
+              <div className="mt-auto d-flex align-items-end d-space-x-4">
+                <button type="button" className={`btn btn-primary ${(isLoading || isSubmittingModal) && 'disabled'}`} onClick={(e) => runAction(e, action)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmittingModal ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save' : 'Salvar'))}</button>
+              </div>
+            </div>
           </>
-        )
+          )
           :
           (
             <div className="modal-contentbody" dangerouslySetInnerHTML={{ __html: content }}></div>
@@ -1455,7 +1535,7 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
 
   let panel = <>
     <div className="wfcomponent action-panel">
-      <dialog id="optionsmodal" className="d-modal" ref={alertRef} >
+      <dialog id="optionsmodal" className="d-modal" ref={modalRef} >
         <div className="d-modal-box w-11/12 max-w-5xl">
           <Modal title={alert.title} description={alert.description} content={alert.content} rjsf={alert.rjsf} action={alert.action} hasCloseButton={alert.hasCloseButton} icon={alert.icon} language={language} />
         </div>
@@ -1463,18 +1543,14 @@ function ActionPanel({ language, initialform, documentDetails, previewSchema, co
           <button>close</button>
         </form>
       </dialog>
-      <dialog id="optionsmodal" className="d-modal" ref={modalRef} onCancel={handleCancelDialog}>
-        <div className="d-modal-box w-11/12 max-w-5xl">
-          <Modal title={modal.title} description={modal.description} content={modal.content} rjsf={modal.rjsf} action={modal.action} hasCloseButton={modal.hasCloseButton} icon={modal.icon} language={language} />
-        </div>
-      </dialog>
       <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
-        <div className="mt-auto d-flex align-items-start d-space-x-4">
-          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, true)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-        </div>
+        {/* <div className="mt-auto d-flex align-items-start d-space-x-4">
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'justrender')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+        </div> */}
         <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
         <div className="mt-auto d-flex align-items-end d-space-x-4">
-          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, false)}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Submitting...' : 'Enviando...') : ((language === 'en_us') ? 'Submit' : 'Enviar'))}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'saveAsNewDocument')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save As...' : 'Salvar Como...'))}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'saveAsNewVersion')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save' : 'Salvar'))}</button>
         </div>
       </div>
     </div>
@@ -1753,6 +1829,8 @@ function DocumentPreview({ language, url, previewSchema, codeId, initialform, do
     try {
       const res = await axios(config);
       if (res.data && res.data.output) {
+        updatePreview(res.data.output.documentUrl);
+        updateDocRendered(res.data.output);
         setIsSubmitting(false);
         return res.data.output;
       }
@@ -1767,8 +1845,6 @@ function DocumentPreview({ language, url, previewSchema, codeId, initialform, do
     console.log('Updating...')
     let render = await renderDocument();
     console.log('render', render)
-    updatePreview(render.documentUrl);
-    updateDocRendered(render);
   }
 
   let docpreview = <>
