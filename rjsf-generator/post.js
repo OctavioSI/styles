@@ -36,7 +36,7 @@ const REGIONS = {
   'looplex-ged': 'us-east-1',
   'looplex-workflows': 'sa-east-1'
 }
-const LOOPLEX_FORM_VERSION = "1.3"
+const LOOPLEX_FORM_VERSION = "2.0"
 
 // --[ helpers ]---------------------------------------------------------------
 function formatDate(x, y) {
@@ -118,23 +118,31 @@ async function getCode(displayName = '', id = '', partitionKey = 'looplex.com.br
   let query = `SELECT c.id, c.processVars, c.tasksDefinitions, c.status FROM c WHERE c.partitionKey = @partitionKey AND c.id = @id`;
   let queryvars = [{ name: '@partitionKey', value: partitionKey }, { name: '@id', value: id }];
   if (displayName && displayName !== '') {
-      query = `SELECT * FROM c WHERE c.partitionKey = @partitionKey AND c._displayName = '${displayName}'`;
-      queryvars = [{ name: '@partitionKey', value: partitionKey }];
+    query = `SELECT * FROM c WHERE c.partitionKey = @partitionKey AND c._displayName = '${displayName}'`;
+    queryvars = [{ name: '@partitionKey', value: partitionKey }];
   }
   let database = isTesting || _isProcess ? 'Workflows' : 'Looplex 365';
   let container = isTesting ? 'cdci' : 'Flows';
   container = _isProcess ? 'codeflow' : container;
 
   let results = await cosmosdb.queryContainer(
-      database,
-      container,
-      query, queryvars
+    database,
+    container,
+    query, queryvars
   )
   if (results.length > 0) {
-      return results[0]
+    return results[0]
   } else {
-      return "Item inexistente"
+    return "Item inexistente"
   }
+}
+function treatPathHelper(path) {
+  let treated_path = path;
+  let lastIndex = (path).lastIndexOf('/');
+  let before = (path).slice(0, lastIndex);
+  let after = (path).slice(lastIndex + 1);
+  before = before.replace(/%/g, '%25');
+  return treated_path = before + '/' + after;
 }
 // --[ actions ]---------------------------------------------------------------
 async function fetchSchema(payload) {
@@ -179,7 +187,7 @@ async function saveTemplate(payload) {
       formPreset: { type: 'string' },
       asidePanel: { type: 'object' },
       targetCode: { type: 'string' },
-      calledAction: { type: 'string' },
+      targetCodeCommand: { type: 'string' },
       rjsfStructureInfo: { type: 'object' },
       rjsfStructure: { type: 'array' }
     },
@@ -206,7 +214,7 @@ async function saveTemplate(payload) {
     formPreset: payload.formPreset ? payload.formPreset : '',
     asidePanel: payload.asidePanel ? payload.asidePanel : {},
     targetCode: payload.targetCode ? payload.targetCode : '',
-    calledAction: payload.calledAction ? payload.calledAction : '',
+    targetCodeCommand: payload.targetCodeCommand ? payload.targetCodeCommand : '',
     rjsfStructureInfo: payload.rjsfStructureInfo ? payload.rjsfStructureInfo : {},
     rjsfStructure: payload.rjsfStructure ? payload.rjsfStructure : []
   };
@@ -229,7 +237,7 @@ async function generateForm(payload) {
       formPreset: { type: 'string' },
       asidePanel: { type: 'object' },
       targetCode: { type: 'string' },
-      calledAction: { type: 'string' },
+      targetCodeCommand: { type: 'string' },
       rjsfStructureInfo: { type: 'object' },
       rjsfStructure: { type: 'array' }
     },
@@ -255,7 +263,7 @@ async function generateForm(payload) {
     formPreset: payload.formPreset ? payload.formPreset : '',
     asidePanel: payload.asidePanel ? payload.asidePanel : {},
     targetCode: payload.targetCode ? payload.targetCode : '',
-    calledAction: payload.calledAction ? payload.calledAction : '',
+    targetCodeCommand: payload.targetCodeCommand ? payload.targetCodeCommand : '',
     rjsfStructureInfo: payload.rjsfStructureInfo ? payload.rjsfStructureInfo : {},
     rjsfStructure: payload.rjsfStructure ? payload.rjsfStructure : []
   };
@@ -326,10 +334,10 @@ async function fetchSchemaService(inputs) {
     let data = {
       "command": "read",
       "config": {
-          "database": "Workflows",
-          "container": "nocodebuilder",
-          "partitionKey": tenant,
-          "id": id
+        "database": "Workflows",
+        "container": "nocodebuilder",
+        "partitionKey": tenant,
+        "id": id
       }
     };
     let config = {
@@ -346,35 +354,171 @@ async function fetchSchemaService(inputs) {
   }
 };
 async function saveTemplateService(inputs) {
-  const { 
+  const {
     id,
     tenant,
     author,
     language,
-    title, 
-    version, 
-    description, 
-    savenew, 
+    title,
+    version,
+    description,
+    savenew,
     templateDocument,
     formPreset,
     asidePanel,
     targetCode,
-    calledAction,
+    targetCodeCommand,
     rjsfStructureInfo,
-    rjsfStructure  
+    rjsfStructure
   } = inputs;
   try {
-      let headers = {
-        'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
-      }
-      let attachments = [];
-      let template = "";
-      let uploaded = {};
-      if(templateDocument && templateDocument.hasOwnProperty('docpath') && templateDocument.docpath !== ''){
+    let headers = {
+      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+    }
+    let attachments = [];
+    let template = "";
+    let uploaded = {};
+    if (templateDocument && templateDocument.hasOwnProperty('docpath') && templateDocument.docpath !== '') {
 
-        uploaded = await treatFilepondFile(templateDocument, 'looplex.com.br', 'workflows') // path temporario
-        return uploaded
-        // Aqui já fiz o upload do arquivo que subi no form. Vamos montar o registro de anexos.
+      uploaded = await treatFilepondFile(templateDocument, 'looplex.com.br', 'workflows') // path temporario
+      console.log('uploaded', uploaded)
+      // Aqui já fiz o upload do arquivo que subi no form. Vamos montar o registro de anexos.
+      let file = uploaded.docpath
+      let filenametmp = (file.split('/').pop()).split('.')
+      let extension = filenametmp.pop()
+      let filename = filenametmp.join('.')
+      template = {
+        "title": filename,
+        "description": filename,
+        "document": {
+          "path": file,
+          "filename": filename,
+          "type": extension
+        },
+        "link": uploaded.presigned
+      }
+    }
+    let data = {};
+    let content = {};
+    let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
+    if (!id || id == '' || savenew) {
+      // Não tenho ID, então preciso gravar um novo registro na DB
+      let newid = crypto.randomUUID() // gerando um novo ID
+      rjsfStructure[0].formData.formInfo.id = newid
+      content = {
+        "versions": [
+          {
+            "version": version,
+            "author": author,
+            "date": updateddate,
+            "description": description,
+            "template": template,
+            "rjsfStructure": rjsfStructure
+          }
+        ],
+        "attachments": attachments,
+        "currentVersion": version,
+        "author": author,
+        "description": description,
+        "created_at": updateddate,
+        "updated_at": updateddate,
+        "title": title
+      };
+      data = {
+        "command": "write",
+        "config": {
+          "database": "Workflows",
+          "container": "nocodebuilder",
+          "partitionKey": tenant,
+          "id": newid,
+          "saveInRoot": true
+        },
+        "content": content
+      };
+    } else {
+      // Já tenho um ID, então apenas preciso atualizar o campo correspondente
+      content = {
+        "version": version,
+        "author": author,
+        "date": updateddate,
+        "description": description,
+        "template": template,
+        "rjsfStructure": rjsfStructure
+      }
+      let operations = [
+        { "op": "add", "path": "/versions/-", "value": content },
+        { "op": "set", "path": "/currentVersion", "value": version },
+        { "op": "set", "path": "/updated_at", "value": updateddate }
+      ];
+      attachments.forEach(att => {
+        let tmpatt = { ...att }
+        delete tmpatt.link
+        operations.push({ "op": "add", "path": "/attachments/-", "value": tmpatt })
+      })
+      data = {
+        "command": "partialUpdate",
+        "config": {
+          "database": "Workflows",
+          "container": "nocodebuilder",
+          "partitionKey": tenant,
+          "id": id
+        },
+        "operations": operations
+      }
+    }
+
+    let config = {
+      method: 'post',
+      url: `${APIM_URL}${COSMOSDB_ENDPOINT}`,
+      headers,
+      data
+    }
+    // console.log('config', config)
+    const res = await axios(config);
+    if (res.data && res.data.output) {
+      return {
+        "newversion": {
+          "version": version,
+          "author": author,
+          "date": updateddate,
+          "description": description
+        },
+        "newattachments": attachments
+      }
+    }
+  } catch (e) {
+    throw new Error('Error saving new version: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
+  }
+};
+async function generateFormService(inputs) {
+  const {
+    id,
+    tenant,
+    author,
+    language,
+    title,
+    version,
+    description,
+    templateDocument,
+    formPreset,
+    asidePanel,
+    targetCode,
+    targetCodeCommand,
+    rjsfStructureInfo,
+    rjsfStructure
+  } = inputs;
+
+  let headers = {
+    'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
+  }
+  try {
+    switch (formPreset) {
+      // Teremos aqui outros casos (Work Request, analyzer, etc)
+      default: // o padrao gera o document_assembler
+        let template = '';
+        if (templateDocument && templateDocument.hasOwnProperty('docpath') && templateDocument.docpath !== '') {
+          let uploaded = await treatFilepondFile(templateDocument, 'looplex.com.br', 'workflows')
+          // Aqui já fiz o upload do arquivo que subi no form. Vamos montar o registro de anexos.
           let file = uploaded.docpath
           let filenametmp = (file.split('/').pop()).split('.')
           let extension = filenametmp.pop()
@@ -389,148 +533,12 @@ async function saveTemplateService(inputs) {
             },
             "link": uploaded.presigned
           }
-      }
-      let data = {};
-      let content = {};
-      let updateddate = formatDate(new Date(), "yyyy-MM-ddThh:mm:ss")
-      if (!id || id == '' || savenew) {
-        // Não tenho ID, então preciso gravar um novo registro na DB
-        let newid = crypto.randomUUID() // gerando um novo ID
-        rjsfStructure[0].formData.formInfo.id = newid
-        content = {
-          "versions": [
-            {
-              "version": version,
-              "author": author,
-              "date": updateddate,
-              "description": description,
-              "template": template,
-              "rjsfStructure": rjsfStructure
-            }
-          ],
-          "attachments": attachments,
-          "currentVersion": version,
-          "author": author,
-          "description": description,
-          "created_at": updateddate,
-          "updated_at": updateddate,
-          "title": title
-        };
-        data = {
-          "command": "write",
-          "config": {
-            "database": "Workflows",
-            "container": "nocodebuilder",
-            "partitionKey": tenant,
-            "id": newid,
-            "saveInRoot": true
-          },
-          "content": content
-        };
-      } else {
-        // Já tenho um ID, então apenas preciso atualizar o campo correspondente
-        content = {
-          "version": version,
-          "author": author,
-          "date": updateddate,
-          "description": description,
-          "template": template,
-          "rjsfStructure": rjsfStructure
-        }
-        let operations = [
-          { "op": "add", "path": "/versions/-", "value": content },
-          { "op": "set", "path": "/currentVersion", "value": version },
-          { "op": "set", "path": "/updated_at", "value": updateddate }
-        ];
-        attachments.forEach(att => {
-          let tmpatt = { ...att }
-          delete tmpatt.link
-          operations.push({ "op": "add", "path": "/attachments/-", "value": tmpatt })
-        })
-        data = {
-          "command": "partialUpdate",
-          "config": {
-            "database": "Workflows",
-            "container": "nocodebuilder",
-            "partitionKey": tenant,
-            "id": id
-          },
-          "operations": operations
-        }
-      }
-
-      let config = {
-        method: 'post',
-        url: `${APIM_URL}${COSMOSDB_ENDPOINT}`,
-        headers,
-        data
-      }
-      // console.log('config', config)
-      const res = await axios(config);
-      if (res.data && res.data.output) {
-        return {
-          "newversion": {
-            "version": version,
-            "author": author,
-            "date": updateddate,
-            "description": description
-          },
-          "newattachments": attachments
-        }
-      }
-  } catch (e) {
-    throw new Error('Error saving new version: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
-  }
-};
-async function generateFormService(inputs) {
-  const { 
-    id,
-    tenant,
-    author,
-    language,
-    title, 
-    version, 
-    description, 
-    templateDocument,
-    formPreset,
-    asidePanel,
-    targetCode,
-    calledAction,
-    rjsfStructureInfo,
-    rjsfStructure  
-  } = inputs;
-  
-  let headers = {
-    'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
-  }
-  try {
-    switch(formPreset){
-      // Teremos aqui outros casos (Work Request, analyzer, etc)
-      default: // o padrao gera o document_assembler
-        let template = '';
-        if(templateDocument && templateDocument.hasOwnProperty('docpath') && templateDocument.docpath !== ''){
-          let uploaded = await treatFilepondFile(templateDocument, 'looplex.com.br', 'workflows')
-          // Aqui já fiz o upload do arquivo que subi no form. Vamos montar o registro de anexos.
-            let file = uploaded.docpath
-            let filenametmp = (file.split('/').pop()).split('.')
-            let extension = filenametmp.pop()
-            let filename = filenametmp.join('.')
-            template = {
-              "title": filename,
-              "description": filename,
-              "document": {
-                "path": file,
-                "filename": filename,
-                "type": extension
-              },
-              "link": uploaded.presigned
-            }
         } // templateDocument
 
         // Para o funcionamento deste form, precisamos armazená-lo no container rjsf-schemas
         let schemacards = rjsfStructure
         let schemacardsclean = []
-        for(let i=0; i<schemacards.length; i++){
+        for (let i = 0; i < schemacards.length; i++) {
           let obj = {
             cardId: schemacards[i].cardId,
             partitionKey: tenant ? tenant : 'looplex.com.br',
@@ -548,13 +556,13 @@ async function generateFormService(inputs) {
         let schemaobj = {
           "preloaded_cards": [],
           "cards": schemacardsclean,
-          "formLayout":{
+          "formLayout": {
             "main": true,
-            "aside": (asidePanel.showSummary || asidePanel.showPreview || asidePanel.showAttachments || asidePanel.showVersions), 
+            "aside": (asidePanel.showSummary || asidePanel.showPreview || asidePanel.showAttachments || asidePanel.showVersions),
             "aside_summary": asidePanel.showSummary,
-            "aside_preview": asidePanel.showPreview,
+            "aside_docpreview": asidePanel.showPreview,
             "aside_attachments": asidePanel.showAttachments,
-            "aside_versions": asidePanel.showVersions
+            "aside_previousversions": asidePanel.showVersions
           },
           "loginRequired": false,
           "loginAccess": {}
@@ -579,60 +587,57 @@ async function generateFormService(inputs) {
         const res = await axios(config);
         if (res.data && res.data.output) { // OK, gravado no cosmosDB
           // Vamos criar um document em Workflows/assembler agora se for o caso
-          let newdocid = "" // gerando um novo ID
-          if(calledAction !== 'createNewDocument'){ // O nosso formulario nao precisará criar um novo Doc na execução, entao devemos criar agora
-            newdocid = crypto.randomUUID()
-            let newdocschema = {
-                                  "versions": [{
-                                    "version": "1.0.0",
-                                    "author": author,
-                                    "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
-                                    "description": "",
-                                    "document": {
-                                        "path": ""
-                                    },
-                                    "formData": {}
-                                  }],
-                                  "attachments": [],
-                                  "currentVersion": "1.0.0",
-                                  "author": author ? author : "Looplex",
-                                  "description": "",
-                                  "created_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
-                                  "updated_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
-                                  "title": title,
-                                  "base_filename": "file.docx",
-                                  "template": "https://looplex-ged.s3.us-east-1.amazonaws.com/"+template?.document?.path
-                              }
-            let docdata = {
-              "command": "write",
-              "config": {
-                "database": "Workflows",
-                "container": "assembler",
-                "partitionKey": tenant,
-                "id": newdocid,
-                "saveInRoot": true
+          let newdocid = crypto.randomUUID()
+          let newdocschema = {
+            "versions": [{
+              "version": "1.0.0",
+              "author": author,
+              "date": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+              "description": "",
+              "document": {
+                "path": ""
               },
-              "content": newdocschema
-            };
-            let docconfig = {
-              method: 'post',
-              url: `${APIM_URL}${COSMOSDB_ENDPOINT}`,
-              headers,
-              data: docdata
-            }
-            const resdoc = await axios(docconfig);
-          } // !createNewDocument
+              "formData": {},
+              "attachments": [],
+            }],
+            "currentVersion": "1.0.0",
+            "author": author ? author : "Looplex",
+            "description": "",
+            "created_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+            "updated_at": formatDate(new Date(), "yyyy-MM-ddThh:mm:ss"),
+            "title": title,
+            "base_filename": 'file.docx',
+            "template": "https://looplex-ged.s3.us-east-1.amazonaws.com/" + template?.document?.path
+          }
+          let docdata = {
+            "command": "write",
+            "config": {
+              "database": "Workflows",
+              "container": "assembler",
+              "partitionKey": tenant,
+              "id": newdocid,
+              "saveInRoot": true
+            },
+            "content": newdocschema
+          };
+          let docconfig = {
+            method: 'post',
+            url: `${APIM_URL}${COSMOSDB_ENDPOINT}`,
+            headers,
+            data: docdata
+          }
+          const resdoc = await axios(docconfig);
+
           // Vamos montar o payload necessário para a geração do formulário
           let formpayload = {
-            "initialformId": newid, 
-            "initialformTenant": tenant, 
-            "initialformDocument": newdocid, 
-            "codeDestination": targetCode ? targetCode : "",
-            "onSubmitAction": calledAction ? calledAction : "",
-            "template": "https://looplex-ged.s3.us-east-1.amazonaws.com/"+template?.document?.path,
-            "formTitle": title,
-            "base_filename": 'file.docx',
-            "author": author ? author : 'Looplex',
+            "initialFormId": newid,
+            "initialFormTenant": tenant,
+            "initialDocumentId": newdocid,
+            "initialDocumentTenant": tenant,
+            "codeDestination": {
+              "id": targetCode ? targetCode : "",
+              "command": targetCodeCommand ? targetCodeCommand : ""
+            },
             "language": language ? language : "pt_br"
           }
           let jwtconfig = {
@@ -644,40 +649,28 @@ async function generateFormService(inputs) {
             }
           }
           const resjwt = await axios(jwtconfig);
-          if(resjwt && resjwt.data && resjwt.data.message){
-            let LOOPLEX_FORM = (await getCode('flows_formulario_padrao_v'+LOOPLEX_FORM_VERSION)).id;
+          if (resjwt && resjwt.data && resjwt.data.message) {
+            let LOOPLEX_FORM = (await getCode('flows_formulario_padrao_v' + LOOPLEX_FORM_VERSION)).id;
             return `https://actions.looplex.com/code/${LOOPLEX_FORM}?payload=${resjwt.data.message}`
           }
         }
         break;
     } // switch
   } catch (e) {
-     throw new Error('Error generating form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
+    throw new Error('Error generating form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
 async function uploadDocumentService(inputs) {
   const { path, uploadFile } = inputs;
   try {
-    let data = {
-      command: "uploadFile",
+    let inputs = {
       subscription_key: secrets.APIM_SUBSCRIPTIONKEY,
       path_has_escaped_chars: true,
       upload_file: uploadFile,
       path: path
-    }
-    let headers = {
-      'Ocp-Apim-Subscription-Key': secrets.APIM_SUBSCRIPTIONKEY
-    }
-    let config = {
-      method: 'post',
-      url: `${APIM_URL}${S3_ENDPOINT}`,
-      headers,
-      data
-    }
-    // console.log('config', config)
-    // return config
-    let res = await axios(config);
-    return res.data.output;
+    };
+    let upload = await uploadFileService(inputs);
+    return upload;
   } catch (e) {
     return 'Erro no upload do documento: ' + e.message + '  *****  ' + JSON.stringify(e.response.data)
   }
@@ -707,6 +700,61 @@ async function runDMNService(inputs) {
     throw new Error('Error fetching form: ' + e.message + '  *****  ' + JSON.stringify(e.response.data))
   }
 };
+async function uploadFileService(inputs) {
+  const { subscription_key, path, path_has_escaped_chars, upload_file } = inputs
+  let treated_path = path_has_escaped_chars ? treatPathHelper(path) : path;
+  let url = `https://apim.looplex.com/actions/v1/presigned-url?cmd=PUT&path=${treated_path}&expiresIn=604800`;
+  let config = {
+    method: 'get',
+    url: url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Ocp-Apim-Subscription-Key': subscription_key
+    }
+  };
+  let presigned = await axios(config);
+  // console.log('presigned', presigned)
+  if (presigned && presigned.data) {
+    let presignedURL = presigned.data.message;
+    // Agora com o presigned, vamos fazer um PUT efetivamente
+    let buf = Buffer.from(upload_file, 'base64');
+    let config = {
+      method: "PUT",
+      url: presignedURL,
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Length": buf.length
+      },
+      data: buf
+    };
+    let upload = '';
+    try {
+      const response = await axios(config);
+      upload = response.status;
+    } catch (e) {
+      throw new Error('Error uploading document to presignedURL: ' + e.message + ' *** ' + JSON.stringify(e.response.data))
+    }
+    if (upload == '200') {
+      // Vamos gerar um novo presigned, mas para leitura
+      url = `https://apim.looplex.com/actions/v1/presigned-url?cmd=GET&path=${treated_path}&expiresIn=86400`;
+      config = {
+        method: 'get',
+        url: url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Ocp-Apim-Subscription-Key': subscription_key
+        }
+      };
+      presigned = await axios(config);
+      if (presigned && presigned.data) {
+        return {
+          "presigned": presigned.data.message,
+          "docpath": treated_path
+        }
+      }
+    }
+  }
+}
 // --[ framework ]--------------------------------------------------------------
 async function main(payload, actions) {
   const { command = defaultCommand, ...args } = payload
