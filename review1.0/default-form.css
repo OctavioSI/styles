@@ -162,3 +162,6 @@ legend#root__title::before{
   border: 2px dashed #CCCCCC;
   height: 100%;
 }
+.carousel {
+  padding:12px;
+}
