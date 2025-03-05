@@ -186,3 +186,7 @@ button.btn.btn-link {
   background-color: #fff3f3;
   border: 1px solid #c18f8f;
 }
+.doc-active{
+  border-width: 2px;
+  border-style: dashed;
+}
