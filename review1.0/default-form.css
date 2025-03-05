@@ -178,3 +178,11 @@ legend#root__title::before{
 button.btn.btn-link {
   text-decoration: none;
 }
+.doc-reviewed {
+  background-color: #eafff4;
+  border: 1px solid #8eaf9d;
+}
+.doc-removed {
+  background-color: #fff3f3;
+  border: 1px solid #c18f8f;
+}
