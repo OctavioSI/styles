@@ -167,7 +167,7 @@ legend#root__title::before{
   padding-bottom: 0px;
 }
 .carousel.has-actionpanel {
-  height: calc(100% - 56px) !important;
+  height: calc(100% - 52px) !important;
 }
 .docmanager-table-row {
   border: 1px solid #CCCCCC;
