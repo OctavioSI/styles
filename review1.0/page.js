@@ -1,18 +1,4 @@
 
-/*******************************************************************
-* Formulario de Revisão
-* 
-* STATUS: Em teste
-* 
-* CHANGELOG
-*
-* v. 1.0
-*
-* BUG FIXES
-*
-*
-********************************************************************/
-
 function App() {
   let initialform = {
     language: props.embeddedData.language ? props.embeddedData.language : 'pt_br',
@@ -39,6 +25,7 @@ function App() {
   const [previewSchema, setPreviewSchema] = useState([]);
   const [previewURL, setPreviewURL] = useState('https://looplex-workflows.s3.sa-east-1.amazonaws.com/templates/docs/proposta_ajustada_ietsugu.docx');
   const [documentRendered, setDocumentRendered] = useState({});
+  const [activeCard, setActiveCard] = useState(0);
   const [pageLayout, setPageLayout] = useState({
     main: true,
     aside: true,
@@ -56,6 +43,9 @@ function App() {
   }
   function definePreviewSchema(sch) {
     setPreviewSchema(() => sch)
+  }
+  function defineActiveCard(ac) {
+    setActiveCard(() => ac)
   }
   function definePageLayout(pl) {
     setPageLayout(() => pl)
@@ -80,14 +70,14 @@ function App() {
               (
                 <main className="card-main-wrapper" style={{ width: (pageLayout.aside ? '98%' : '100%') }}>
                   <CarouselForm language={(initialform.language ? initialform.language : "pt-br")} initialform={initialform} codeId={props.codeId} schemacards={cards} defineDocDetails={defineDocDetails} definePreviewSchema={definePreviewSchema} defineActiveCard={defineActiveCard} definePageLayout={definePageLayout} hasActionPanel={true} />
-                  {/* <ActionPanel language={(initialform.language ? initialform.language : "pt-br")} formId={initialform.formId} codeId={props.codeId} codeDestination={initialform.codeDestination} previewSchema={previewSchema} documentDetails={docDetails} definePreview={definePreview} defineDocRendered={defineDocRendered} defineDocDetails={defineDocDetails} /> */}
+                  <ActionPanel language={(initialform.language ? initialform.language : "pt-br")} formId={initialform.formId} codeId={props.codeId} codeDestination={initialform.codeDestination} previewSchema={previewSchema} documentDetails={docDetails} definePreview={definePreview} defineDocRendered={defineDocRendered} defineDocDetails={defineDocDetails} />
                 </main>
               )}
 
             {pageLayout.aside &&
               (
                 <aside className="card-aside-wrapper">
-                  {/* <AsidePanel pageLayout={pageLayout} language={initialform.language} documentDetails={docDetails} codeId={props.codeId} previewSchema={previewSchema} initialform={initialform} previewURL={previewURL} documentRendered={documentRendered} definePreview={definePreview} defineDocRendered={defineDocRendered} /> */}
+                  <AsidePanel pageLayout={pageLayout} language={initialform.language} documentDetails={docDetails} codeId={props.codeId} previewSchema={previewSchema} activeCard={activeCard} initialform={initialform} previewURL={previewURL} documentRendered={documentRendered} definePreview={definePreview} defineDocRendered={defineDocRendered} />
                 </aside>
               )}
           </div>
@@ -116,12 +106,9 @@ function PageHeader({ title = 'Looplex Form' }) {
     <link rel='stylesheet' type='text/css' href='https://looplex-workflows.s3.sa-east-1.amazonaws.com/css-form-padrao/daisy.css' />
     <link rel="stylesheet" type='text/css' href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css" />
     { /** Estilos dos Componentes Utilizados -- INÍCIO */}
-    <link rel='stylesheet' type='text/css' href='https://octaviosi.github.io/styles/assembler2.0/default-form.css' />
+    <link rel='stylesheet' type='text/css' href='https://octaviosi.github.io/styles/review1.0/default-form.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/CarouselForm/CarouselForm.css' />
-    <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/SummaryView/SummaryView.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/DocumentPreview/DocumentPreview.css' />
-    <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/PreviousVersionsView/PreviousVersionsView.css' />
-    <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/AttachmentsView/AttachmentsView.css' />
     <link rel='stylesheet' type='text/css' href='https://looplex.github.io/wf_reactcomponents/src/components/ActionPanel/ActionPanel.css' />
     { /** Estilos dos Componentes Utilizados -- FIM */}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -871,7 +858,7 @@ function CarouselForm({ schemacards, language = 'pt-br', codeId, initialform = {
   </>
   return carousel
 }
-function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSchema, initialform, previewURL, documentRendered, definePreview, defineDocRendered }) {
+function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSchema, activeCard, initialform, previewURL, documentRendered, definePreview, defineDocRendered }) {
   const [panelView, setPanelView] = useState('docpreview')
 
   function updatePanelView(option) {
@@ -881,15 +868,15 @@ function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSche
     return (
       <div className="card-navigation">
         {(pageLayout.aside_docpreview) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'docpreview' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('docpreview') }}>{(language === 'en_us') ? 'Document' : 'Documento'}</button>)}
-        {(pageLayout.aside_docmanager) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'docmanager' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('docmanager') }}>{(language === 'en_us') ? 'File Manager' : 'Gerenciador de Arquivos'}</button>)}
+        {(pageLayout.aside_docmanager) && (<button className={`btn btn-secondary left-margin-2px ${panelView == 'docmanager' && 'active'}`} onClick={(e) => { e.preventDefault(); updatePanelView('docmanager') }}>{(language === 'en_us') ? 'Document Manager' : 'Gerenciador de Documentos'}</button>)}
       </div>
     )
   }
   function AsideView({ panelView, language, documentDetails, previewSchema, initialform, previewURL, definePreview, documentRendered }) {
     return (
       <div className="card-aside-view">
-        {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} previewSchema={previewSchema} codeId={codeId} initialform={initialform} documentDetails={documentDetails} documentRendered={documentRendered} language={language} definePreview={definePreview} defineDocRendered={defineDocRendered} />)}
-        {(panelView == 'docmanager') && (<DocumentManager language={language} definePreview={definePreview} />)}
+        {(panelView == 'docpreview') && (<DocumentPreview url={previewURL} previewSchema={previewSchema} codeId={codeId} initialform={initialform} documentDetails={documentDetails} documentRendered={documentRendered} language={language} definePreview={definePreview} defineDocRendered={defineDocRendered} updateButton={false} />)}
+        {(panelView == 'docmanager') && (<DocumentManager language={language} />)}
       </div>
     )
   }
@@ -902,6 +889,7 @@ function AsidePanel({ pageLayout, language, codeId, documentDetails, previewSche
   )
 }
 function ActionPanel({ language, formId, documentDetails, previewSchema, codeId, codeDestination, definePreview, defineDocRendered, defineDocDetails }) {
+  const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmittingModal, setIsSubmittingModal] = useState(false)
   const modalRef = useRef(null)
@@ -1082,12 +1070,68 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
       throw new Error('Falha ao gerar o Render')
     }
   }
+  // executa a chamada que faz o salvamento de uma nova versão
+  async function saveNewVersion(newdoc = false) {
+    console.log('formData', modalFormData.current)
+    let { mergedFormData } = mergeSchema(previewSchema);
+    let newversion = parseInt(documentDetails.currentVersion) + 1 || 1;
+    let data = {
+      command: "saveNewVersion",
+      title: newdoc ? modalFormData.current.title : documentDetails.title,
+      version: newversion,
+      description: modalFormData.current.description ? modalFormData.current.description : '',
+      id: documentDetails.id ? documentDetails.id : '',
+      tenant: documentDetails.partitionKey ? documentDetails.partitionKey : 'looplex.com.br',
+      author: documentDetails.author ? documentDetails.author : 'Looplex',
+      savenew: newdoc,
+      datasource: mergedFormData,
+      rendered: docRendered.current,
+      templateDocument: documentDetails.template,
+      documentName: new Date().getTime() + '_' + documentDetails.base_filename
+    };
+    let config = {
+      method: 'post',
+      url: `/api/code/${codeId}`,
+      data
+    }
+    // console.log('config', config)
+
+    try {
+      const res = await axios(config);
+      if (res.data && res.data.output) {
+        // Vamos atualizar o documentDetails relevante
+        let docdetails = documentDetails;
+        docdetails.id = res.data.output.id;
+        docdetails.partitionKey = res.data.output.partitionKey;
+        docdetails.title = (newdoc ? modalFormData.current.title : documentDetails.title);
+        if (!docdetails.hasOwnProperty('versions') || docdetails.versions.length === 0) {
+          docdetails.versions = []
+        }
+        docdetails.versions.push(res.data.output.newversion)
+        docdetails.currentVersion = newversion;
+        docdetails.description = modalFormData.current.description;
+        docdetails.created_at = docdetails.created_at ? docdetails.created_at : res.data.output.newversion.date;
+        docdetails.updated_at = res.data.output.newversion.date;
+        if (newdoc) {
+          // TODO: Fizemos o update do documento. Porém, se estivermos criando um novo
+          // documento, teríamos que alterar o initialform tb para refletir isso.
+          // Como lidar com isso? Podemos simplesmente alterar o initialform usando um useRef,
+          // mas se a tela for atualizada, o payload iria recarregar o valor do documento original
+        }
+        return docdetails
+      }
+    } catch (e) {
+      throw new Error('Falha ao salvar nova versão **** ' + JSON.stringify(e.response.data))
+    }
+  }
   async function handleSubmit(event, action) {
     event.preventDefault()
     event.stopPropagation()
     console.log('Submitting...')
     if (action === 'justrender') {
+      // Independente de qualquer escolha, vamos renderizar o documento
       let render = await renderDocument();
+      console.log('render', render)
       return;
     }
     let validated = await validateForm()
@@ -1120,8 +1164,49 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
   async function submitOpenModal(action) {
     // Exibe o modal para formato de salvar nova versão
     let modal = {}
+
     switch (action) {
-      // Criamos aqui as actions que serão chamadas no submit
+      case 'saveAsNewDocument':
+        modal = {
+          title: "Salvar como novo documento",
+          description: "Criando um novo documento a partir da estrutura atual. Preencha abaixo os dados solicitados.",
+          rjsf: {
+            "schema": {
+              "type": "object",
+              "required": [
+                "title",
+                "description"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "title": "Título"
+                },
+                "description": {
+                  "type": "string",
+                  "title": "Descrição"
+                }
+              }
+            },
+            "uiSchema": {
+              "ui:submitButtonOptions": {
+                "norender": true
+              },
+              "title": {
+                "ui:placeholder": "Forneça um título o novo documento",
+              },
+              "description": {
+                "ui:widget": "textarea",
+                "ui:placeholder": "Forneça uma breve descrição para o novo documento",
+                "ui:options": {
+                  "rows": 5
+                }
+              }
+            }
+          },
+          action: "createNewDocument"
+        }
+        break;
       case 'saveAsNewVersion':
         modal = {
           title: "Nova versão",
@@ -1155,6 +1240,7 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
       default:
         break;
     }
+
     setModal(modal);
     modalRef.current.showModal();
     return
@@ -1168,12 +1254,20 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
     let newversion = {};
     switch (action) {
       case 'createNewDocumentVersion':
-        // newversion = await saveNewVersion() -- aqui chamamos a funcao da action esperada
+        newversion = await saveNewVersion()
         console.log('newversion', newversion)
         dismissModal()
         alertModal("Nova Versão Salva", "", "Uma nova versão do documento (v." + newversion.currentVersion + ") foi salva no sistema com sucesso!", "")
         updateDocDetails(newversion)
         break;
+      case 'createNewDocument':
+        newversion = await saveNewVersion(true)
+        dismissModal()
+        // TODO: Temos que atualizar os dados do documento atual para o novo documento criado
+        alertModal("Novo Documento Salvo", "", "O documento atual foi criado no sistema como um novo arquivo!", "")
+        updateDocDetails(newversion)
+        break;
+
     }
     // Depois de rodar a ação, vamos executar o code se houver
     if (codeDestination && !isObjectEmpty(codeDestination)) {
@@ -1277,16 +1371,20 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
         </form>
       </dialog>
       <div className="mt-auto d-flex d-space-x-4 flex-row  d-w-full">
+        {/* <div className="mt-auto d-flex align-items-start d-space-x-4">
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'justrender')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+        </div> */}
         <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
         <div className="mt-auto d-flex align-items-end d-space-x-4">
-          <button type="button" className={`btn btn-primary ${(isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'saveAsNewDocument')}>{isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save As...' : 'Salvar Como...')}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'saveAsNewDocument')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save As...' : 'Salvar Como...'))}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'saveAsNewVersion')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Save' : 'Salvar'))}</button>
         </div>
       </div>
     </div>
   </>
   return panel
 }
-function DocumentPreview({ language, url, previewSchema, codeId, initialform, documentDetails, definePreview, defineDocRendered }) {
+function DocumentPreview({ language, url, previewSchema, codeId, initialform, documentDetails, definePreview, defineDocRendered, updateButton = true }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updatePreview(prev) {
@@ -1396,7 +1494,10 @@ function DocumentPreview({ language, url, previewSchema, codeId, initialform, do
               frameBorder='0'
               src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`}
             ></iframe>
-            <button type="button" className={`btn btn-reload-preview btn-outline-secondary ${isSubmitting && 'disabled'}`} onClick={(e) => handleSubmit(e)}><span class="glyphicon glyphicon-repeat right-margin-5px"></span>{(isSubmitting ? ((language === 'en_us') ? 'Updating...' : 'Atualizando...') : ((language === 'en_us') ? 'Update Preview' : 'Atualizar Prévia'))}</button>
+            {
+              (updateButton) &&
+              (<button type="button" className={`btn btn-reload-preview btn-outline-secondary ${isSubmitting && 'disabled'}`} onClick={(e) => handleSubmit(e)}><span class="glyphicon glyphicon-repeat right-margin-5px"></span>{(isSubmitting ? ((language === 'en_us') ? 'Updating...' : 'Atualizando...') : ((language === 'en_us') ? 'Update Preview' : 'Atualizar Prévia'))}</button>)
+            }
           </div>
         ) : (
           <div className="d-flex align-items-start preview-warning d-p-4">Prévia indisponível</div>
@@ -1405,14 +1506,9 @@ function DocumentPreview({ language, url, previewSchema, codeId, initialform, do
   </>
   return docpreview
 }
-function DocumentManager({ language, definePreview }) {
-  function updatePreview(prev) {
-    definePreview(prev)
-  }
-  /** Funcoes do Componente */
-
-  let docpreview = <>
-    <div className="d-flex align-items-start preview-warning d-p-4">Doc Manager</div>
+function DocumentManager({ language }) {
+  let docmanager = <>
+    <div>Document Manager</div>
   </>
-  return docpreview
+  return docmanager
 }
