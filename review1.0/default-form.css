@@ -173,6 +173,7 @@ legend#root__title::before{
   border: 1px solid #CCCCCC;
   margin-bottom: 12px;
   padding: 12px;
+  padding-top:0;
   background-color: #FAFAFA;
 }
 button.btn.btn-link {
