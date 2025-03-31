@@ -191,3 +191,28 @@ button.btn.btn-link {
   border-width: 2px;
   border-style: dashed;
 }
+.wfcomponent.carousel .d-carousel-item .form-group.field-object {
+  background-color: #f5f5f5;
+  margin-bottom: 20px;
+  padding: 10px;
+  border-radius: 4px;
+}
+.wfcomponent.carousel .d-carousel-item .form-group.field-object {   
+  background-color: #FFFFFF;
+}  
+.wfcomponent.carousel .d-carousel-item #root .form-group.field-object:nth-child(n) {   
+  background-color: #FAFAFA;
+  border: 1px solid #BFBFBF;
+}  
+.wfcomponent.carousel .d-carousel-item .form-group.field-object legend {
+  display: block;     
+  width: fit-content;   
+  text-align: center;
+  font-size: 1.5rem;              
+  font-weight: bold;              
+  color: #333;                    
+  background-color: #f7f7f7;      
+  padding: 6px 12px;              
+  border-radius: 4px;             
+  margin-bottom: 8px;             
+}
