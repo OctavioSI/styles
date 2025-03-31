@@ -208,13 +208,16 @@ button.btn.btn-link {
   display: block;     
   width: fit-content;   
   text-align: center;
-  font-size: 1.5rem;              
+  font-size: 2rem;              
   font-weight: bold;              
   color: #333;                    
   background-color: #f7f7f7;      
   padding: 6px 12px;              
   border-radius: 4px;             
   margin-bottom: 8px;             
+}
+.wfcomponent.carousel legend#root__title{
+  font-size: 2em;
 }
 .wfcomponent.document-preview .btn-reload-preview{
   position: absolute;
