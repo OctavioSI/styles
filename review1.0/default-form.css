@@ -224,3 +224,8 @@ button.btn.btn-link {
   border: 2px solid #f4f4f4;
   text-transform: none;
 }
+.doc-suspended {
+  background-color: #fff4ea;
+  border: 1px solid #ffd9b7;
+}
+  
