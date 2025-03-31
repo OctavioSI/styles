@@ -216,3 +216,11 @@ button.btn.btn-link {
   border-radius: 4px;             
   margin-bottom: 8px;             
 }
+.wfcomponent.document-preview .btn-reload-preview{
+  position: absolute;
+  bottom: 45px;
+  right: 45px;
+  background-color: #fff;
+  border: 2px solid #f4f4f4;
+  text-transform: none;
+}
