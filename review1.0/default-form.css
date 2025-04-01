@@ -191,6 +191,14 @@ button.btn.btn-link {
   border-width: 2px;
   border-style: dashed;
 }
+.doc-suspended {
+  background-color: #fff4ea;
+  border: 1px solid #ffd9b7;
+}
+.doc-manual {
+  background-color: #ffeadc;
+  border: 1px solid #ffc096;
+}
 .wfcomponent.carousel .d-carousel-item .form-group.field-object {
   background-color: #f5f5f5;
   margin-bottom: 20px;
@@ -226,9 +234,5 @@ button.btn.btn-link {
   background-color: #fff;
   border: 2px solid #f4f4f4;
   text-transform: none;
-}
-.doc-suspended {
-  background-color: #fff4ea;
-  border: 1px solid #ffd9b7;
 }
   
