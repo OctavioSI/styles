@@ -180,12 +180,12 @@ button.btn.btn-link {
   text-decoration: none;
 }
 .doc-reviewed {
-  background-color: #eafff4;
-  border: 1px solid #8eaf9d;
+  background-color: #d5ffd5;
+  border: 1px solid #5cb85c;
 }
 .doc-removed {
-  background-color: #fff3f3;
-  border: 1px solid #c18f8f;
+  background-color: #ffd3d2;
+  border: 1px solid #d9534f;
 }
 .doc-active{
   border-width: 2px;
@@ -196,8 +196,8 @@ button.btn.btn-link {
   border: 1px solid #5bc0de;
 }
 .doc-manual {
-  background-color: #ffeadc;
-  border: 1px solid #ffc096;
+  background-color: #ffe8c7;
+  border: 1px solid #f0ad4e;
 }
 .wfcomponent.carousel .d-carousel-item .form-group.field-object {
   background-color: #f5f5f5;
