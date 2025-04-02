@@ -235,4 +235,6 @@ button.btn.btn-link {
   border: 2px solid #f4f4f4;
   text-transform: none;
 }
-  
+.d-modal-box {
+  background-color: #fff;
+}
