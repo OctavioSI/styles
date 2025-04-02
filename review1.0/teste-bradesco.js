@@ -1325,11 +1325,7 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
       //documentName: new Date().getTime() + '_' + documentDetails.base_filename,
       tenant: documentDetails.partitionKey,
       processID: documentDetails.processID
-    };/* 
-    let data = {
-      command: "renderDocument",
-      datacontent
-    }; */
+    };
     let config = {
       method: 'post',
       url: `/api/code/${codeId}`,
@@ -1409,6 +1405,9 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
     let { mergedFormData } = mergeSchema(previewSchema);
     mergedFormData.justificativa = modalFormData.current.justificativa ? modalFormData.current.justificativa : '';
     mergedFormData.outrajustificativa = modalFormData.current.outrajustificativa ? modalFormData.current.outrajustificativa : '';
+    mergedFormData.observacoes = modalFormData.current.observacoes ? modalFormData.current.observacoes : '';
+    mergedFormData.responsavel = modalFormData.current.responsavel ? modalFormData.current.responsavel : '';
+    mergedFormData.outroresponsavel = modalFormData.current.outroresponsavel ? modalFormData.current.outroresponsavel : '';
     let data = {
       command: "adjustManually",
       id: documentDetails.id ? documentDetails.id : 'looplex.com.br',
@@ -1438,6 +1437,8 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
   async function changeAndContinue() {
     console.log('Change and Continue...')
     let { mergedFormData } = mergeSchema(previewSchema);
+    mergedFormData.responsavel = modalFormData.current.responsavel ? modalFormData.current.responsavel : '';
+    mergedFormData.outroresponsavel = modalFormData.current.outroresponsavel ? modalFormData.current.outroresponsavel : '';
     console.log('submit', mergedFormData);
     let data = {
       command: "changeAndContinue",
@@ -1499,6 +1500,9 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
   async function removeFromRevision() {
     console.log('Removing from Revision...')
     let { mergedFormData } = mergeSchema(previewSchema);
+    mergedFormData.justificativa = modalFormData.current.justificativa ? modalFormData.current.justificativa : '';
+    mergedFormData.outrajustificativa = modalFormData.current.outrajustificativa ? modalFormData.current.outrajustificativa : '';
+    mergedFormData.observacoes = modalFormData.current.observacoes ? modalFormData.current.observacoes : '';
     let data = {
       command: "removeFromRevision",
       id: documentDetails.id ? documentDetails.id : 'looplex.com.br',
@@ -1571,10 +1575,6 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
           rjsf: {
             "schema": {
               "type": "object",
-              "required": [
-                "title",
-                "description"
-              ],
               "properties": {
                 "justificativa": {
                   "type": "string",
@@ -1611,6 +1611,48 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
                       "title": "Outra Justificativa"
                     }
                   ]
+                },
+                "observacoes": {
+                  "type": "string",
+                  "title": "Observações",
+                  "description": "",
+                  "default": ""
+                },
+                "responsavel": {
+                  "type": "string",
+                  "title": "Enviar para",
+                  "description": "",
+                  "default": "",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ],
+                      "title": "-- Selecione o responsável pelo Ajuste Manual --"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "cristiano.climaco@bradesco.com.br"
+                      ],
+                      "title": "Cristiano Climaco"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "katharine.freitas@bradesco.com.br"
+                      ],
+                      "title": "Katharine Freitas"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "outroresponsavel"
+                      ],
+                      "title": "Outro Responsável"
+                    }
+                  ]
                 }
               },
               "allOf": [
@@ -1635,6 +1677,28 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
                       }
                     }
                   }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "responsavel": {
+                        "const": "outroresponsavel"
+                      }
+                    },
+                    "required": [
+                      "responsavel"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "outroresponsavel": {
+                        "type": "string",
+                        "title": "Outro Responsável",
+                        "description": "",
+                        "default": ""
+                      }
+                    }
+                  }
                 }
               ]
             },
@@ -1645,13 +1709,19 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
               "justificativa": {
                 "ui:placeholder": "Escolha uma justificativa para o ajuste manual",
               },
-              "outrajustificativa": {
+              "observacoes": {
                 "ui:widget": "textarea",
                 "ui:placeholder": "Descreva a justificativa para o ajuste manual",
                 "ui:options": {
                   "rows": 5
                 }
-              }
+              },
+              "ui:order": [
+                "*",
+                "observacoes",
+                "responsavel",
+                "outroresponsavel"
+              ]
             }
           },
           action: "adjustManually"
@@ -1662,11 +1732,80 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
           title: "Alterar e Seguir",
           description: "Ao confirmar, os dados modificados serão renderizados em novas versões dos documentos e o fluxo de automação será continuado.",
           rjsf: {
-            "schema": {},
+            "schema": {
+              "type": "object",
+              "properties": {
+                "responsavel": {
+                  "type": "string",
+                  "title": "Responsável pela Revisão",
+                  "description": "",
+                  "default": "",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ],
+                      "title": "-- Selecione o responsável pelo Ajuste Manual --"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "cristiano.climaco@bradesco.com.br"
+                      ],
+                      "title": "Cristiano Climaco"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "katharine.freitas@bradesco.com.br"
+                      ],
+                      "title": "Katharine Freitas"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "outroresponsavel"
+                      ],
+                      "title": "Outro Responsável"
+                    }
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "responsavel": {
+                        "const": "outroresponsavel"
+                      }
+                    },
+                    "required": [
+                      "responsavel"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "responsavel": {
+                        "type": "string",
+                        "title": "Outro Responsável",
+                        "description": "",
+                        "default": ""
+                      }
+                    }
+                  }
+                }
+              ]
+            },
             "uiSchema": {
               "ui:submitButtonOptions": {
                 "norender": true
-              }
+              },
+              "ui:order": [
+                "*",
+                "responsavel",
+                "outroresponsavel"
+              ]
             }
           },
           action: "changeAndContinue"
@@ -1707,11 +1846,102 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
           title: "Remover da Revisão",
           description: "Ao confirmar, o regulamento será removida da lista de revisão e nenhuma ação adicional será feita.",
           rjsf: {
-            "schema": {},
+            "schema": {
+              "type": "object",
+              "properties": {
+                "justificativa": {
+                  "type": "string",
+                  "title": "Justificativa",
+                  "description": "",
+                  "default": "",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ],
+                      "title": "-- Selecione --"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "encerrado"
+                      ],
+                      "title": "Encerrado"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "transferencia_de_administrador"
+                      ],
+                      "title": "Transferência de Administrador"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "ja_adaptado"
+                      ],
+                      "title": "Já adaptado"
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "outrajustificativa"
+                      ],
+                      "title": "Outra Justificativa"
+                    }
+                  ]
+                },
+                "observacoes": {
+                  "type": "string",
+                  "title": "Observações",
+                  "description": "",
+                  "default": ""
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "justificativa": {
+                        "const": "outrajustificativa"
+                      }
+                    },
+                    "required": [
+                      "justificativa"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "outrajustificativa": {
+                        "type": "string",
+                        "title": "Outra justificativa",
+                        "description": "",
+                        "default": ""
+                      }
+                    }
+                  }
+                }
+              ]
+            },
             "uiSchema": {
               "ui:submitButtonOptions": {
                 "norender": true
-              }
+              },
+              "justificativa": {
+                "ui:placeholder": "Escolha uma justificativa para a remoção",
+              },
+              "observacoes": {
+                "ui:widget": "textarea",
+                "ui:placeholder": "Descreva a justificativa para a remoção",
+                "ui:options": {
+                  "rows": 5
+                }
+              },
+              "ui:order": [
+                "*",
+                "observacoes"
+              ]
             }
           },
           action: "removeFromRevision"
@@ -1871,8 +2101,8 @@ function ActionPanel({ language, formId, documentDetails, previewSchema, codeId,
         </div>
         <div className="mt-auto d-flex d-space-x-4 d-grow"></div>
         <div className="mt-auto d-flex align-items-end d-space-x-4">
-          <button type="button" className={`btn btn-info ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'justRender')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
-          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'changeAndContinue')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Change/Continue' : 'Alterar/Seguir'))}</button>
+          <button type="button" className={`btn btn-primary ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'justRender')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Rendering...' : 'Renderizando...') : ((language === 'en_us') ? 'Render' : 'Renderizar'))}</button>
+          <button type="button" className={`btn btn-success ${(isLoading || isSubmitting) && 'disabled'}`} onClick={(e) => handleSubmit(e, 'changeAndContinue')}>{isLoading && (<span class="spinner-border right-margin-5px"></span>)}{isLoading ? ((language === 'en_us') ? 'Loading...' : 'Carregando...') : (isSubmitting ? ((language === 'en_us') ? 'Saving...' : 'Salvando...') : ((language === 'en_us') ? 'Change/Continue' : 'Alterar/Seguir'))}</button>
         </div>
       </div>
     </div>
