@@ -238,3 +238,9 @@ button.btn.btn-link {
 .d-modal-box {
   background-color: #fff;
 }
+.panel.panel-danger.errors{
+  display:none;
+}
+.error-detail{
+  display:none;
+}
