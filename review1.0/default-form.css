@@ -237,6 +237,7 @@ button.btn.btn-link {
 }
 .d-modal-box {
   background-color: #fff;
+  max-width:49rem;
 }
 .panel.panel-danger.errors{
   display:none;
