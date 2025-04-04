@@ -245,3 +245,14 @@ button.btn.btn-link {
 .error-detail{
   display:none;
 }
+.politica-investimento {
+    margin-top: 12px;
+}
+.politica-investimento-table {
+    margin-top: 24px;
+    background-color: #FAFAFA;
+    border: 1px solid #BFBFBF;
+    padding: 10px;
+    border-radius: 4px;
+}
+
