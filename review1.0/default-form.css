@@ -265,6 +265,10 @@ button.btn.btn-link {
     border-radius: 4px;
     margin-bottom: 8px;
 }
+.politica-investimento-area-description {
+    margin-bottom: 8px;
+    font-size: 1.2em;
+}
 .politica-investimento-item {
     border: 1px solid #cccccc;
     padding: 12px;
