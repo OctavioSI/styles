@@ -256,3 +256,10 @@ button.btn.btn-link {
     border-radius: 4px;
 }
 
+.wfcomponent.carousel .d-carousel-item .politica-investimento .form-group.field-object {   
+  background-color: transparent !important;
+}  
+.wfcomponent.carousel .d-carousel-item #root .politica-investimento .form-group.field-object:nth-child(n) {   
+  background-color: transparent !important;
+  border: none !important;
+}  
