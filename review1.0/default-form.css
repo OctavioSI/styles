@@ -265,6 +265,13 @@ button.btn.btn-link {
     border-radius: 4px;
     margin-bottom: 8px;
 }
+.politica-investimento-item {
+    border: 1px solid #cccccc;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background-color: #FDFDFD;
+}
 .wfcomponent.carousel .d-carousel-item .politica-investimento .form-group.field-object {   
   background-color: transparent !important;
 }  
