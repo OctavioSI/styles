@@ -276,6 +276,20 @@ button.btn.btn-link {
     margin-bottom: 8px;
     background-color: #FDFDFD;
 }
+.politica-investimento-item legend#root__title {
+    font-size: 1.5em !important;
+}
+.politica-investimento-item p#root__description {
+    font-size: 1.2em;
+}
+.politica-investimento-item .checkbox {
+    margin-top: 30px;
+    font-size: 1.2em;
+}
+.politica-investimento-item .form-group.field.field-object {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
 .wfcomponent.carousel .d-carousel-item .politica-investimento .form-group.field-object {   
   background-color: transparent !important;
 }  
