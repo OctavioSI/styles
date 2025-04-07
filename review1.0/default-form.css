@@ -297,3 +297,6 @@ button.btn.btn-link {
   background-color: transparent !important;
   border: none !important;
 }  
+.section-content-wrapper{
+  padding-bottom:12px;
+}
