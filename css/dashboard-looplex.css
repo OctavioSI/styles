@@ -84,6 +84,13 @@ main{
   overflow: hidden !important;
 }
 
+.dashboard-wrapper{
+  min-height: 100%;
+  width:100%;
+  overflow: hidden !important;
+  overflow-y: auto;
+}
+
 section.deckofcards{
   padding: 2rem;
   height: calc(100% - 130px);
