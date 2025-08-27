@@ -62,5 +62,6 @@ body {
   height: calc(100vh - 65px);
   width: 100%;
   margin: auto;
+  overflow-y: auto;
 }
 
