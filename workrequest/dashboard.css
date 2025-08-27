@@ -48,7 +48,16 @@ body {
   top: 15px;
 }
 
-.container-form {
+.looplex-header span {
+  padding-left: 60px;
+  position: absolute;
+  font-size: 21px;
+  color: #FFF;
+  font-weight: bold;
+  margin-top: -14px;
+}
+
+.dashboard-wrapper {
   position: relative;
   height: calc(100vh - 65px);
   width: 100%;
