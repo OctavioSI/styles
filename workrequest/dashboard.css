@@ -1,0 +1,57 @@
+html {
+  box-sizing: border-box;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+html,
+body,
+#__next,
+#layout {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f2f5;
+}
+
+h1 {
+  font-size: 30px !important;
+  margin-top: 2px !important;
+  margin-bottom: 2px !important;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.42857143 !important;
+  color: #333 !important;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.looplex-header {
+  height: 60px;
+  background-color: #001529;
+}
+
+.looplex-header img {
+  margin-left: 20px;
+  position: relative;
+  top: 15px;
+}
+
+.container-form {
+  position: relative;
+  height: calc(100vh - 65px);
+  width: 100%;
+  margin: auto;
+}
+
